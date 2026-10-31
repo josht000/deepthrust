@@ -1,9 +1,9 @@
-//! Lightweight stage timing with an end-of-run summary table (port of src/utils/timing.py).
+//! Lightweight stage timing with a detailed file report and concise console total.
 //!
 //! ```ignore
 //! timing::install("run");                   // once per entry point
 //! let _g = timing::stage("load panel");     // nested guards build a tree
-//! timing::finish(profile);                  // prints summary + writes results/timing/*.json
+//! timing::finish(profile, results_dir);     // writes timing.txt; prints total wall time
 //! ```
 
 use std::collections::BTreeMap;
@@ -169,27 +169,13 @@ pub fn summary(profile: bool) -> String {
     lines.join("\n")
 }
 
-/// Print the summary and write `results/timing/<name>_<stamp>.json`.
-pub fn finish(profile: bool, results_dir: &std::path::Path) {
-    println!("{}", summary(profile));
-    let s = state().lock().unwrap();
-    let stages: serde_json::Map<String, serde_json::Value> = s
-        .tree
-        .iter()
-        .map(|(k, r)| {
-            (
-                k.join(" > "),
-                serde_json::json!({"wall_s": r.wall, "calls": r.calls, "min_s": r.min, "max_s": r.max}),
-            )
-        })
-        .collect();
-    let data = serde_json::json!({"name": s.name, "total_wall_s": s.t0.elapsed().as_secs_f64(), "stages": stages});
-    let dir = results_dir.join("timing");
-    let stamp = chrono::Local::now().format("%Y%m%d_%H%M%S");
-    let path = dir.join(format!("{}_{}.json", s.name, stamp));
-    if std::fs::create_dir_all(&dir).is_ok()
-        && std::fs::write(&path, serde_json::to_string_pretty(&data).unwrap()).is_ok()
-    {
-        println!("timing json: {}", path.display());
-    }
+/// Write the detailed report to the strategy results folder and print only total wall time.
+pub fn finish(profile: bool, results_dir: &std::path::Path) -> Result<(), String> {
+    let report = summary(profile);
+    let total = state().lock().unwrap().t0.elapsed().as_secs_f64();
+    let path = results_dir.join("timing.txt");
+    std::fs::create_dir_all(results_dir).map_err(|e| format!("{}: {e}", results_dir.display()))?;
+    std::fs::write(&path, report).map_err(|e| format!("{}: {e}", path.display()))?;
+    println!("Total timing: {} ({total:.2}s)", fmt(total));
+    Ok(())
 }

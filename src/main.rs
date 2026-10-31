@@ -1,4 +1,4 @@
-//! Study runner: `deepthrust --strategy s001_rsi2_connors [--variant NAME[,NAME2]] ...`
+//! Study runner: `deepthrust --strategy <name> [--variant NAME[,NAME2]] ...`
 //! (CLI mirrors trading_framework's run.py).
 
 use clap::Parser;
@@ -7,7 +7,10 @@ use std::process::ExitCode;
 
 use deepthrust::config::{self, Cli, Config};
 use deepthrust::study::{self, Flags, Study, NAME};
+use deepthrust::symbols_overview::Overview;
 use deepthrust::{data, timing};
+use std::fs::OpenOptions;
+use std::io::Write;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -33,47 +36,193 @@ struct Args {
     /// comma-separated names from the strategy config's variants: block (default: baseline)
     #[arg(long)]
     variant: Option<String>,
-    /// folder containing the configured daily-bar files (overrides data_dir)
+    /// folder containing daily-bar files (overrides every configured source directory)
     #[arg(long)]
     data_dir: Option<String>,
-    /// comma-separated symbols (overrides symbols in the strategy config; default AAPL)
+    /// comma-separated symbols (overrides the configured symbols; only for single-source configs)
     #[arg(long)]
     symbols: Option<String>,
 }
 
 fn check_inputs(cfg: &Config, results: &Path) -> Result<String, String> {
     let _g = timing::stage("input check");
-    let symbols = cfg.symbol_list();
+    let sources = cfg.source_list();
+    let mut symbol_names = vec![];
     let mut files = vec![];
-    for s in &symbols {
-        let p = data::input_path(&cfg.data_dir, s, &cfg.data_suffix);
-        if p.extension().and_then(|ext| ext.to_str()) != Some("parquet") {
-            return Err(format!(
-                "{} is not a Parquet input; data_suffix must end in .parquet",
-                p.display()
-            ));
+    let mut source_manifest = vec![];
+    for source in &sources {
+        let symbols = config::split_csv(&source.symbols);
+        let mut source_files = vec![];
+        for symbol in &symbols {
+            let p = data::input_path(&source.data_dir, symbol, &source.data_suffix);
+            if p.extension().and_then(|ext| ext.to_str()) != Some("parquet") {
+                return Err(format!(
+                    "{} is not a Parquet input; data_suffix must end in .parquet",
+                    p.display()
+                ));
+            }
+            if !p.exists() {
+                return Err(format!("missing input data: {}", p.display()));
+            }
+            source_files.push(p.display().to_string());
+            files.push(p.display().to_string());
+            symbol_names.push(symbol.clone());
         }
-        if !p.exists() {
-            return Err(format!("missing input data: {}", p.display()));
-        }
-        files.push(p.display().to_string());
+        source_manifest.push(serde_json::json!({
+            "name": source.name,
+            "data_dir": source.data_dir,
+            "symbols": symbols,
+            "files": source_files,
+            "cost_bps_per_side": source.cost_bps_per_side.unwrap_or(cfg.cost_bps_per_side)
+        }));
     }
     let dir = results.join("manifests");
-    let manifest = serde_json::json!({"strategy": NAME, "variant": cfg.variant, "inputs": {"data_dir": {"symbols": symbols.len(), "symbol_names": symbols, "files": files}}, "warnings": []});
-    if std::fs::create_dir_all(&dir).is_ok() {
-        let _ = std::fs::write(
-            dir.join(format!("{}__{}.json", NAME, cfg.variant)),
-            serde_json::to_string_pretty(&manifest).unwrap(),
-        );
+    let manifest = serde_json::json!({
+        "strategy": cfg.strategy,
+        "variant": cfg.variant,
+        "inputs": {"sources": source_manifest, "files": files},
+        "warnings": []
+    });
+    std::fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    let path = dir.join(format!("{}__{}.json", cfg.strategy, cfg.variant));
+    std::fs::write(&path, serde_json::to_string_pretty(&manifest).unwrap())
+        .map_err(|e| format!("{}: {e}", path.display()))?;
+    Ok(format!("{} symbols", symbol_names.len()))
+}
+
+fn csv_field(value: &str) -> String {
+    if value.contains([',', '"', '\n', '\r']) {
+        format!("\"{}\"", value.replace('"', "\"\""))
+    } else {
+        value.to_string()
     }
-    Ok(format!("data_dir={}", symbols.len()))
+}
+
+fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Result<(), String> {
+    let strategy_dir = results.join(&cfg.strategy);
+    std::fs::create_dir_all(&strategy_dir)
+        .map_err(|e| format!("{}: {e}", strategy_dir.display()))?;
+    let registry_path = results.join("trial_registry.jsonl");
+    let existing_registry = if registry_path.exists() {
+        std::fs::read_to_string(&registry_path)
+            .map_err(|e| format!("{}: {e}", registry_path.display()))?
+    } else {
+        String::new()
+    };
+    let mut registry = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&registry_path)
+        .map_err(|e| format!("{}: {e}", registry_path.display()))?;
+    let mut comparison = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(strategy_dir.join("variants_comparison.csv"))
+        .map_err(|e| {
+            format!(
+                "{}: {e}",
+                strategy_dir.join("variants_comparison.csv").display()
+            )
+        })?;
+    let comparison_path = strategy_dir.join("variants_comparison.csv");
+    if comparison
+        .metadata()
+        .map_err(|e| format!("{}: {e}", comparison_path.display()))?
+        .len()
+        == 0
+    {
+        writeln!(
+            comparison,
+            "variant,fill,dev_trades,dev_total_log,dev_skill,dev_sharpe,dev_pf,dev_win_pct,test_trades,test_total_log,test_skill,test_sharpe,test_pf,test_win_pct"
+        )
+        .map_err(|e| format!("{}: {e}", comparison_path.display()))?;
+    }
+    let source_params: Vec<_> = cfg
+        .source_list()
+        .iter()
+        .map(|source| {
+            serde_json::json!({
+                "name": source.name,
+                "data_dir": source.data_dir,
+                "data_suffix": source.data_suffix,
+                "symbols": source.symbols,
+                "cost_bps_per_side": source.cost_bps_per_side.unwrap_or(cfg.cost_bps_per_side)
+            })
+        })
+        .collect();
+    let params = serde_json::json!({
+        "variant_overlay": cfg.variant_overlay,
+        "sources": source_params,
+        "rsi_len": cfg.rsi_len,
+        "rsi_threshold": cfg.rsi_threshold,
+        "gate": cfg.gate,
+        "sma_window": cfg.sma_window,
+        "exit_mode": cfg.exit_mode,
+        "exit_rsi": cfg.exit_rsi,
+        "cost_bps_per_side": cfg.cost_bps_per_side,
+        "fills": cfg.fills
+    });
+    for fill in cfg.fills_list() {
+        let dev = study
+            .row(&fill, "dev")
+            .ok_or_else(|| format!("missing dev partition row for {fill}"))?;
+        let test = study
+            .row(&fill, "test")
+            .ok_or_else(|| format!("missing test partition row for {fill}"))?;
+        let record = serde_json::json!({
+            "timestamp": chrono::Utc::now().to_rfc3339(),
+            "strategy": cfg.strategy,
+            "variant": cfg.variant,
+            "fill": fill,
+            "parameters": params,
+            "dev": {"trades": dev.get("trades"), "total_log": dev.get("total_log"), "skill": dev.get("skill"), "sharpe": dev.get("sharpe"), "pf": dev.get("pf"), "win_pct": dev.get("win_pct")},
+            "test": {"trades": test.get("trades"), "total_log": test.get("total_log"), "skill": test.get("skill"), "sharpe": test.get("sharpe"), "pf": test.get("pf"), "win_pct": test.get("win_pct")}
+        });
+        let already_logged = existing_registry.lines().try_fold(false, |found, line| {
+            if found {
+                return Ok::<bool, String>(true);
+            }
+            let previous: serde_json::Value = serde_json::from_str(line)
+                .map_err(|e| format!("{} contains invalid JSON: {e}", registry_path.display()))?;
+            Ok(previous["strategy"] == record["strategy"]
+                && previous["variant"] == record["variant"]
+                && previous["fill"] == record["fill"]
+                && previous["parameters"] == record["parameters"])
+        })?;
+        if already_logged {
+            continue;
+        }
+        writeln!(registry, "{record}").map_err(|e| format!("{}: {e}", registry_path.display()))?;
+        writeln!(
+            comparison,
+            "{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
+            csv_field(&cfg.variant),
+            csv_field(&fill),
+            dev.get("trades"),
+            dev.get("total_log"),
+            dev.get("skill"),
+            dev.get("sharpe"),
+            dev.get("pf"),
+            dev.get("win_pct"),
+            test.get("trades"),
+            test.get("total_log"),
+            test.get("skill"),
+            test.get("sharpe"),
+            test.get("pf"),
+            test.get("win_pct")
+        )
+        .map_err(|e| format!("{}: {e}", comparison_path.display()))?;
+    }
+    Ok(())
 }
 
 fn run(args: Args) -> Result<(), String> {
-    if args.strategy != NAME {
+    if !study::supports_strategy(&args.strategy) {
         return Err(format!(
-            "unknown strategy {:?}; implemented: {NAME}",
-            args.strategy
+            "unknown strategy {:?}; implemented: {}, {}",
+            args.strategy,
+            study::NAME,
+            study::S003_NAME
         ));
     }
     let results: PathBuf = PathBuf::from("results");
@@ -92,13 +241,17 @@ fn run(args: Args) -> Result<(), String> {
         symbols: args.symbols.clone(),
     };
     let variants: Vec<Option<String>> = {
-        let v = config::split_csv(args.variant.as_deref().unwrap_or(""));
+        let mut v = config::split_csv(args.variant.as_deref().unwrap_or(""));
+        if args.variant.is_some() && !v.is_empty() && !v.iter().any(|name| name == "baseline") {
+            v.insert(0, "baseline".into());
+        }
         if v.is_empty() {
             vec![None]
         } else {
             v.into_iter().map(Some).collect()
         }
     };
+    let mut symbol_overview: Option<Overview> = None;
     for variant in variants {
         let cfg = config::load_config(
             &args.strategy,
@@ -119,9 +272,31 @@ fn run(args: Args) -> Result<(), String> {
                 .run_stage(name)
                 .map_err(|e| format!("study stage {name:?} failed: {e}"))?;
         }
+        if stages.contains(&"partition") {
+            append_trial_record(&cfg, &study, &results)?;
+        }
+        if stages.contains(&"charts") {
+            let next = study.symbol_overview()?;
+            if let Some(all) = &mut symbol_overview {
+                if all.dates != next.dates || all.split_row != next.split_row {
+                    return Err("variant symbol-overview calendars do not match".into());
+                }
+                all.variants.extend(next.variants);
+            } else {
+                symbol_overview = Some(next);
+            }
+        }
+    }
+    if let Some(overview) = symbol_overview {
+        let out = results.join(&args.strategy);
+        std::fs::create_dir_all(&out).map_err(|e| format!("{}: {e}", out.display()))?;
+        let svg = out.join("symbols_overview.svg");
+        let csv = out.join("symbols_summary.csv");
+        overview.write(&svg, &csv)?;
+        println!("symbol overview: {}", svg.display());
     }
     if !args.check_data {
-        timing::finish(args.profile, &results);
+        timing::finish(args.profile, &results.join(&args.strategy))?;
     }
     Ok(())
 }

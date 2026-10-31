@@ -1,7 +1,7 @@
 # S001 RSI(2) Classic (Connors) - split-adjusted daily bars.
-data_dir: C:\data\trading\trading_framework\data\cache\daily_10years
-data_suffix: _1Day_split.parquet
-symbols: AAPL
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: _1Day_tr.parquet
+symbols: QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY
 benchmark: SPY          # plotted alongside the strategy (cumulative log returns); not traded
 start_date: "2005-01-01"
 min_history: 250
@@ -38,3 +38,47 @@ variants:
   rsi5_gate21: {rsi_threshold: 5, gate: ret21}
   rsi5_pyramid3: {rsi_threshold: 5, sizing: pyramid3}
   rsi5_stop3atr: {rsi_threshold: 5, disaster_stop_atr: 3.0}
+  rsi3_10: {rsi_len: 3, rsi_threshold: 10}
+  rsi4_10: {rsi_len: 4, rsi_threshold: 10}
+  rsi2_15: {rsi_threshold: 15}
+  rsi2_20: {rsi_threshold: 20}
+  rsi3_5: {rsi_len: 3, rsi_threshold: 5}
+  rsi3_15: {rsi_len: 3, rsi_threshold: 15}
+  gate_sma100: {sma_window: 100}
+  gate_sma150: {sma_window: 150}
+  gate_sma250: {sma_window: 250}
+  gate_sma300: {sma_window: 300}
+  exit_sma3: {exit_mode: sma5, exit_sma: 3}
+  exit_sma7: {exit_mode: sma5, exit_sma: 7}
+  exit_sma10: {exit_mode: sma5, exit_sma: 10}
+  rsi_exit60: {exit_mode: rsi, exit_rsi: 60}
+  rsi_exit80: {exit_mode: rsi, exit_rsi: 80}
+  stop2atr: {disaster_stop_atr: 2.0}
+  stop4atr: {disaster_stop_atr: 4.0}
+  pyramid2: {sizing: pyramid3, max_units: 2}
+  pyramid_add10: {sizing: pyramid3, add_rsi: 10}
+  rsi5_gate21_exit70: {rsi_threshold: 5, gate: ret21, exit_mode: rsi, exit_rsi: 70}
+  stocks_mega:
+    data_dir: 'C:\data\trading\trading_framework\data\cache\daily_10years_tr'
+    data_suffix: _1Day_tr.parquet
+    symbols: AAPL,MSFT,NVDA,AMZN,GOOGL,META
+    benchmark_data_dir: 'C:\data\trading\trading_framework\data\cache\etf_tr'
+    benchmark_data_suffix: _1Day_tr.parquet
+    cost_bps_per_side: 10
+    book_slots: 6
+  stocks_large:
+    data_dir: 'C:\data\trading\trading_framework\data\cache\daily_10years_tr'
+    data_suffix: _1Day_tr.parquet
+    symbols: JPM,XOM,WMT,COST,ORCL,HD
+    benchmark_data_dir: 'C:\data\trading\trading_framework\data\cache\etf_tr'
+    benchmark_data_suffix: _1Day_tr.parquet
+    cost_bps_per_side: 10
+    book_slots: 6
+  stocks_small:
+    data_dir: 'C:\data\trading\trading_framework\data\cache\daily_10years_tr'
+    data_suffix: _1Day_tr.parquet
+    symbols: FUBO,CHPT,KSS,RIOT,MARA,RIG
+    benchmark_data_dir: 'C:\data\trading\trading_framework\data\cache\etf_tr'
+    benchmark_data_suffix: _1Day_tr.parquet
+    cost_bps_per_side: 10
+    book_slots: 6

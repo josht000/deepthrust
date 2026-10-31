@@ -1,0 +1,9 @@
+- Layout: every strategy lives in `src/strategies/<name>/` (config in `configs/<name>.yaml`); one-off python tools live in `tools/`; one-off shell/batch scripts live in `scripts/`.
+- A study keeps ALL its outputs (trades, tables, partition CSV/report, figures, golden) in `results/<name>/`. Do not write study outputs to `reports/`.
+- Envs should always be repeatble so the cargo and other install/setup scripts need to be kept up to date. Notify the user (me) if updates are needed here. 
+- Windows python env is in C:\data\envs\trading_framework\Scripts\python.exe
+- DO NOT EVER USE THE SCHWAB API TO MAKE REAL TRADES! IT IS FOR DATA ONLY!
+- Every simulation report must include the partition test (trend, random-pick baseline, skill, bias, skill %), sharpe ratio, profit factor, # trades, Win rate %, for dev and test.
+- Strategy variants: put named overlays in the strategy yaml `variants:` block and run `python run.py --strategy <name> --variant a,b`; variant outputs are `results/<name>/<variant>__<file>`, and `results/<name>/variants_comparison.csv` tracks every variant tried (count them as trials; select on dev only, report test once).
+- Plot the cumulative log returns of the benchmark such as SPY or QQQ alongside the strategy's cumulative log returns to visualize performance.
+- When refactoring code or adding new features, make sure to update the documentation and examples especially in the docs\strategies\Trading Strategy Catalog (105 strategies, markdown).md file or any other relevant documentation.

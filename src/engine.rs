@@ -16,7 +16,7 @@ pub struct Trade {
     pub ret_gross: f64,
     pub exit_reason: &'static str,
     pub hold: usize,
-    pub rsi2: f64,
+    pub signal_value: f64,
 }
 
 /// Last row index with a finite close per symbol.
@@ -33,8 +33,9 @@ pub struct SwingParams<'a> {
     pub add_signal: Option<&'a Mask>,
     pub max_units: usize,
     pub stop_atr: Option<&'a Mat>,
+    pub stop_pct: Option<&'a Mat>,
     pub stop_mult: f64,
-    pub rsi: &'a Mat,
+    pub signal_value: &'a Mat,
 }
 
 /// Per-symbol swing book: enter on `signal`, exit when `exit_now` or the stop fires.
@@ -43,11 +44,11 @@ pub struct SwingParams<'a> {
 /// fill="next_open": signal day t fills at open[t+1]; an exit decided on session u fills at open[u+1].
 pub fn swing_trades(panel: &Panel, p: &SwingParams, cfg: &Config, fill: &str) -> Vec<Trade> {
     let n_rows = panel.dates.len();
-    let cost = cfg.cost();
     let is_open = fill == "next_open";
     let last = last_valid_rows(&panel.close);
     let mut rows: Vec<Trade> = vec![];
     for j in 0..panel.symbols.len() {
+        let cost = cfg.cost_for_symbol(&panel.symbols[j]);
         if !p.signal[j].iter().any(|&s| s) {
             continue;
         }
@@ -63,13 +64,22 @@ pub fn swing_trades(panel: &Panel, p: &SwingParams, cfg: &Config, fill: &str) ->
                 continue;
             }
             let e0_px = if is_open { oj[entry0] } else { cj[t] };
-            let stop_level = p.stop_atr.and_then(|a| {
-                if a[j][t].is_finite() {
-                    Some(e0_px - p.stop_mult * a[j][t])
-                } else {
-                    None
-                }
-            });
+            let stop_level = p
+                .stop_pct
+                .and_then(|pct| {
+                    pct[j][t]
+                        .is_finite()
+                        .then_some(e0_px * (1.0 - p.stop_mult * pct[j][t]))
+                })
+                .or_else(|| {
+                    p.stop_atr.and_then(|a| {
+                        if a[j][t].is_finite() {
+                            Some(e0_px - p.stop_mult * a[j][t])
+                        } else {
+                            None
+                        }
+                    })
+                });
             let (mut reason, mut u_exit) = ("signal", None);
             for u in (t + 1)..=lj {
                 if !cj[u].is_finite() {
@@ -138,7 +148,7 @@ pub fn swing_trades(panel: &Panel, p: &SwingParams, cfg: &Config, fill: &str) ->
                     ret_gross: exit_px / entry_px - 1.0,
                     exit_reason: reason,
                     hold: exit_idx - entry,
-                    rsi2: p.rsi[j][t_leg],
+                    signal_value: p.signal_value[j][t_leg],
                 });
             }
             t_prev = Some(u_exit);
@@ -197,8 +207,9 @@ mod tests {
             add_signal: None,
             max_units: 1,
             stop_atr: None,
+            stop_pct: None,
             stop_mult: 0.0,
-            rsi: &rsi,
+            signal_value: &rsi,
         };
         let c = cfg();
         let t = swing_trades(&panel, &p, &c, "next_open");
@@ -211,5 +222,41 @@ mod tests {
             (1, 3, 11.5, 13.5)
         );
         assert!(t[0].ret < t[0].ret_gross);
+    }
+
+    #[test]
+    fn relative_atr_stop_is_anchored_to_entry_price() {
+        let n = 5;
+        let dates = (0..n)
+            .map(|i| parse_date(&format!("2024-01-{:02}", i + 2)).unwrap())
+            .collect();
+        let panel = Panel {
+            dates,
+            symbols: vec!["X".into()],
+            open: vec![vec![100.0, 100.0, 100.0, 100.0, 68.0]],
+            high: vec![vec![100.0; n]],
+            low: vec![vec![100.0; n]],
+            close: vec![vec![100.0, 100.0, 90.0, 69.0, 68.0]],
+        };
+        let mut sig = vec![false; n];
+        sig[1] = true;
+        let signal = vec![sig];
+        let exit_now = vec![vec![false; n]];
+        let stop_pct = vec![vec![f64::NAN, 0.1, f64::NAN, f64::NAN, f64::NAN]];
+        let signal_value = vec![vec![f64::NAN; n]];
+        let params = SwingParams {
+            signal: &signal,
+            exit_now: &exit_now,
+            add_signal: None,
+            max_units: 1,
+            stop_atr: None,
+            stop_pct: Some(&stop_pct),
+            stop_mult: 3.0,
+            signal_value: &signal_value,
+        };
+        let trades = swing_trades(&panel, &params, &cfg(), "next_open");
+        assert_eq!(trades.len(), 1);
+        assert_eq!(trades[0].exit_reason, "stop");
+        assert_eq!(trades[0].exit_idx, 4);
     }
 }

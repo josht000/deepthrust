@@ -22,6 +22,7 @@ pub struct Book {
     pub entry_mat: Mat,
     pub exit_mat: Mat,
     pub cost: f64,
+    pub symbol_costs: Vec<f64>,
     pub n_rows: usize,
     pub b_day: Vec<f64>,
     pub slots: usize,
@@ -57,8 +58,20 @@ pub fn account_series(
     n_rows: usize,
     slots: usize,
 ) -> (Vec<f64>, Vec<f64>) {
+    let costs = vec![cost; close_ff.len()];
+    account_series_with_costs(legs, close_ff, &costs, n_rows, slots)
+}
+
+pub fn account_series_with_costs(
+    legs: &[Leg],
+    close_ff: &Mat,
+    costs: &[f64],
+    n_rows: usize,
+    slots: usize,
+) -> (Vec<f64>, Vec<f64>) {
     let (mut sums, mut count) = (vec![0.0f64; n_rows], vec![0.0f64; n_rows]);
     for l in legs {
+        let cost = costs.get(l.col).copied().unwrap_or(0.0);
         for day in l.entry..=l.exit {
             let start = if day == l.entry {
                 l.entry_px * (1.0 + cost)
@@ -139,7 +152,13 @@ fn random_books(
                 }
             })
             .collect();
-        let (r, _) = account_series(&legs, &book.close_ff, book.cost, book.n_rows, book.slots);
+        let (r, _) = account_series_with_costs(
+            &legs,
+            &book.close_ff,
+            &book.symbol_costs,
+            book.n_rows,
+            book.slots,
+        );
         let log_r: Vec<f64> = r.iter().map(|v| v.ln_1p()).collect();
         for (m, (_, mask)) in masks.iter().enumerate() {
             total[m] = period_total(&log_r, mask);
@@ -223,6 +242,50 @@ fn perf(r: &[f64], trade_ret: &[f64], hold: &[f64]) -> Vec<(&'static str, f64)> 
     ]
 }
 
+fn profit_factor(returns: &[f64]) -> f64 {
+    let wins: f64 = returns.iter().filter(|r| **r > 0.0).sum();
+    let losses: f64 = -returns.iter().filter(|r| **r <= 0.0).sum::<f64>();
+    if losses > 0.0 {
+        wins / losses
+    } else if wins > 0.0 {
+        f64::INFINITY
+    } else {
+        f64::NAN
+    }
+}
+
+fn bootstrap_pf_ci(returns: &[f64], n_boot: usize, seed: u64) -> (f64, f64) {
+    if returns.is_empty() || n_boot == 0 {
+        return (f64::NAN, f64::NAN);
+    }
+    let mut rng = Rng::new(seed);
+    let mut values = Vec::with_capacity(n_boot);
+    for _ in 0..n_boot {
+        let sample: Vec<f64> = (0..returns.len())
+            .map(|_| returns[rng.below(returns.len())])
+            .collect();
+        let pf = profit_factor(&sample);
+        if !pf.is_nan() {
+            values.push(pf);
+        }
+    }
+    if values.is_empty() {
+        return (f64::NAN, f64::NAN);
+    }
+    values.sort_by(f64::total_cmp);
+    let quantile = |q: f64| {
+        let index = q * (values.len() - 1) as f64;
+        if values[index.floor() as usize].is_infinite()
+            || values[index.ceil() as usize].is_infinite()
+        {
+            f64::INFINITY
+        } else {
+            stats::quantile_sorted(&values, q)
+        }
+    };
+    (quantile(0.025), quantile(0.975))
+}
+
 pub struct Bias {
     pub value: f64,
     pub src: String,
@@ -278,7 +341,13 @@ pub fn evaluate_fill(
     let legs = legs_of(trades);
     let (r_day, count, f_day, entry_w, exit_w) = {
         let _g = timing::stage("account");
-        let (r_day, count) = account_series(&legs, &book.close_ff, book.cost, n_rows, book.slots);
+        let (r_day, count) = account_series_with_costs(
+            &legs,
+            &book.close_ff,
+            &book.symbol_costs,
+            n_rows,
+            book.slots,
+        );
         let f_day: Vec<f64> = count
             .iter()
             .map(|c: &f64| c / c.max(book.slots as f64))
@@ -329,7 +398,8 @@ pub fn evaluate_fill(
                 .filter(|(i, _)| !drop.contains(i))
                 .map(|(_, l)| *l)
                 .collect();
-            account_series(&sub, &book.close_ff, book.cost, n_rows, book.slots).0
+            account_series_with_costs(&sub, &book.close_ff, &book.symbol_costs, n_rows, book.slots)
+                .0
         };
         let _g = timing::stage("bootstrap");
         let rnd: Vec<(&str, Vec<f64>)> = random
@@ -432,6 +502,9 @@ fn partition_period(
     for (k, v) in perf(&r_period, &tr_ret, &tr_hold) {
         out.set(k, v);
     }
+    let (pf_lo, pf_hi) = bootstrap_pf_ci(&tr_ret, n_boot, seed + 2);
+    out.set("pf_ci_low", pf_lo);
+    out.set("pf_ci_high", pf_hi);
     for (name, totals) in random {
         let key = |p: &str| -> &'static str {
             match (p, *name) {
@@ -503,13 +576,9 @@ pub fn cost_ladder(
     let legs = legs_of(trades);
     let mut rows = vec![];
     for &mult in multipliers {
-        let (r_day, _) = account_series(
-            &legs,
-            &book.close_ff,
-            book.cost * mult,
-            book.n_rows,
-            book.slots,
-        );
+        let costs: Vec<f64> = book.symbol_costs.iter().map(|cost| cost * mult).collect();
+        let (r_day, _) =
+            account_series_with_costs(&legs, &book.close_ff, &costs, book.n_rows, book.slots);
         for (name, mask) in masks {
             let r: Vec<f64> = (0..book.n_rows)
                 .filter(|&t| mask[t])
@@ -576,7 +645,13 @@ pub fn random_timing(
         if legs.is_empty() {
             continue;
         }
-        let (r, _) = account_series(&legs, &book.close_ff, book.cost, book.n_rows, book.slots);
+        let (r, _) = account_series_with_costs(
+            &legs,
+            &book.close_ff,
+            &book.symbol_costs,
+            book.n_rows,
+            book.slots,
+        );
         let log_r: Vec<f64> = r.iter().map(|v| v.ln_1p()).collect();
         for (m, (_, mask)) in masks.iter().enumerate() {
             total[m] = period_total(&log_r, mask);
@@ -653,7 +728,7 @@ mod tests {
             ret_gross: xp / ep - 1.0,
             exit_reason: "signal",
             hold: exit - entry,
-            rsi2: 5.0,
+            signal_value: 5.0,
         }
     }
 
@@ -680,6 +755,45 @@ mod tests {
     }
 
     #[test]
+    fn account_applies_source_specific_cost_per_symbol() {
+        let close = vec![vec![100.0], vec![100.0]];
+        let legs = vec![
+            Leg {
+                col: 0,
+                entry: 0,
+                exit: 0,
+                entry_px: 100.0,
+                exit_px: 100.0,
+            },
+            Leg {
+                col: 1,
+                entry: 0,
+                exit: 0,
+                entry_px: 100.0,
+                exit_px: 100.0,
+            },
+        ];
+        let costs = [0.0005, 0.0015];
+        let expected = costs
+            .iter()
+            .map(|cost| (1.0 - cost) / (1.0 + cost) - 1.0)
+            .sum::<f64>()
+            / 2.0;
+        let (returns, _) = account_series_with_costs(&legs, &close, &costs, 1, 1);
+        assert!((returns[0] - expected).abs() < 1e-12);
+    }
+
+    #[test]
+    fn trade_profit_factor_interval_is_deterministic() {
+        let returns = [0.1, 0.04, -0.05, -0.02, 0.03];
+        let first = bootstrap_pf_ci(&returns, 500, 7);
+        let second = bootstrap_pf_ci(&returns, 500, 7);
+        assert_eq!(first, second);
+        assert!(first.0 <= first.1);
+        assert!(first.0.is_finite());
+    }
+
+    #[test]
     fn partition_identities_hold() {
         let n = 400;
         let close: Vec<f64> = (0..n)
@@ -700,6 +814,7 @@ mod tests {
             entry_mat: mat.clone(),
             exit_mat: mat,
             cost: 0.0005,
+            symbol_costs: vec![0.0005],
             n_rows: n,
             b_day,
             slots: 1,

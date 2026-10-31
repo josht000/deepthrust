@@ -1,4 +1,4 @@
-//! S001 RSI(2) Classic (Connors): signals on a daily panel (port of s001_rsi2_connors/signals.py).
+//! Daily-panel signal calculations for the registered strategy definitions.
 
 use crate::config::Config;
 use crate::data::Panel;
@@ -79,12 +79,30 @@ pub fn rolling_mean(x: &[f64], w: usize) -> Vec<f64> {
     out
 }
 
+fn rolling_extreme(x: &[f64], w: usize, minimum: bool) -> Vec<f64> {
+    let width = w.max(1);
+    let mut out = vec![f64::NAN; x.len()];
+    for t in (width - 1)..x.len() {
+        let window = &x[t + 1 - width..=t];
+        if window.iter().all(|value| value.is_finite()) {
+            out[t] = if minimum {
+                window.iter().copied().fold(f64::INFINITY, f64::min)
+            } else {
+                window.iter().copied().fold(f64::NEG_INFINITY, f64::max)
+            };
+        }
+    }
+    out
+}
+
 pub struct Signals {
     pub rsi: Mat,
+    pub indicator_name: String,
     pub signal: Mask,
     pub exit_now: Mask,
     pub add_signal: Option<Mask>,
     pub atr: Option<Mat>,
+    pub stop_pct: Option<Mat>,
     pub tradable: Mask,
     pub pool: Mask,
 }
@@ -147,6 +165,7 @@ pub fn compute_signals(panel: &Panel, cfg: &Config) -> Signals {
     }
     Signals {
         rsi,
+        indicator_name: format!("rsi{}", cfg.rsi_len),
         signal,
         exit_now,
         add_signal: if cfg.sizing == "pyramid3" {
@@ -156,6 +175,69 @@ pub fn compute_signals(panel: &Panel, cfg: &Config) -> Signals {
         },
         atr: if cfg.disaster_stop_atr > 0.0 {
             Some(atr_all)
+        } else {
+            None
+        },
+        stop_pct: None,
+        pool: tradable.clone(),
+        tradable,
+    }
+}
+
+pub fn compute_double7_signals(panel: &Panel, cfg: &Config) -> Signals {
+    let mut rsi = Vec::with_capacity(panel.symbols.len());
+    let mut signal = Vec::with_capacity(panel.symbols.len());
+    let mut exit_now = Vec::with_capacity(panel.symbols.len());
+    let mut tradable = Vec::with_capacity(panel.symbols.len());
+    let mut stop_pct = Vec::with_capacity(panel.symbols.len());
+    for j in 0..panel.symbols.len() {
+        let close = &panel.close[j];
+        let n = close.len();
+        let low = rolling_extreme(close, cfg.lookback, true);
+        let high = rolling_extreme(close, cfg.lookback, false);
+        let sma = rolling_mean(close, cfg.sma_window);
+        let mut history = 0usize;
+        let trad: Vec<bool> = close
+            .iter()
+            .map(|value| {
+                if value.is_finite() {
+                    history += 1;
+                }
+                value.is_finite() && history >= cfg.min_history
+            })
+            .collect();
+        signal.push(
+            (0..n)
+                .map(|t| trad[t] && close[t] > sma[t] && close[t] <= low[t])
+                .collect(),
+        );
+        exit_now.push((0..n).map(|t| close[t] >= high[t]).collect());
+        if cfg.disaster_stop_atr > 0.0 {
+            let atr = wilder_atr(&panel.high[j], &panel.low[j], close, cfg.atr_len);
+            stop_pct.push(
+                (0..n)
+                    .map(|t| {
+                        if atr[t].is_finite() && close[t].is_finite() && close[t] != 0.0 {
+                            atr[t] / close[t]
+                        } else {
+                            f64::NAN
+                        }
+                    })
+                    .collect(),
+            );
+        }
+        tradable.push(trad);
+        rsi.push(close.clone());
+    }
+    Signals {
+        rsi,
+        indicator_name: "close".into(),
+        signal,
+        exit_now,
+        add_signal: None,
+        atr: None,
+        stop_pct: if cfg.disaster_stop_atr > 0.0 {
+            Some(stop_pct)
         } else {
             None
         },
@@ -191,5 +273,45 @@ mod tests {
         assert!(a[0].is_nan());
         // TR = [1, 2, 2] -> ewm alpha .5: 1, 1.5, 1.75
         assert!((a[1] - 1.5).abs() < 1e-12 && (a[2] - 1.75).abs() < 1e-12);
+    }
+
+    #[test]
+    fn double7_uses_inclusive_rolling_extrema() {
+        let close = [vec![5.0; 200], vec![10.0, 9.0, 9.0, 11.0, 11.0]].concat();
+        let panel = Panel {
+            dates: (0..close.len())
+                .map(|index| {
+                    crate::data::parse_date("2024-01-01").unwrap()
+                        + chrono::Duration::days(index as i64)
+                })
+                .collect(),
+            symbols: vec!["X".into()],
+            open: vec![close.clone()],
+            high: vec![close.clone()],
+            low: vec![close.clone()],
+            close: vec![close],
+        };
+        let cfg = Config {
+            lookback: 3,
+            min_history: 1,
+            sma_window: 200,
+            ..crate::config::load_config(
+                "s001_rsi2_connors",
+                Some(concat!(
+                    env!("CARGO_MANIFEST_DIR"),
+                    "/configs/s001_rsi2_connors.yaml"
+                )),
+                &crate::config::Cli {
+                    data_dir: None,
+                    symbols: None,
+                },
+                None,
+            )
+            .unwrap()
+        };
+        let sig = compute_double7_signals(&panel, &cfg);
+        assert!(sig.signal[0][202]);
+        assert!(sig.exit_now[0][204]);
+        assert_eq!(sig.indicator_name, "close");
     }
 }

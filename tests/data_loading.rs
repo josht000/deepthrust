@@ -130,3 +130,119 @@ fn panel_aligns_on_union_of_dates_with_nan_gaps() {
     assert!(p.close[0][2].is_nan());
     assert_eq!(p.close[1][2], b.close[1]);
 }
+
+#[test]
+fn study_loads_mixed_sources_and_aligns_their_symbols() {
+    use deepthrust::config::{load_config, Cli};
+    use deepthrust::study::{Flags, Study};
+
+    let dir = tmp("mixed_sources");
+    let etfs = dir.join("etfs");
+    let stocks = dir.join("stocks");
+    write_parquet(
+        &etfs.join("SPY_1Day_tr.parquet"),
+        &bars(&["2024-01-02", "2024-01-03"], 100.0),
+    );
+    write_parquet(
+        &stocks.join("AAA_1Day_tr.parquet"),
+        &bars(&["2024-01-03", "2024-01-04"], 20.0),
+    );
+    let config = dir.join("mixed.yaml");
+    std::fs::write(
+        &config,
+        format!(
+            "start_date: '2024-01-01'\npartition_split_date: '2024-01-04'\n\
+             sources:\n  - name: etfs\n    data_dir: '{}'\n    data_suffix: _1Day_tr.parquet\n    symbols: SPY\n    cost_bps_per_side: 5\n\
+             \n  - name: stocks\n    data_dir: '{}'\n    data_suffix: _1Day_tr.parquet\n    symbols: AAA\n    cost_bps_per_side: 15\n",
+            etfs.display(),
+            stocks.display()
+        ),
+    )
+    .unwrap();
+    let cfg = load_config(
+        "s001_rsi2_connors",
+        Some(config.to_str().unwrap()),
+        &Cli {
+            data_dir: None,
+            symbols: None,
+        },
+        None,
+    )
+    .unwrap();
+    let flags = Flags {
+        test: false,
+        rebuild: false,
+        profile: false,
+    };
+    let mut study = Study::new(&cfg, &dir.join("results"), &flags);
+    let (panel, _) = study.load_all().unwrap();
+    assert_eq!(panel.symbols, vec!["AAA", "SPY"]);
+    assert_eq!(
+        panel.dates,
+        vec![
+            parse_date("2024-01-02").unwrap(),
+            parse_date("2024-01-03").unwrap(),
+            parse_date("2024-01-04").unwrap()
+        ]
+    );
+    assert!(panel.close[0][0].is_nan());
+    assert_eq!(cfg.cost_for_symbol("SPY"), 0.0005);
+    assert_eq!(cfg.cost_for_symbol("AAA"), 0.0015);
+    study.run_stage("trades").unwrap();
+    let trade_csv =
+        std::fs::read_to_string(dir.join("results/s001_rsi2_connors/trades_next_open.csv"))
+            .unwrap();
+    assert!(trade_csv.starts_with("symbol,source,signal_date"));
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
+fn study_loads_benchmark_from_separate_directory_without_trading_it() {
+    use deepthrust::config::{load_config, Cli};
+    use deepthrust::study::{Flags, Study};
+
+    let dir = tmp("separate_benchmark");
+    let etfs = dir.join("etfs");
+    let stocks = dir.join("stocks");
+    write_parquet(
+        &etfs.join("SPY_1Day_tr.parquet"),
+        &bars(&["2024-01-02", "2024-01-03"], 100.0),
+    );
+    write_parquet(
+        &stocks.join("AAA_1Day_tr.parquet"),
+        &bars(&["2024-01-02", "2024-01-03"], 20.0),
+    );
+    let config = dir.join("stocks.yaml");
+    std::fs::write(
+        &config,
+        format!(
+            "start_date: '2024-01-01'\npartition_split_date: '2024-01-03'\n\
+             data_dir: '{}'\ndata_suffix: _1Day_tr.parquet\nsymbols: AAA\n\
+             benchmark: SPY\nbenchmark_data_dir: '{}'\nbenchmark_data_suffix: _1Day_tr.parquet\n",
+            stocks.display(),
+            etfs.display()
+        ),
+    )
+    .unwrap();
+    let cfg = load_config(
+        "s001_rsi2_connors",
+        Some(config.to_str().unwrap()),
+        &Cli {
+            data_dir: None,
+            symbols: None,
+        },
+        None,
+    )
+    .unwrap();
+    let flags = Flags {
+        test: false,
+        rebuild: false,
+        profile: false,
+    };
+    let study = Study::new(&cfg, &dir.join("results"), &flags);
+    let (panel, benchmark) = study.load_all().unwrap();
+
+    assert_eq!(panel.symbols, vec!["AAA"]);
+    assert_eq!(benchmark.unwrap().0, "SPY");
+    let _ = std::fs::remove_dir_all(dir);
+}

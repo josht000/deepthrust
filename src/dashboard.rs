@@ -190,7 +190,7 @@ fn fmt_opt(v: f64, f: impl Fn(f64) -> String) -> String {
     }
 }
 
-const METRIC_ROWS: [(&str, &str); 15] = [
+const METRIC_ROWS: [(&str, &str); 17] = [
     ("trades", "n trades"),
     ("total_log", "total (log)"),
     ("trend", "trend (log)"),
@@ -201,6 +201,8 @@ const METRIC_ROWS: [(&str, &str); 15] = [
     ("skill_p", "p(skill<=0)"),
     ("sharpe", "Sharpe"),
     ("pf", "profit factor"),
+    ("pf_ci_low", "PF bootstrap low"),
+    ("pf_ci_high", "PF bootstrap high"),
     ("win_pct", "win rate %"),
     ("cagr_pct", "CAGR %"),
     ("max_dd_pct", "max DD %"),
@@ -214,7 +216,7 @@ fn metric_text(key: &str, v: f64) -> String {
         "total_log" | "trend" | "random_pick_pool" | "skill" => format!("{v:+.3}"),
         "bias" => format!("{v:.3}"),
         "skill_pct" | "avg_fraction_invested" => format!("{:.0}%", v * 100.0),
-        "skill_p" | "pf" => format!("{v:.2}"),
+        "skill_p" | "pf" | "pf_ci_low" | "pf_ci_high" => format!("{v:.2}"),
         "sharpe" => format!("{v:+.2}"),
         "win_pct" | "max_dd_pct" => format!("{v:.1}"),
         "cagr_pct" => format!("{v:+.1}"),

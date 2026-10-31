@@ -1,4 +1,4 @@
-//! deepthrust: Rust port of the trading_framework daily-bar study runner (strategy S001).
+//! deepthrust: Rust port of the trading_framework daily-bar study runner.
 
 pub mod config;
 pub mod dashboard;
@@ -9,4 +9,5 @@ pub mod report;
 pub mod signals;
 pub mod stats;
 pub mod study;
+pub mod symbols_overview;
 pub mod timing;

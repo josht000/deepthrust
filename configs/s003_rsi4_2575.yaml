@@ -1,0 +1,83 @@
+# S003 RSI(4) 25/75 (Connors) - ETF total-return daily bars.
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: _1Day_tr.parquet
+symbols: QQQ,SPY
+benchmark: SPY
+start_date: "2005-01-01"
+min_history: 250
+rsi_len: 4
+rsi_threshold: 25
+gate: sma200
+sma_window: 200
+gate_ret_window: 21
+exit_mode: rsi
+exit_sma: 5
+exit_rsi: 55
+sizing: single
+add_rsi: 20
+max_units: 1
+disaster_stop_atr: 0.0
+atr_len: 14
+cost_bps_per_side: 5.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+n_timing_draws: 500
+seed: 20261101
+book_slots: 2
+
+variants:
+  exit75: {exit_rsi: 75}
+  exit40: {exit_rsi: 40}
+  exit45: {exit_rsi: 45}
+  exit50: {exit_rsi: 50}
+  exit60: {exit_rsi: 60}
+  exit65: {exit_rsi: 65}
+  exit70: {exit_rsi: 70}
+  exit80: {exit_rsi: 80}
+  rsi15: {rsi_threshold: 15}
+  rsi20: {rsi_threshold: 20}
+  rsi30: {rsi_threshold: 30}
+  rsi35: {rsi_threshold: 35}
+  rsi2_10: {rsi_len: 2, rsi_threshold: 10}
+  rsi3_15: {rsi_len: 3, rsi_threshold: 15}
+  rsi5_25: {rsi_len: 5}
+  rsi6_25: {rsi_len: 6}
+  gate_sma100: {sma_window: 100}
+  gate_sma150: {sma_window: 150}
+  gate_sma250: {sma_window: 250}
+  gate_sma300: {sma_window: 300}
+  gate21: {gate: ret21}
+  stop2atr: {disaster_stop_atr: 2.0}
+  stop3atr: {disaster_stop_atr: 3.0}
+  stop4atr: {disaster_stop_atr: 4.0}
+  stop5atr: {disaster_stop_atr: 5.0}
+  exit_sma3: {exit_mode: sma5, exit_sma: 3}
+  exit_sma10: {exit_mode: sma5, exit_sma: 10}
+  stocks_mega:
+    data_dir: 'C:\data\trading\trading_framework\data\cache\daily_10years_tr'
+    data_suffix: _1Day_tr.parquet
+    symbols: AAPL,MSFT,NVDA,AMZN,GOOGL,META
+    benchmark_data_dir: 'C:\data\trading\trading_framework\data\cache\etf_tr'
+    benchmark_data_suffix: _1Day_tr.parquet
+    cost_bps_per_side: 10
+    book_slots: 6
+  stocks_large:
+    data_dir: 'C:\data\trading\trading_framework\data\cache\daily_10years_tr'
+    data_suffix: _1Day_tr.parquet
+    symbols: JPM,XOM,WMT,COST,ORCL,HD
+    benchmark_data_dir: 'C:\data\trading\trading_framework\data\cache\etf_tr'
+    benchmark_data_suffix: _1Day_tr.parquet
+    cost_bps_per_side: 10
+    book_slots: 6
+  stocks_small:
+    data_dir: 'C:\data\trading\trading_framework\data\cache\daily_10years_tr'
+    data_suffix: _1Day_tr.parquet
+    symbols: FUBO,CHPT,KSS,RIOT,MARA,RIG
+    benchmark_data_dir: 'C:\data\trading\trading_framework\data\cache\etf_tr'
+    benchmark_data_suffix: _1Day_tr.parquet
+    cost_bps_per_side: 10
+    book_slots: 6
+  pyramid2: {sizing: pyramid3, max_units: 2}
+  pyramid_add10: {sizing: pyramid3, add_rsi: 10}
