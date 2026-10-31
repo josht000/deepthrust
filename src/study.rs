@@ -5,8 +5,8 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use crate::chart::{self, ChartInput, Series};
 use crate::config::Config;
+use crate::dashboard::{self, ChartInput, FillIn, TradeIn};
 use crate::data::{self, Panel};
 use crate::engine::{self, SwingParams, Trade};
 use crate::partition::{self, Book, FillResult, Masks, Row};
@@ -57,7 +57,6 @@ pub fn resolve(requested: &[String]) -> Result<Vec<&'static str>, String> {
 pub struct Flags {
     pub test: bool,
     pub rebuild: bool,
-    pub rebuild_cache: bool,
     pub profile: bool,
 }
 
@@ -84,7 +83,6 @@ pub struct Study<'a> {
 struct Evaluation {
     fills: Vec<(String, FillResult)>,
     flags: Vec<String>,
-    primary: String,
     cost_ladder: Vec<(f64, f64, String, f64, f64)>,
     baselines: Vec<(String, String, f64, f64, f64, f64)>,
 }
@@ -118,20 +116,21 @@ impl<'a> Study<'a> {
         fs::write(&path, text).map_err(|e| format!("{}: {e}", path.display()))
     }
 
-    /// Download (or reuse cached) bars for the universe and the benchmark.
+    /// Load bars for the universe and benchmark from configured Parquet inputs.
     pub fn load_all(&self) -> Result<(Panel, Option<(String, data::Bars)>), String> {
         let cfg = self.cfg;
         let start = data::parse_date(&cfg.start_date)?;
-        let symbols = cfg.symbol_list();
+        // the Python panel loader orders symbols alphabetically
+        let mut symbols = cfg.symbol_list();
+        symbols.sort();
+        symbols.dedup();
         let mut bars = vec![];
         for s in &symbols {
-            bars.push(data::load_symbol(
-                &cfg.data_dir,
-                &cfg.data_suffix,
-                s,
-                start,
-                self.flags.rebuild_cache,
-            )?);
+            let b = data::load_symbol(&cfg.data_dir, &cfg.data_suffix, s, start)?;
+            if let Some(w) = data::start_gap_warning(s, &b, start) {
+                eprintln!("Warning: {w}");
+            }
+            bars.push(b);
         }
         let panel = {
             let _g = timing::stage("build panel");
@@ -140,14 +139,13 @@ impl<'a> Study<'a> {
         let bench = if cfg.benchmark.is_empty() || symbols.contains(&cfg.benchmark) {
             None
         } else {
-            match data::load_symbol(
-                &cfg.data_dir,
-                &cfg.data_suffix,
-                &cfg.benchmark,
-                start,
-                self.flags.rebuild_cache,
-            ) {
-                Ok(b) => Some((cfg.benchmark.clone(), b)),
+            match data::load_symbol(&cfg.data_dir, &cfg.data_suffix, &cfg.benchmark, start) {
+                Ok(b) => {
+                    if let Some(w) = data::start_gap_warning(&cfg.benchmark, &b, start) {
+                        eprintln!("Warning: {w}");
+                    }
+                    Some((cfg.benchmark.clone(), b))
+                }
                 Err(e) => {
                     eprintln!("Benchmark warning: {e}; falling back to the equal-weight universe");
                     None
@@ -409,13 +407,21 @@ impl<'a> Study<'a> {
         // per-symbol trade counts (per_etf.csv in the Python version)
         let mut per = String::from("fill,period,symbol,trades,win_pct,mean_ret_pct,pf,avg_hold\n");
         let mut prow = vec![];
-        for (fill, trades) in &s.trades {
+        // pandas groupby order: fill, period, symbol; empty groups are absent
+        let mut sorted_trades: Vec<_> = s.trades.iter().collect();
+        sorted_trades.sort_by(|a, b| a.0.cmp(&b.0));
+        for (fill, trades) in sorted_trades {
             for period in ["dev", "test"] {
-                for (j, sym) in s.panel.symbols.iter().enumerate() {
+                let mut syms: Vec<(usize, &String)> = s.panel.symbols.iter().enumerate().collect();
+                syms.sort_by(|a, b| a.1.cmp(b.1));
+                for (j, sym) in syms {
                     let sel: Vec<&Trade> = trades
                         .iter()
                         .filter(|t| t.sym_idx == j && self.period_of(t.entry_idx) == period)
                         .collect();
+                    if sel.is_empty() {
+                        continue;
+                    }
                     let st = Self::period_stats(&sel);
                     per += &format!(
                         "{fill},{period},{sym},{},{},{},{},{}\n",
@@ -632,10 +638,16 @@ impl<'a> Study<'a> {
                 ));
             }
         }
-        let mut csv = String::from("baseline,period,total_log,sharpe,cagr_pct,max_dd_pct\n");
+        let mut csv = String::from(
+            "baseline,period,total_log,sharpe,cagr_pct,max_dd_pct,p_total_ge_strategy\n",
+        );
         for (b, p, t, sh, c, dd) in &base {
+            let pval = b
+                .split_once("p_total_ge_strategy=")
+                .map(|(_, v)| v.trim_end_matches(')').to_string())
+                .unwrap_or_default();
             csv += &format!(
-                "{},{p},{},{},{},{}\n",
+                "{},{p},{},{},{},{},{pval}\n",
                 b.split(' ').next().unwrap(),
                 csv_cell(*t),
                 csv_cell(*sh),
@@ -705,7 +717,6 @@ impl<'a> Study<'a> {
         self.evaluation = Some(Evaluation {
             fills: results,
             flags,
-            primary,
             cost_ladder: ladder,
             baselines: base,
         });
@@ -839,7 +850,7 @@ impl<'a> Study<'a> {
     fn intro(&self) -> Vec<String> {
         let c = self.cfg;
         vec![
-            format!("- Universe: {} (total-return daily bars `{}`); each symbol at most one position, book slots {}.", c.symbols, c.data_suffix, c.book_slots),
+            format!("- Universe: {} (split-adjusted daily bars `{}`); each symbol at most one position, book slots {}.", c.symbols, c.data_suffix, c.book_slots),
             format!("- Rule: close > gate ({}) AND RSI({}) < {}; exit {}; sizing {}; disaster stop x{} ATR({}).", c.gate, c.rsi_len, c.rsi_threshold, c.exit_mode, c.sizing, c.disaster_stop_atr, c.atr_len),
             "- `next_open` is the primary fill (signal on session t, fill at open t+1); `close` is the same-close UPPER BOUND. `moc_proxy` needs 15:50 minute bars, which are not fetched.".into(),
             "- Baselines: EW buy-and-hold of the tradable universe, SMA200 timing on that EW index (signal lagged one session), dev-vol-matched EW, and exposure-matched random timing.".into(),
@@ -860,65 +871,54 @@ impl<'a> Study<'a> {
             .evaluation
             .as_ref()
             .ok_or("charts need the partition stage")?;
-        let primary = ev
-            .fills
-            .iter()
-            .find(|(f, _)| *f == ev.primary)
-            .map(|(_, r)| r)
-            .unwrap();
-        let mut curves = vec![];
-        for (f, r) in &ev.fills {
-            curves.push(Series {
-                label: format!("strategy ({f})"),
-                values: chart::cumulative_log(&r.r_day, s.first_row),
+        let mut fills = vec![];
+        for (name, r) in &ev.fills {
+            let trades = s
+                .trades
+                .iter()
+                .find(|(f, _)| f == name)
+                .map(|(_, t)| t.as_slice())
+                .unwrap_or(&[]);
+            fills.push(FillIn {
+                name: name.clone(),
+                r_day: r.r_day.clone(),
+                f_day: r.f_day.clone(),
+                count: r.count.clone(),
+                random_pool: r.random_mean_log.clone(),
+                trades: trades
+                    .iter()
+                    .map(|t| TradeIn {
+                        ret: t.ret,
+                        hold: t.hold,
+                        reason: t.exit_reason.to_string(),
+                    })
+                    .collect(),
             });
         }
-        let (bname, bret) = match &s.benchmark {
-            Some((n, r)) => (n.clone(), r.clone()),
-            None => ("equal-weight universe".to_string(), s.b_day.clone()),
-        };
-        curves.push(Series {
-            label: format!("benchmark ({bname})"),
-            values: chart::cumulative_log(&bret, s.first_row),
-        });
-        let mut metrics = vec![format!("{:<18}{:>10}{:>10}", "", "dev", "test")];
-        let rows: [(&str, &str, usize); 8] = [
-            ("n trades", "trades", 0),
-            ("total (log)", "total_log", 3),
-            ("trend (log)", "trend", 3),
-            ("bias", "bias", 3),
-            ("skill", "skill", 3),
-            ("Sharpe", "sharpe", 2),
-            ("profit factor", "pf", 2),
-            ("win rate %", "win_pct", 1),
-        ];
-        for (label, key, dp) in rows {
-            let g = |p: &str| {
-                primary
-                    .by_period
+        let frame: Vec<(String, String, Row)> = ev
+            .fills
+            .iter()
+            .flat_map(|(f, r)| {
+                r.by_period
                     .iter()
-                    .find(|(n, _, _)| n == p)
-                    .map(|(_, r, _)| r.get(key))
-                    .unwrap_or(f64::NAN)
-            };
-            metrics.push(format!(
-                "{label:<18}{:>10}{:>10}",
-                fnum(g("dev"), dp),
-                fnum(g("test"), dp)
-            ));
-        }
+                    .map(move |(p, row, _)| (f.clone(), p.clone(), row.clone()))
+            })
+            .collect();
+        let benchmarks: Vec<(String, Vec<f64>)> = s.benchmark.iter().cloned().collect();
         let path = self.out().join(format!("{}summary.svg", self.cfg.prefix()));
         let input = ChartInput {
             title: &format!("{TITLE}: {}", self.cfg.variant),
             caption: &self.caption(),
+            note: "Dev bias = selection haircut (fills). Test bias = 0 by construction.",
             dates: &s.panel.dates,
             first_row: s.first_row,
             split_row: s.split_row,
-            curves,
-            invested: primary.f_day.clone(),
-            metrics,
+            fills: &fills,
+            b_day: &s.b_day,
+            benchmarks: &benchmarks,
+            frame: &frame,
         };
-        chart::draw(&path, &input)?;
+        dashboard::draw(&path, &input)?;
         println!("chart: {}", path.display());
         Ok(())
     }

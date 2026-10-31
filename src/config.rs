@@ -67,7 +67,7 @@ pub struct Config {
 }
 
 fn d_suffix() -> String {
-    "_1Day_tr.csv".into()
+    "_1Day_split.parquet".into()
 }
 fn d_start() -> String {
     "2005-01-01".into()

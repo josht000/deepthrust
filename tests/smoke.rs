@@ -1,7 +1,10 @@
-//! End-to-end smoke test on synthetic AAPL/SPY bars (offline stand-in for the Yahoo Finance pull).
+//! End-to-end smoke test on synthetic AAPL/SPY Parquet bars.
 
+mod common;
+
+use common::write_parquet;
 use deepthrust::config::{load_config, Cli};
-use deepthrust::data::{write_csv, Bars};
+use deepthrust::data::Bars;
 use deepthrust::study::{resolve, Flags, Study, ORDER};
 
 fn synthetic(seed: f64, n: usize) -> Bars {
@@ -39,11 +42,10 @@ fn s001_pipeline_runs_end_to_end() {
     let dir = std::env::temp_dir().join(format!("deepthrust_smoke_{}", std::process::id()));
     let data = dir.join("cache");
     for (s, seed) in [("AAPL", 0.0), ("SPY", 1.0)] {
-        write_csv(
-            &data.join(format!("{s}_1Day_tr.csv")),
+        write_parquet(
+            &data.join(format!("{s}_1Day_split.parquet")),
             &synthetic(seed, 3200),
-        )
-        .unwrap();
+        );
     }
     let cli = Cli {
         data_dir: Some(data.display().to_string()),
@@ -61,7 +63,6 @@ fn s001_pipeline_runs_end_to_end() {
         let flags = Flags {
             test: false,
             rebuild: false,
-            rebuild_cache: false,
             profile: true,
         };
         let mut study = Study::new(&cfg, &dir.join("results"), &flags);

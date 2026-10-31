@@ -1,6 +1,6 @@
-# S001 RSI(2) Classic (Connors) - daily bars. Smoke-test universe: AAPL (Yahoo Finance, total-return adjusted).
-data_dir: data/cache/yf
-data_suffix: _1Day_tr.csv
+# S001 RSI(2) Classic (Connors) - split-adjusted daily bars.
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years
+data_suffix: _1Day_split.parquet
 symbols: AAPL
 benchmark: SPY          # plotted alongside the strategy (cumulative log returns); not traded
 start_date: "2005-01-01"

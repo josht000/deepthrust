@@ -8,11 +8,11 @@ license = "GPL-3.0"
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 clap = { version = "4", features = ["derive"] }
+parquet = { version = "60", default-features = false, features = ["snap"] }
 plotters = { version = "0.3", default-features = false, features = ["svg_backend", "line_series", "full_palette"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-ureq = { version = "2", features = ["json"] }
 
 [profile.release]
 opt-level = 3

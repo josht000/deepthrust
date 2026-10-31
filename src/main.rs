@@ -26,8 +26,6 @@ struct Args {
     #[arg(long)]
     rebuild: bool,
     #[arg(long)]
-    rebuild_cache: bool,
-    #[arg(long)]
     profile: bool,
     /// validate inputs and write a manifest without running the study
     #[arg(long)]
@@ -35,7 +33,7 @@ struct Args {
     /// comma-separated names from the strategy config's variants: block (default: baseline)
     #[arg(long)]
     variant: Option<String>,
-    /// folder of daily-bar CSV files (overrides data_dir in the strategy config)
+    /// folder containing the configured daily-bar files (overrides data_dir)
     #[arg(long)]
     data_dir: Option<String>,
     /// comma-separated symbols (overrides symbols in the strategy config; default AAPL)
@@ -43,44 +41,30 @@ struct Args {
     symbols: Option<String>,
 }
 
-fn check_inputs(
-    cfg: &Config,
-    check_only: bool,
-    rebuild_cache: bool,
-    results: &Path,
-) -> Result<String, String> {
+fn check_inputs(cfg: &Config, results: &Path) -> Result<String, String> {
     let _g = timing::stage("input check");
     let symbols = cfg.symbol_list();
-    let mut warnings = vec![];
     let mut files = vec![];
     for s in &symbols {
-        let p = data::cache_path(&cfg.data_dir, s, &cfg.data_suffix);
+        let p = data::input_path(&cfg.data_dir, s, &cfg.data_suffix);
+        if p.extension().and_then(|ext| ext.to_str()) != Some("parquet") {
+            return Err(format!(
+                "{} is not a Parquet input; data_suffix must end in .parquet",
+                p.display()
+            ));
+        }
         if !p.exists() {
-            if check_only {
-                return Err(format!("missing input data: {}", p.display()));
-            }
-            warnings.push(format!(
-                "{} not cached; it will be downloaded from Yahoo Finance",
-                p.display()
-            ));
-        } else if rebuild_cache {
-            warnings.push(format!(
-                "{} will be rebuilt from Yahoo Finance (--rebuild-cache)",
-                p.display()
-            ));
+            return Err(format!("missing input data: {}", p.display()));
         }
         files.push(p.display().to_string());
     }
     let dir = results.join("manifests");
-    let manifest = serde_json::json!({"strategy": NAME, "variant": cfg.variant, "inputs": {"data_dir": {"symbols": symbols.len(), "symbol_names": symbols, "files": files}}, "warnings": warnings});
+    let manifest = serde_json::json!({"strategy": NAME, "variant": cfg.variant, "inputs": {"data_dir": {"symbols": symbols.len(), "symbol_names": symbols, "files": files}}, "warnings": []});
     if std::fs::create_dir_all(&dir).is_ok() {
         let _ = std::fs::write(
             dir.join(format!("{}__{}.json", NAME, cfg.variant)),
             serde_json::to_string_pretty(&manifest).unwrap(),
         );
-    }
-    for w in &warnings {
-        println!("Input warning: {w}");
     }
     Ok(format!("data_dir={}", symbols.len()))
 }
@@ -101,7 +85,6 @@ fn run(args: Args) -> Result<(), String> {
     let flags = Flags {
         test: args.test,
         rebuild: args.rebuild,
-        rebuild_cache: args.rebuild_cache,
         profile: args.profile,
     };
     let cli = Cli {
@@ -123,7 +106,7 @@ fn run(args: Args) -> Result<(), String> {
             &cli,
             variant.as_deref(),
         )?;
-        let checked = check_inputs(&cfg, args.check_data, args.rebuild_cache, &results)?;
+        let checked = check_inputs(&cfg, &results)?;
         println!("Input check {}:{}: {}", args.strategy, cfg.variant, checked);
         if args.check_data {
             continue;
