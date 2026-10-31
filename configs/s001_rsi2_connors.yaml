@@ -1,0 +1,40 @@
+# S001 RSI(2) Classic (Connors) - daily bars. Smoke-test universe: AAPL (Yahoo Finance, total-return adjusted).
+data_dir: data/cache/yf
+data_suffix: _1Day_tr.csv
+symbols: AAPL
+benchmark: SPY          # plotted alongside the strategy (cumulative log returns); not traded
+start_date: "2005-01-01"
+min_history: 250
+rsi_len: 2
+rsi_threshold: 10
+gate: sma200            # sma200 | ret21 (ex-S092: 21-day return > 0)
+sma_window: 200
+gate_ret_window: 21
+exit_mode: sma5         # sma5 | rsi
+exit_sma: 5
+exit_rsi: 70
+sizing: single          # single | pyramid3 (ex-S002: +1 unit each new session with RSI(2)<add_rsi, max 3)
+add_rsi: 5
+max_units: 3
+disaster_stop_atr: 0.0  # 0 = off; else close < entry - this x ATR(atr_len)
+atr_len: 14
+cost_bps_per_side: 5.0  # catalog cost ladder: liquid large caps 5 bps/side
+fills: next_open,close  # primary next_open (moc_proxy needs minute bars); close = upper bound
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+n_timing_draws: 500
+seed: 20261101
+book_slots: 1
+
+# Named variants: deepthrust --strategy s001_rsi2_connors --variant NAME[,NAME2]
+variants:
+  rsi5: {rsi_threshold: 5}
+  exit70: {exit_mode: rsi, exit_rsi: 70}
+  gate21: {gate: ret21}
+  pyramid3: {sizing: pyramid3}
+  stop3atr: {disaster_stop_atr: 3.0}
+  rsi5_exit70: {rsi_threshold: 5, exit_mode: rsi, exit_rsi: 70}
+  rsi5_gate21: {rsi_threshold: 5, gate: ret21}
+  rsi5_pyramid3: {rsi_threshold: 5, sizing: pyramid3}
+  rsi5_stop3atr: {rsi_threshold: 5, disaster_stop_atr: 3.0}
