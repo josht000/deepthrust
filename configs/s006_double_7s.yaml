@@ -1,6 +1,6 @@
 # S006 Double 7s - pooled ETF total-return daily bars.
 data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
-data_suffix: _1Day_tr.parquet
+data_suffix: .parquet
 symbols: SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY
 benchmark: SPY
 start_date: "2005-01-01"
@@ -69,6 +69,19 @@ variants:
     benchmark_data_suffix: _1Day_tr.parquet
     cost_bps_per_side: 10
     book_slots: 6
+  mixed_mega:
+    sources:
+      - name: etfs
+        data_dir: 'C:\data\trading\trading_framework\data\cache\etf_tr'
+        data_suffix: _1Day_tr.parquet
+        symbols: SPY,QQQ,IWM,DIA
+        cost_bps_per_side: 5
+      - name: stocks
+        data_dir: 'C:\data\trading\trading_framework\data\cache\daily_10years_tr'
+        data_suffix: _1Day_tr.parquet
+        symbols: AAPL,MSFT,NVDA,AMZN,GOOGL,META
+        cost_bps_per_side: 10
+    book_slots: 10
   lb5_sma100: {lookback: 5, sma_window: 100}
   lb10_sma250: {lookback: 10, sma_window: 250}
   lb15_stop3: {lookback: 15, disaster_stop_atr: 3.0}

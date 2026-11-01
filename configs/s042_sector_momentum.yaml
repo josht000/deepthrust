@@ -1,0 +1,47 @@
+data_dir:  C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY
+min_history: 252
+signal: mom12
+breadth: 3
+rebalance: monthly
+delisting_return: -0.30
+cost_bps_per_side: 5.0
+fills: close,next_open
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 3
+
+variants:
+  rankavg: {signal: rankavg}
+  blend13: {signal: blend13}
+  top1: {breadth: 1, book_slots: 1}
+  top2: {breadth: 2, book_slots: 2}
+  top5: {breadth: 5, book_slots: 5}
+  top7: {breadth: 7, book_slots: 7}
+  top9: {breadth: 9, book_slots: 9}
+  weekly: {rebalance: weekly}
+  rankavg_top1: {signal: rankavg, breadth: 1, book_slots: 1}
+  rankavg_top2: {signal: rankavg, breadth: 2, book_slots: 2}
+  rankavg_top5: {signal: rankavg, breadth: 5, book_slots: 5}
+  rankavg_top7: {signal: rankavg, breadth: 7, book_slots: 7}
+  rankavg_top9: {signal: rankavg, breadth: 9, book_slots: 9}
+  rankavg_weekly: {signal: rankavg, rebalance: weekly}
+  blend13_top1: {signal: blend13, breadth: 1, book_slots: 1}
+  blend13_top2: {signal: blend13, breadth: 2, book_slots: 2}
+  blend13_top5: {signal: blend13, breadth: 5, book_slots: 5}
+  blend13_top7: {signal: blend13, breadth: 7, book_slots: 7}
+  blend13_top9: {signal: blend13, breadth: 9, book_slots: 9}
+  blend13_weekly: {signal: blend13, rebalance: weekly}
+  mom12_top1_weekly: {breadth: 1, book_slots: 1, rebalance: weekly}
+  mom12_top2_weekly: {breadth: 2, book_slots: 2, rebalance: weekly}
+  mom12_top5_weekly: {breadth: 5, book_slots: 5, rebalance: weekly}
+  mom12_top7_weekly: {breadth: 7, book_slots: 7, rebalance: weekly}
+  mom12_top9_weekly: {breadth: 9, book_slots: 9, rebalance: weekly}
+  rankavg_top1_weekly: {signal: rankavg, breadth: 1, book_slots: 1, rebalance: weekly}
+  rankavg_top2_weekly: {signal: rankavg, breadth: 2, book_slots: 2, rebalance: weekly}
+  rankavg_top5_weekly: {signal: rankavg, breadth: 5, book_slots: 5, rebalance: weekly}
+  rankavg_top7_weekly: {signal: rankavg, breadth: 7, book_slots: 7, rebalance: weekly}
+  rankavg_top9_weekly: {signal: rankavg, breadth: 9, book_slots: 9, rebalance: weekly}

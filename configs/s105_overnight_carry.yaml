@@ -1,0 +1,51 @@
+# S105 volatility-targeted SPY overnight carry; uses the same TR-adjusted bars as S021.
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY
+benchmark: SPY
+start_date: "2016-01-04"
+target_vol: 0.10
+vol_window: 20
+max_leverage: 1.0
+resize_band: 0.20
+cost_bps_per_side: 1.0
+cost_ladder_multipliers: [0.5, 1.0, 2.0, 5.0]
+fills: close_to_open
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+n_timing_draws: 500
+seed: 20261031
+book_slots: 1
+
+variants:
+  cap2x: {max_leverage: 2.0}
+  daily_resize: {resize_band: 0.0}
+  target5: {target_vol: 0.05}
+  target15: {target_vol: 0.15}
+  window10: {vol_window: 10}
+  window40: {vol_window: 40}
+  cap05: {max_leverage: 0.5}
+  cap15: {max_leverage: 1.5}
+  target25: {target_vol: 0.025}
+  target75: {target_vol: 0.075}
+  target20: {target_vol: 0.20}
+  target25pct: {target_vol: 0.25}
+  window5: {vol_window: 5}
+  window15: {vol_window: 15}
+  window30: {vol_window: 30}
+  window60: {vol_window: 60}
+  band10: {resize_band: 0.10}
+  band40: {resize_band: 0.40}
+  cap05_target5: {max_leverage: 0.5, target_vol: 0.05}
+  cap2_target5: {max_leverage: 2.0, target_vol: 0.05}
+  cap2_target15: {max_leverage: 2.0, target_vol: 0.15}
+  window10_target5: {vol_window: 10, target_vol: 0.05}
+  window10_target15: {vol_window: 10, target_vol: 0.15}
+  window40_target5: {vol_window: 40, target_vol: 0.05}
+  window40_target15: {vol_window: 40, target_vol: 0.15}
+  daily_cap2: {resize_band: 0.0, max_leverage: 2.0}
+  daily_target5: {resize_band: 0.0, target_vol: 0.05}
+  daily_target15: {resize_band: 0.0, target_vol: 0.15}
+  band10_target5: {resize_band: 0.10, target_vol: 0.05}
+  band40_target15: {resize_band: 0.40, target_vol: 0.15}

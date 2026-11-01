@@ -1,12 +1,14 @@
 # Daily-Bar Trading Strategy Catalog for Systematic Backtesting
 
 **Version:** 1.2 (revised after adversarial review R1, `docs/strategies/review/r1.md`) - compiled for handoff to a coding/backtesting agent
-**Scope:** 105 original strategy numbers; **90 entries remain** after merges (file names keep the original "105" label; strategy numbers are preserved and a merged strategy keeps its LOWEST number, see the merge map below). All entries are executable on daily OHLCV bars. Composition, tagged per entry in the JSON as `frequency_class`:
+**Scope:** 105 original strategy numbers; **90 entries remain** after merges (file names keep the original "105" label; strategy numbers are preserved and a merged strategy keeps its LOWEST number, see the merge map below). Most entries use daily OHLCV; entries requiring sub-daily OHLCV for the primary specification or a registered variant are tagged `NOT_DAILY, DEFER` in the TOC and strategy entry. Composition, tagged per entry in the JSON as `frequency_class`:
 - **swing** (54 entries): short swings of 1-10 sessions with daily-to-weekly trade frequency across the declared universe.
 - **slow** (25 entries): weekly/monthly-rebalance published systems (rotation, factor, pairs, regime gates) included because they are published ETF strategies or come from the attached papers. Use them as overlays or portfolio sleeves.
 - **calendar** (11 entries): calendar/rare-event systems that trade only on known dates.
 
 **Status mix:** 62 active, 23 demoted (control / falsification / overlay only), 4 dropped (documented null or untestable edge; kept for the record and excluded from the backtest queue), 1 forward-test only.
+
+**Data-frequency status:** `NOT_DAILY, DEFER` means the strategy requires sub-daily OHLCV for its primary execution or a registered variant; its existing research status is unchanged.
 
 **Determinism convention:** where an entry lists alternative fills, exits, or parameters, the FIRST-listed value is the primary baseline; everything after "or"/"optional"/"variant" is a robustness alternative for the backtester to run second. Each entry's `parameter_variants` field lists the registered alternatives (including those inherited from merged strategies); every variant is a registered trial in `results/trial_registry.jsonl` and must not be counted as an independent discovery.
 
@@ -18,34 +20,34 @@
 - [Shared backtest and execution specification (applies to every strategy)](#shared-backtest-and-execution-specification-applies-to-every-strategy)
 - [Review R1 resolution log](#review-r1-resolution-log)
 - [Family 1 — ETF Index Mean Reversion (Connors lineage)](#family-1--etf-index-mean-reversion-connors-lineage)
-    - [S001 | RSI(2) Classic (Connors) - cluster control (absorbs S002, S092)](#s001--rsi2-classic-connors---cluster-control-absorbs-s002-s092) — IMPLEMENTED
-    - [S003 | RSI(4) 25/75 (Connors)](#s003--rsi4-2575-connors) — IMPLEMENTED
-    - [S004 | Cumulative RSI(2)](#s004--cumulative-rsi2)
-    - [S005 | Connors %b (Bollinger Band)](#s005--connors-b-bollinger-band)
-    - [S006 | Double 7s](#s006--double-7s) — IMPLEMENTED
-    - [S007 | 3-Day Pullback](#s007--3-day-pullback)
-    - [S008 | ConnorsRSI(3,2,100) Stock Pullback](#s008--connorsrsi32100-stock-pullback)
-    - [S009 | 3 Days Down Overnight (SPY)](#s009--3-days-down-overnight-spy)
+    - [S001 | RSI(2) Classic (Connors) - cluster control (absorbs S002, S092)](#s001--rsi2-classic-connors---cluster-control-absorbs-s002-s092) — IMPLEMENTED — NOT_DAILY, DEFER
+    - [S003 | RSI(4) 25/75 (Connors)](#s003--rsi4-2575-connors) — IMPLEMENTED — NOT_DAILY, DEFER
+    - [S004 | Cumulative RSI(2)](#s004--cumulative-rsi2) — NOT_DAILY, DEFER
+    - [S005 | Connors %b (Bollinger Band)](#s005--connors-b-bollinger-band) — NOT_DAILY, DEFER
+    - [S006 | Double 7s](#s006--double-7s) — IMPLEMENTED — NOT_DAILY, DEFER
+    - [S007 | 3-Day Pullback](#s007--3-day-pullback) — NOT_DAILY, DEFER
+    - [S008 | ConnorsRSI(3,2,100) Stock Pullback](#s008--connorsrsi32100-stock-pullback) — NOT_DAILY, DEFER
+    - [S009 | 3 Days Down Overnight (SPY)](#s009--3-days-down-overnight-spy) — NOT_DAILY, DEFER
     - [S010 | Turnaround Tuesday (absorbs S085)](#s010--turnaround-tuesday-absorbs-s085)
-    - [S011 | Z-Score / Bollinger Lower-Band Mean Reversion (absorbs S012)](#s011--z-score--bollinger-lower-band-mean-reversion-absorbs-s012)
+    - [S011 | Z-Score / Bollinger Lower-Band Mean Reversion (absorbs S012)](#s011--z-score--bollinger-lower-band-mean-reversion-absorbs-s012) — NOT_DAILY, DEFER
     - [S013 | TLT Mean Reversion (RSI(2))](#s013--tlt-mean-reversion-rsi2)
-    - [S014 | Sector ETF Basket Mean Reversion](#s014--sector-etf-basket-mean-reversion)
+    - [S014 | Sector ETF Basket Mean Reversion](#s014--sector-etf-basket-mean-reversion) — NOT_DAILY, DEFER
 - [Family 2 — Overnight and Gap Strategies](#family-2--overnight-and-gap-strategies)
-    - [S015 | Chan Buy-on-Gap (absorbs S022)](#s015--chan-buy-on-gap-absorbs-s022)
-    - [S016 | Short-on-Gap-Up (Chan mirror)](#s016--short-on-gap-up-chan-mirror)
+    - [S015 | Chan Buy-on-Gap (absorbs S022)](#s015--chan-buy-on-gap-absorbs-s022) — NOT_DAILY, DEFER
+    - [S016 | Short-on-Gap-Up (Chan mirror)](#s016--short-on-gap-up-chan-mirror) — NOT_DAILY, DEFER
     - [S017 | Night Trading Overnight-Bias Stock Selection (absorbs S034)](#s017--night-trading-overnight-bias-stock-selection-absorbs-s034)
-    - [S018 | Gap Fade (Fill the Gap)](#s018--gap-fade-fill-the-gap)
-    - [S019 | Gap-and-Go Continuation (absorbs S025)](#s019--gap-and-go-continuation-absorbs-s025)
+    - [S018 | Gap Fade (Fill the Gap)](#s018--gap-fade-fill-the-gap) — NOT_DAILY, DEFER
+    - [S019 | Gap-and-Go Continuation (absorbs S025)](#s019--gap-and-go-continuation-absorbs-s025) — IMPLEMENTED
     - [S020 | Earnings-Eve Estimate-Drift Mean Reversion (Chan/Estimize)](#s020--earnings-eve-estimate-drift-mean-reversion-chanestimize)
-    - [S021 | Index Overnight Premium (SPY close-to-open only; absorbs S084)](#s021--index-overnight-premium-spy-close-to-open-only-absorbs-s084)
+    - [S021 | Index Overnight Premium (SPY close-to-open only; absorbs S084)](#s021--index-overnight-premium-spy-close-to-open-only-absorbs-s084) — IMPLEMENTED
     - [S023 | Post-Earnings Overnight Drift](#s023--post-earnings-overnight-drift)
     - [S024 | Ex-Dividend Window Capture (absorbs S101)](#s024--ex-dividend-window-capture-absorbs-s101)
-    - [S026 | Exhaustion Gap Fade After 3-Day Run](#s026--exhaustion-gap-fade-after-3-day-run)
+    - [S026 | Exhaustion Gap Fade After 3-Day Run](#s026--exhaustion-gap-fade-after-3-day-run) — NOT_DAILY, DEFER
 - [Family 3 — Cross-Sectional Short-Term Reversal](#family-3--cross-sectional-short-term-reversal)
-    - [S027 | Lehmann 1-Week Loser Reversal](#s027--lehmann-1-week-loser-reversal)
-    - [S028 | Jegadeesh 1-Month Reversal](#s028--jegadeesh-1-month-reversal)
-    - [S029 | Capitulation-Volume Loser Reversal](#s029--capitulation-volume-loser-reversal)
-    - [S030 | Down-Streak Reversal (5+ Days)](#s030--down-streak-reversal-5-days)
+    - [S027 | Lehmann 1-Week Loser Reversal](#s027--lehmann-1-week-loser-reversal) — NOT_DAILY, DEFER
+    - [S028 | Jegadeesh 1-Month Reversal](#s028--jegadeesh-1-month-reversal) — NOT_DAILY, DEFER
+    - [S029 | Capitulation-Volume Loser Reversal](#s029--capitulation-volume-loser-reversal) — NOT_DAILY, DEFER
+    - [S030 | Down-Streak Reversal (5+ Days)](#s030--down-streak-reversal-5-days) — NOT_DAILY, DEFER
     - [S031 | Up-Streak Fade (5+ Days)](#s031--up-streak-fade-5-days)
     - [S032 | 52-Week-High Proximity Portfolio (George-Hwang)](#s032--52-week-high-proximity-portfolio-george-hwang)
     - [S033 | 52-Week-High Breakout (Donchian-style)](#s033--52-week-high-breakout-donchian-style) — IMPLEMENTED
@@ -69,14 +71,14 @@
     - [S052 | Earnings Announcement Premium (Monthly; absorbs S086 weekly version)](#s052--earnings-announcement-premium-monthly-absorbs-s086-weekly-version)
     - [S053 | Pre-Earnings Run-Up (consensus-free; replaces the Earnings Whispers Score setup)](#s053--pre-earnings-run-up-consensus-free-replaces-the-earnings-whispers-score-setup)
     - [S054 | PEAD Earnings-Surprise Drift (SUE / announcement-return, point-in-time)](#s054--pead-earnings-surprise-drift-sue--announcement-return-point-in-time)
-    - [S055 | Post-Earnings-Oversold Bounce](#s055--post-earnings-oversold-bounce)
+    - [S055 | Post-Earnings-Oversold Bounce](#s055--post-earnings-oversold-bounce) — NOT_DAILY, DEFER
     - [S056 | LLM Daily News Sentiment Long/Short](#s056--llm-daily-news-sentiment-longshort)
     - [S057 | LLM Top-Down Sector Allocation (forward test only)](#s057--llm-top-down-sector-allocation-forward-test-only)
     - [S058 | News-Topic Conditioned Sentiment (feature design for S056)](#s058--news-topic-conditioned-sentiment-feature-design-for-s056)
     - [S059 | Insider Cluster Buying](#s059--insider-cluster-buying)
-    - [S060 | News-Intensity Overnight Drift (conditioning feature of S056)](#s060--news-intensity-overnight-drift-conditioning-feature-of-s056)
+    - [S060 | News-Intensity Overnight Drift (conditioning feature of S056)](#s060--news-intensity-overnight-drift-conditioning-feature-of-s056) — NOT_DAILY, DEFER
 - [Family 6 — Volatility Regime and Market Timing](#family-6--volatility-regime-and-market-timing)
-    - [S061 | VIX Spike Mean Reversion (SPY)](#s061--vix-spike-mean-reversion-spy)
+    - [S061 | VIX Spike Mean Reversion (SPY)](#s061--vix-spike-mean-reversion-spy) — NOT_DAILY, DEFER
     - [S062 | VIX/VXV Ratio Spike (Term Structure)](#s062--vixvxv-ratio-spike-term-structure)
     - [S063 | VIX Moving-Average Crossover Regime](#s063--vix-moving-average-crossover-regime)
     - [S064 | Hurst Exponent Regime Switch](#s064--hurst-exponent-regime-switch)
@@ -89,35 +91,35 @@
     - [S071 | Cointegrated ETF Pair Z-Score](#s071--cointegrated-etf-pair-z-score)
     - [S072 | Gold/Silver Ratio Mean Reversion](#s072--goldsilver-ratio-mean-reversion)
     - [S073 | GDX/GDXJ Miners Spread](#s073--gdxgdxj-miners-spread)
-    - [S075 | Stock-vs-Sector Residual Reversal](#s075--stock-vs-sector-residual-reversal) — IMPLEMENTED
+    - [S075 | Stock-vs-Sector Residual Reversal](#s075--stock-vs-sector-residual-reversal) — IMPLEMENTED — NOT_DAILY, DEFER
     - [S076 | Twin-ETF Convergence (SPY/IVV/VOO)](#s076--twin-etf-convergence-spyivvvoo)
     - [S077 | Energy Pair: XLE/USO Spread](#s077--energy-pair-xleuso-spread)
     - [S078 | Chan-Style Statistical Arbitrage Basket](#s078--chan-style-statistical-arbitrage-basket)
 - [Family 8 — Calendar Strategies](#family-8--calendar-strategies)
     - [S079 | Turn-of-the-Month Effect (window grid; absorbs S083)](#s079--turn-of-the-month-effect-window-grid-absorbs-s083)
     - [S080 | Pre-Holiday Effect](#s080--pre-holiday-effect)
-    - [S081 | Pre-FOMC Announcement Drift](#s081--pre-fomc-announcement-drift)
+    - [S081 | Pre-FOMC Announcement Drift](#s081--pre-fomc-announcement-drift) — NOT_DAILY, DEFER
     - [S082 | Options-Expiration-Week Drift](#s082--options-expiration-week-drift)
 - [Family 9 — Trend and Pullback Systems (Stocks)](#family-9--trend-and-pullback-systems-stocks)
-    - [S087 | 20-Day-EMA Pullback in Uptrend](#s087--20-day-ema-pullback-in-uptrend)
+    - [S087 | 20-Day-EMA Pullback in Uptrend](#s087--20-day-ema-pullback-in-uptrend) — NOT_DAILY, DEFER
     - [S088 | MACD Bullish Cross with Volume](#s088--macd-bullish-cross-with-volume)
     - [S089 | Golden Cross with Slope Filter](#s089--golden-cross-with-slope-filter)
     - [S090 | KAMA Breakout](#s090--kama-breakout)
     - [S091 | Donchian 55 with Chandelier Trail](#s091--donchian-55-with-chandelier-trail)
-    - [S093 | Higher-Low Reversal Entry](#s093--higher-low-reversal-entry)
+    - [S093 | Higher-Low Reversal Entry](#s093--higher-low-reversal-entry) — NOT_DAILY, DEFER
     - [S094 | Bollinger Squeeze Breakout](#s094--bollinger-squeeze-breakout)
     - [S095 | Keltner Channel Breakout](#s095--keltner-channel-breakout)
 - [Family 10 — Candlestick and Bar Patterns](#family-10--candlestick-and-bar-patterns)
-    - [S096 | Three-Bar Reversal (Bulkowski)](#s096--three-bar-reversal-bulkowski)
+    - [S096 | Three-Bar Reversal (Bulkowski)](#s096--three-bar-reversal-bulkowski) — NOT_DAILY, DEFER
     - [S097 | Bullish Engulfing After Down-Streak](#s097--bullish-engulfing-after-down-streak)
-    - [S098 | Hammer at Lower Bollinger Band](#s098--hammer-at-lower-bollinger-band)
+    - [S098 | Hammer at Lower Bollinger Band](#s098--hammer-at-lower-bollinger-band) — NOT_DAILY, DEFER
     - [S099 | Outside-Day Key Reversal at 200-SMA](#s099--outside-day-key-reversal-at-200-sma)
     - [S100 | Three White Soldiers Continuation](#s100--three-white-soldiers-continuation)
 - [Family 11 — Miscellaneous Structural Edge](#family-11--miscellaneous-structural-edge)
     - [S102 | Copper/Gold Ratio Equity Tilt (CPER/GLD ratio, both in cache)](#s102--coppergold-ratio-equity-tilt-cpergld-ratio-both-in-cache)
     - [S103 | Yield-Curve Financials/Utilities Rotation](#s103--yield-curve-financialsutilities-rotation)
     - [S104 | High-Beta/Momentum Crash Protection (overlay comparison on S041)](#s104--high-betamomentum-crash-protection-overlay-comparison-on-s041)
-    - [S105 | Volatility-Targeted Overnight Carry](#s105--volatility-targeted-overnight-carry)
+    - [S105 | Volatility-Targeted Overnight Carry](#s105--volatility-targeted-overnight-carry) — IMPLEMENTED
   - [Appendix - Source index](#appendix--source-index)
 
 ---
@@ -240,6 +242,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S001 | RSI(2) Classic (Connors) - cluster control (absorbs S002, S092)
 - family: ETF index mean reversion
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: Deep short-term oversold readings inside a bull regime revert to the mean within days; Connors found buying RSI(2) below 5 returned more than below 10.
 - universe: SPY, QQQ, IWM, DIA plus the 11 SPDR sector ETFs (per-ETF and pooled results)
 - direction: long
@@ -267,6 +270,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S003 | RSI(4) 25/75 (Connors)
 - family: ETF index mean reversion
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: Slightly slower RSI smooths the oversold signal; Connors' original used exit at RSI 75, but the modified exit at 55 halves drawdowns with similar expectancy.
 - universe: QQQ, SPY
 - direction: long
@@ -301,6 +305,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S004 | Cumulative RSI(2)
 - family: Connors oversold - cumulative RSI
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: Summing RSI(2) over 2 days measures sustained capitulation rather than a single extreme print, filtering out one-day spikes.
 - universe: liquid stocks (price > $5, 21-day avg volume > 500k, liquid_top_N) and, as a SEPARATE study, liquid ETFs; never pooled
 - direction: long
@@ -320,6 +325,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S005 | Connors %b (Bollinger Band)
 - family: ETF index mean reversion
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: %b < 0.2 for three consecutive days is a persistent stretch below the lower Bollinger Band. With BB(20,2) this is a genuinely rare state; with the 5-day band Quantified Strategies uses, it is close to 'three down days' (a 5-bar band is dominated by the last three closes). They are different strategies sharing a name, so both are registered.
 - universe: primary: Connors' ETF list (e.g., DIA, EEM, EFA, EWH, EWJ, EWT, EWZ, FXI, GLD, ILF, IWM, IYR, QQQ, SPY, XHB, XLB, XLE, XLF, XLI, XLV; use those with data); secondary: SPY/QQQ single-position version
 - direction: long
@@ -339,6 +345,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S006 | Double 7s
 - family: ETF index mean reversion
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: A 7-day closing low in a bull regime is a statistically favorable dip: no stop loss, exit at the opposite 7-day extreme, letting mean reversion complete.
 - universe: SPY or broad ETFs, pooled across ETFs (SPY alone gives ~5 trades/yr, ~50 in a 10-year window)
 - direction: long
@@ -369,6 +376,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S007 | 3-Day Pullback
 - family: ETF index mean reversion
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: Three consecutive lower closes inside an uptrend exhaust short-term sellers; exit when the 5-day mean is recovered.
 - universe: SPY and liquid ETFs
 - direction: long
@@ -388,6 +396,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S008 | ConnorsRSI(3,2,100) Stock Pullback
 - family: Connors oversold - stock pullback
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: Buys strong trending stocks (ADX > 30) after a sharp one-day capitulation (ConnorsRSI < 10 with close in bottom 25% of day range), selling on recovery to ConnorsRSI > 70.
 - universe: liquid US stocks (guidebook: price > $5, volume > 250k, 200-day history)
 - direction: long
@@ -407,6 +416,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S009 | 3 Days Down Overnight (SPY)
 - family: overnight (Connors streak)
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: The overnight session (close-to-open) captures most of the mean reversion after multi-day selloffs; holding only overnight avoids giving back the bounce intraday.
 - universe: SPY
 - direction: long
@@ -446,6 +456,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S011 | Z-Score / Bollinger Lower-Band Mean Reversion (absorbs S012)
 - family: ETF index mean reversion
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: A close more than 2 standard deviations below its 20-day mean (z < -2, algebraically identical to a close below the lower Bollinger Band(20,2) up to ddof) is a >95th-percentile stretch; the 20-day mean is the magnet. S011 (z-score with SMA200 gate) and S012 (lower-band close with RSI(2) filter, no gate) are cells of one family.
 - universe: SPY, QQQ, IWM
 - direction: long
@@ -484,6 +495,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S014 | Sector ETF Basket Mean Reversion
 - family: cross-sectional ETF reversal
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: Buying the 3 weakest sector ETFs of the past 5 sessions (while above their 200-day SMA) diversifies single-ETF timing risk and harvests cross-sector reversal.
 - universe: SPDR sector ETFs defined by a PIT inception-date table (9 sectors until XLRE Oct-2015 and XLC Jun-2018; XLK/XLY/XLC reconstituted Sep-2018, which breaks price continuity - note the break); the same table is used by S042
 - direction: long
@@ -509,6 +521,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S015 | Chan Buy-on-Gap (absorbs S022)
 - family: overnight and gap
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: Panic gap-down opens in stocks still in uptrends (open above 20-day MA) are overreactions; buying the open and exiting at the same day's close harvests intraday recovery. This is Chan's documented strategy from Quantitative Trading.
 - universe: liquid_top_N US stocks (N=1500, SP1500-like, PIT price-only rule)
 - direction: long
@@ -529,6 +542,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S016 | Short-on-Gap-Up (Chan mirror)
 - family: overnight and gap
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: The mirror of Chan's buy-on-gap: stocks that gap up more than 1 std against a downtrend revert intraday.
 - universe: SP1500 stocks
 - direction: short
@@ -567,6 +581,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S018 | Gap Fade (Fill the Gap)
 - family: overnight and gap
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: Common gaps (not driven by material news) tend to fill — price returns to the prior close — as overnight overreaction unwinds.
 - universe: liquid stocks and index ETFs
 - direction: long (down-gaps) / short (up-gaps)
@@ -603,6 +618,14 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - merged_from: S025
 - data_needs: daily_10years (D1); ETF daily bars (DP-ETF)
 - review: RESOLVED
+- implementation_results: `src/signals.rs` / `src/study.rs`; 30 large-cap stocks, 10 bps/side, close-fill proxy, 2016-2026 daily bars. Source is qualitative; this is the catalog's pre-registered quantitative adaptation. `gap125_vol25` was dev-selected among variants meeting trade-count gates; dev skill remains negative.
+
+  | variant | dev total / skill / Sharpe / PF / max DD | test total / skill / Sharpe / PF / max DD | trades (dev+test) |
+  |---|---|---|---|
+  | baseline | +0.037 / -0.292 / 0.15 / 1.07 / -9.6% | +0.146 / -0.064 / 1.19 / 1.62 / -3.8% | 385+149 |
+  | gap125_vol25 | +0.099 / -0.077 / 0.47 / 1.31 / -5.3% | +0.105 / -0.026 / 1.09 / 1.76 / -3.3% | 232+91 |
+  `gap150` had test PF 2.06 but Sharpe 1.45 and skill -0.011; it was not dev-selected. Signal inputs use only prior-session ATR/volume plus the current open gap and completed-session volume, but the same-close fill is an optimistic proxy after volume confirmation.
+  Reproduce: baseline `cargo run --release -- --strategy s019_gap_and_go`; dev-selected variant `cargo run --release -- --strategy s019_gap_and_go --variant gap125_vol25`
 
 ### S020 | Earnings-Eve Estimate-Drift Mean Reversion (Chan/Estimize)
 - family: overnight and gap
@@ -641,6 +664,13 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - merged_from: S084
 - data_needs: SPY raw OHLC + dividends (DP-ETF raw+div)
 - review: RESOLVED
+- implementation_results: Rust port in `src/study.rs` / `src/signals.rs`, using the configured total-return-adjusted ETF Parquet bars from 2016-01-04 through 2026-10-23 (2,718 sessions); 30 registered variants, close-to-open daily-bar proxies, 1 bp/side baseline. This differs from the catalog's preferred raw OHLC plus explicit ex-date dividends and auction fills. `iwm_cost025` (IWM, 0.25 bps/side) was selected on dev skill; both the baseline and selected variant have negative overnight-null skill on dev and test. The selected variant exceeds IWM total-return buy-and-hold by >10% cumulative growth on dev only; it does not exceed that margin on test.
+
+  | variant | dev total / skill / Sharpe / max DD | test total / skill / Sharpe / max DD | trades (dev+test) |
+  |---|---|---|---|
+  | baseline | +0.17 / -0.40 / 0.24 / -33.0% | +0.24 / -0.14 / 0.93 / -16.9% | 2,011+706 |
+  | iwm_cost025 | +0.99 / -0.10 / 0.94 / -31.4% | +0.37 / -0.04 / 1.01 / -19.4% | 2,011+706 |
+  Reproduce: `run_strats.bat` runs the full matrix; `target\release\deepthrust.exe --strategy s021_index_overnight --variant iwm_cost025` reruns baseline and the dev-selected variant.
 
 ### S023 | Post-Earnings Overnight Drift
 - family: overnight and gap
@@ -682,6 +712,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S026 | Exhaustion Gap Fade After 3-Day Run
 - family: overnight and gap
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: A stock that gaps up after 3+ consecutive up-closes shows climax behavior; late-stage gaps revert as the last buyers are exhausted.
 - universe: liquid stocks
 - direction: short
@@ -706,6 +737,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S027 | Lehmann 1-Week Loser Reversal
 - family: cross-sectional short-term reversal
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: The classic academic reversal: buy the worst performers over the prior week, hold one week. NY Fed SR 513 (Da, Liu & Schaumburg) decomposes reversal profits into across-industry momentum, within-industry variation in expected returns, under-reaction to within-industry cash-flow news and a residual: only the RESIDUAL ('nonfundamental' price changes) is significant and positive, and a strategy built to capture it earns about 3x the risk-adjusted return of the standard sort (1982-2009, monthly sorts). The best-supported implementation is therefore within-industry (peer-adjusted) reversal, see S075.
 - universe: liquid_top_N US stocks (PIT rule: top N by trailing 60-day median dollar volume, price >= $5, >= 250 prior bars). Research scale: bottom quintile within the top-1000; paper scale ($5,000, 5 positions): top-10 names
 - direction: long (and optional short leg)
@@ -725,6 +757,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S028 | Jegadeesh 1-Month Reversal
 - family: cross-sectional short-term reversal
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: Monthly rebalanced reversal: bottom-decile stocks by 1-month return outperform over the next month (Jegadeesh 1990). The NY Fed decomposition (S027) says the monthly strategy works through the within-industry residual, so raw and industry-adjusted versions are both run.
 - universe: liquid_top_N US stocks (PIT price-only rule), price >= $5
 - direction: long
@@ -744,6 +777,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S029 | Capitulation-Volume Loser Reversal
 - family: cross-sectional short-term reversal
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: Reversal is strongest when the selloff came on extreme volume — panic liquidation (mutual fund redemptions, margin calls) rather than informed selling is most likely to revert.
 - universe: S&P 500 + mid-cap liquid stocks
 - direction: long
@@ -763,6 +797,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S030 | Down-Streak Reversal (5+ Days)
 - family: cross-sectional short-term reversal
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: Consecutive down days are serially overpredicted by panic sellers; Connors' dip-buying rules show that within uptrends, streaks of down closes are bought profitably.
 - universe: liquid stocks above $5 with 200-day history
 - direction: long
@@ -1216,6 +1251,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S055 | Post-Earnings-Oversold Bounce
 - family: earnings and news
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: A stock that drops sharply on earnings but remains in a long-term uptrend (above 200-day SMA) typically recovers part of the drop within days — earnings-gap dislocation + regime filter.
 - universe: S&P 500 stocks
 - direction: long
@@ -1309,6 +1345,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S060 | News-Intensity Overnight Drift (conditioning feature of S056)
 - family: earnings and news
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: Stocks with unusually high pre-market news flow and positive sentiment gap up and keep drifting for 1-3 days. Re-scoped as a news-intensity z-score conditioning feature of S056 and tested on the available archive.
 - universe: stocks with pre-market news coverage
 - direction: long
@@ -1334,6 +1371,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S061 | VIX Spike Mean Reversion (SPY)
 - family: volatility regime
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: VIX is strongly mean-reverting; extreme spikes (VIX > 30, or > 1.5 × its 20-day average) coincide with panic selling that reverts as vol normalizes. Buying SPY at extreme VIX buys maximum fear.
 - universe: SPY
 - direction: long
@@ -1562,6 +1600,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S075 | Stock-vs-Sector Residual Reversal
 - family: pairs and spreads
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: For each stock compute its residual 5-day return versus its industry peers (stock return minus beta x peer return); extreme negative residuals revert because nonfundamental, sector-wide or sentiment-driven selling is misattributed to the name. NY Fed SR 513: only the within-industry residual component of reversal is significant and a strategy built on it earns ~3x the risk-adjusted return of the standard sort.
 - universe: liquid_top_N US stocks with PIT industry/sector mapping (SimFin industries or SIC) and equal-weight peer returns (sector ETF where available)
 - direction: long
@@ -1689,6 +1728,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S081 | Pre-FOMC Announcement Drift
 - family: calendar
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: Lucca-Moench (JF 2015; NY Fed SR 512): SPX rose 49 bp on average in the 24 hours before scheduled FOMC announcements (Sept 1994 - Mar 2011), about 80% of annual realized excess stock returns, with a holding-only-those-windows strategy at an annualised Sharpe of 1.1 or higher. Kurov-Wolfe-Gilbert (FRL 2021): the drift 'essentially disappeared after 2015'.
 - universe: SPY
 - direction: long
@@ -1732,6 +1772,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S087 | 20-Day-EMA Pullback in Uptrend
 - family: trend and pullback
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: A liquid stock in a long-term uptrend (above 200-day SMA) that pulls back to its 20-day EMA is at the institutional buy zone; entries at the EMA get trend exposure at discount prices.
 - universe: S&P 500 stocks
 - direction: long
@@ -1824,6 +1865,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S093 | Higher-Low Reversal Entry
 - family: trend and pullback
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: After a decline, two consecutive sessions with higher lows signal sellers are exhausted; volume confirmation marks accumulation (Wyckoff-style daily-bar pattern). As originally written the rule selected an ongoing rise, so a prior-decline precondition is now explicit.
 - universe: liquid stocks
 - direction: long
@@ -1887,6 +1929,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S096 | Three-Bar Reversal (Bulkowski)
 - family: candlestick patterns
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: Bulkowski's three-bar reversal as defined on the cited TradingView (HPotter) page: daily bars; the middle day has the lowest low of the three days (no ties); the last day closes above the prior day's high (no ties); each day has a nonzero trading range. A short-term reversal signature.
 - universe: liquid stocks
 - direction: long (mirror short)
@@ -1924,6 +1967,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S098 | Hammer at Lower Bollinger Band
 - family: candlestick patterns
+- ohlcv_status: NOT_DAILY, DEFER
 - concept: A hammer (long lower wick, small body near the session high) at the lower Bollinger Band is a rejection of extreme prices — buyers defended the lower extreme within the session.
 - universe: liquid stocks and ETFs
 - direction: long
@@ -2057,6 +2101,13 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - parameter_variants: leverage cap {1x primary; 2x}; resizing {20% band primary; daily}; vol window {20-day overnight primary}
 - data_needs: SPY raw OHLC + dividends (DP-ETF raw+div)
 - review: KEEP | source OK
+- implementation_results: Rust port in `src/study.rs` / `src/signals.rs`, using the same total-return-adjusted ETF Parquet bars and close-to-open proxy fills as S021; 30 registered variants. This differs from the catalog's preferred raw OHLC plus explicit ex-date dividends and true auction fills. `target25` (2.5% volatility target) was selected on dev skill; its lower exposure reduces drawdown but does not produce positive overnight-null skill or improve Sharpe over the unscaled baseline.
+
+  | variant | dev total / skill / Sharpe / max DD | test total / skill / Sharpe / max DD | trades (dev+test) |
+  |---|---|---|---|
+  | baseline | +0.24 / -0.36 / 0.42 / -22.3% | +0.22 / -0.13 / 0.97 / -13.8% | 1,991+706 |
+  | target25 | +0.08 / -0.14 / 0.39 / -6.6% | +0.08 / -0.05 / 0.93 / -4.1% | 1,991+706 |
+  Reproduce: `run_strats.bat` runs the full matrix; `target\release\deepthrust.exe --strategy s105_overnight_carry --variant target25` reruns baseline and the dev-selected variant.
 
 ---
 

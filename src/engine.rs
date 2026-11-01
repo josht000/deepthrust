@@ -17,6 +17,10 @@ pub struct Trade {
     pub exit_reason: &'static str,
     pub hold: usize,
     pub signal_value: f64,
+    pub weight: f64,
+    pub entry_turnover: f64,
+    pub exit_turnover: f64,
+    pub weighted: bool,
 }
 
 /// Last row index with a finite close per symbol.
@@ -133,6 +137,9 @@ pub fn swing_trades(panel: &Panel, p: &SwingParams, cfg: &Config, fill: &str) ->
                     exit_idx = u_exit + 1;
                     exit_px = oj[exit_idx];
                 }
+                if reason == "delisted" && cfg.delisting_return != 0.0 {
+                    exit_px *= 1.0 + cfg.delisting_return;
+                }
                 if exit_idx < entry {
                     continue;
                 }
@@ -149,6 +156,10 @@ pub fn swing_trades(panel: &Panel, p: &SwingParams, cfg: &Config, fill: &str) ->
                     exit_reason: reason,
                     hold: exit_idx - entry,
                     signal_value: p.signal_value[j][t_leg],
+                    weight: 1.0,
+                    entry_turnover: 1.0,
+                    exit_turnover: 1.0,
+                    weighted: false,
                 });
             }
             t_prev = Some(u_exit);
@@ -194,6 +205,7 @@ mod tests {
             high: vec![vec![10.0; n]],
             low: vec![vec![10.0; n]],
             close: vec![vec![10.5, 11.5, 12.5, 13.5, 14.5, 15.5]],
+            volume: vec![vec![1.0; n]],
         };
         let mut sig = vec![false; n];
         sig[1] = true;
@@ -237,6 +249,7 @@ mod tests {
             high: vec![vec![100.0; n]],
             low: vec![vec![100.0; n]],
             close: vec![vec![100.0, 100.0, 90.0, 69.0, 68.0]],
+            volume: vec![vec![1.0; n]],
         };
         let mut sig = vec![false; n];
         sig[1] = true;

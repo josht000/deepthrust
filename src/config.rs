@@ -55,6 +55,8 @@ pub struct Config {
     pub atr_len: usize,
     #[serde(default = "d_cost")]
     pub cost_bps_per_side: f64,
+    #[serde(default = "d_cost_ladder")]
+    pub cost_ladder_multipliers: Vec<f64>,
     #[serde(default = "d_fills")]
     pub fills: String,
     pub partition_split_date: String,
@@ -68,6 +70,70 @@ pub struct Config {
     pub seed: u64,
     #[serde(default = "d_slots")]
     pub book_slots: usize,
+    #[serde(default = "d_participation_filter")]
+    pub participation_filter: String,
+    #[serde(default = "d_target_vol")]
+    pub target_vol: f64,
+    #[serde(default = "d_vol_window")]
+    pub vol_window: usize,
+    #[serde(default = "d_max_leverage")]
+    pub max_leverage: f64,
+    #[serde(default = "d_resize_band")]
+    pub resize_band: f64,
+    #[serde(default = "d_gap_atr_multiple")]
+    pub gap_atr_multiple: f64,
+    #[serde(default = "d_gap_volume_multiple")]
+    pub gap_volume_multiple: f64,
+    #[serde(default = "d_gap_volume_window")]
+    pub gap_volume_window: usize,
+    #[serde(default = "d_gap_volume_mode")]
+    pub gap_volume_mode: String,
+    #[serde(default = "d_gap_stop_mode")]
+    pub gap_stop_mode: String,
+    #[serde(default = "d_gap_reward_risk")]
+    pub gap_reward_risk: f64,
+    #[serde(default = "d_gap_max_hold")]
+    pub gap_max_hold: usize,
+    #[serde(default = "d_universe_top_n")]
+    pub universe_top_n: usize,
+    #[serde(default = "d_entry_window")]
+    pub entry_window: usize,
+    #[serde(default = "d_exit_window")]
+    pub exit_window: usize,
+    #[serde(default = "d_rank_window")]
+    pub rank_window: usize,
+    #[serde(default = "d_rank_min_observations")]
+    pub rank_min_observations: usize,
+    #[serde(default = "d_min_price")]
+    pub min_price: f64,
+    #[serde(default = "d_mom_window")]
+    pub mom_window: usize,
+    #[serde(default = "d_skip_window")]
+    pub skip_window: usize,
+    #[serde(default = "d_breadth_mode")]
+    pub breadth_mode: String,
+    #[serde(default = "d_breadth")]
+    pub breadth: usize,
+    #[serde(default = "d_min_breadth")]
+    pub min_breadth: usize,
+    #[serde(default = "d_decile")]
+    pub decile: f64,
+    #[serde(default)]
+    pub industry_neutral: bool,
+    #[serde(default = "d_rebalance")]
+    pub rebalance: String,
+    #[serde(default = "d_signal")]
+    pub signal: String,
+    #[serde(default)]
+    pub etf_data_dir: String,
+    #[serde(default)]
+    pub etf_symbols: String,
+    #[serde(default)]
+    pub include_stocks: bool,
+    #[serde(default)]
+    pub rank_source: String,
+    #[serde(default)]
+    pub delisting_return: f64,
     #[serde(default)]
     pub results_tag: String,
     /// Resolved variant name ("baseline" when no overlay is applied).
@@ -145,6 +211,9 @@ fn d_atr_len() -> usize {
 fn d_cost() -> f64 {
     5.0
 }
+fn d_cost_ladder() -> Vec<f64> {
+    vec![0.5, 1.0, 2.0, 3.0]
+}
 fn d_fills() -> String {
     "next_open,close".into()
 }
@@ -162,6 +231,84 @@ fn d_seed() -> u64 {
 }
 fn d_slots() -> usize {
     1
+}
+fn d_participation_filter() -> String {
+    "none".into()
+}
+fn d_target_vol() -> f64 {
+    0.10
+}
+fn d_vol_window() -> usize {
+    20
+}
+fn d_max_leverage() -> f64 {
+    1.0
+}
+fn d_resize_band() -> f64 {
+    0.20
+}
+fn d_gap_atr_multiple() -> f64 {
+    1.0
+}
+fn d_gap_volume_multiple() -> f64 {
+    2.0
+}
+fn d_gap_volume_window() -> usize {
+    20
+}
+fn d_gap_volume_mode() -> String {
+    "high".into()
+}
+fn d_gap_stop_mode() -> String {
+    "prior_close".into()
+}
+fn d_gap_reward_risk() -> f64 {
+    2.0
+}
+fn d_gap_max_hold() -> usize {
+    5
+}
+fn d_universe_top_n() -> usize {
+    500
+}
+fn d_entry_window() -> usize {
+    252
+}
+fn d_exit_window() -> usize {
+    126
+}
+fn d_rank_window() -> usize {
+    60
+}
+fn d_rank_min_observations() -> usize {
+    40
+}
+fn d_min_price() -> f64 {
+    5.0
+}
+fn d_mom_window() -> usize {
+    252
+}
+fn d_skip_window() -> usize {
+    21
+}
+fn d_breadth_mode() -> String {
+    "decile".into()
+}
+fn d_breadth() -> usize {
+    50
+}
+fn d_min_breadth() -> usize {
+    1
+}
+fn d_decile() -> f64 {
+    0.10
+}
+fn d_rebalance() -> String {
+    "monthly".into()
+}
+fn d_signal() -> String {
+    "mom12".into()
 }
 fn d_baseline() -> String {
     "baseline".into()
@@ -218,6 +365,79 @@ pub fn split_csv(s: &str) -> Vec<String> {
         .map(|x| x.trim().to_string())
         .filter(|x| !x.is_empty())
         .collect()
+}
+
+fn expand_wildcard_symbols(doc: &mut Mapping) -> Result<(), String> {
+    fn expand(dir: &str, suffix: &str, value: &mut Value) -> Result<(), String> {
+        if value.as_str() != Some("*") {
+            return Ok(());
+        }
+        let root = Path::new(dir);
+        let entries = std::fs::read_dir(root)
+            .map_err(|error| format!("cannot discover symbols in {}: {error}", root.display()))?;
+        let mut symbols = Vec::new();
+        for entry in entries {
+            let entry = entry.map_err(|error| format!("{}: {error}", root.display()))?;
+            if !entry
+                .file_type()
+                .map_err(|error| format!("{}: {error}", entry.path().display()))?
+                .is_file()
+            {
+                continue;
+            }
+            let name = entry.file_name().to_string_lossy().into_owned();
+            if let Some(symbol) = name.strip_suffix(suffix) {
+                if !symbol.is_empty() {
+                    symbols.push(symbol.to_string());
+                }
+            }
+        }
+        symbols.sort();
+        symbols.dedup();
+        if symbols.is_empty() {
+            return Err(format!(
+                "symbol wildcard matched no *{suffix} files in {}",
+                root.display()
+            ));
+        }
+        *value = Value::String(symbols.join(","));
+        Ok(())
+    }
+    if let Some(sources) = doc.get_mut("sources").and_then(Value::as_sequence_mut) {
+        for source in sources {
+            let Some(map) = source.as_mapping_mut() else {
+                continue;
+            };
+            let dir = map
+                .get("data_dir")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string();
+            let suffix = map
+                .get("data_suffix")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+                .unwrap_or_else(d_suffix);
+            if let Some(symbols) = map.get_mut("symbols") {
+                expand(&dir, &suffix, symbols)?;
+            }
+        }
+    } else if doc.get("symbols").and_then(Value::as_str) == Some("*") {
+        let dir = doc
+            .get("data_dir")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string();
+        let suffix = doc
+            .get("data_suffix")
+            .and_then(Value::as_str)
+            .map(str::to_string)
+            .unwrap_or_else(d_suffix);
+        if let Some(symbols) = doc.get_mut("symbols") {
+            expand(&dir, &suffix, symbols)?;
+        }
+    }
+    Ok(())
 }
 
 pub struct Cli {
@@ -289,6 +509,7 @@ pub fn load_config(
             doc.insert("symbols".into(), Value::String(s.clone()));
         }
     }
+    expand_wildcard_symbols(&mut doc)?;
     let mut cfg: Config = serde_yaml::from_value(Value::Mapping(doc))
         .map_err(|e| format!("bad config {path}: {e}"))?;
     cfg.strategy = strategy.to_string();
@@ -341,6 +562,14 @@ pub fn load_config(
     }
     if cfg.lookback == 0 {
         return Err("lookback must be greater than zero".into());
+    }
+    if cfg.cost_ladder_multipliers.is_empty()
+        || cfg
+            .cost_ladder_multipliers
+            .iter()
+            .any(|multiplier| !multiplier.is_finite() || *multiplier <= 0.0)
+    {
+        return Err("cost_ladder_multipliers must contain positive finite values".into());
     }
     cfg.variant = variant.unwrap_or("baseline").to_string();
     cfg.variant_overlay = overlay_text;
@@ -433,6 +662,53 @@ sources:
     }
 
     #[test]
+    fn source_wildcard_discovers_only_files_with_configured_suffix() {
+        let path = write_config(
+            "wildcard",
+            r#"
+partition_split_date: "2024-01-01"
+sources:
+  - name: etfs
+    data_dir: PLACEHOLDER
+    data_suffix: _1Day_tr.parquet
+    symbols: "*"
+"#,
+        );
+        let dir = path.parent().unwrap();
+        std::fs::write(dir.join("SPY_1Day_tr.parquet"), []).unwrap();
+        std::fs::write(dir.join("QQQ_1Day_tr.parquet"), []).unwrap();
+        std::fs::write(dir.join("notes.csv"), []).unwrap();
+        std::fs::create_dir(dir.join("nested_1Day_tr.parquet")).unwrap();
+        let text = std::fs::read_to_string(&path)
+            .unwrap()
+            .replace("PLACEHOLDER", dir.to_str().unwrap());
+        std::fs::write(&path, text).unwrap();
+
+        let cfg = load_config("s-test", Some(path.to_str().unwrap()), &cli(), None).unwrap();
+        assert_eq!(cfg.sources[0].symbols, "QQQ,SPY");
+    }
+
+    #[test]
+    fn wildcard_rejects_empty_match() {
+        let path = write_config(
+            "wildcard_empty",
+            r#"
+partition_split_date: "2024-01-01"
+data_dir: PLACEHOLDER
+data_suffix: _1Day_tr.parquet
+symbols: "*"
+"#,
+        );
+        let dir = path.parent().unwrap();
+        let text = std::fs::read_to_string(&path)
+            .unwrap()
+            .replace("PLACEHOLDER", dir.to_str().unwrap());
+        std::fs::write(&path, text).unwrap();
+        let err = load_config("s-test", Some(path.to_str().unwrap()), &cli(), None).unwrap_err();
+        assert!(err.contains("matched no *_1Day_tr.parquet files"), "{err}");
+    }
+
+    #[test]
     fn baseline_is_the_default_and_unknown_variant_is_rejected() {
         let path = write_config(
             "variants",
@@ -458,7 +734,20 @@ variants:
     #[test]
     fn implemented_strategies_have_at_least_30_loadable_variants() {
         let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("configs");
-        for strategy in ["s001_rsi2_connors", "s003_rsi4_2575", "s006_double_7s"] {
+        let wildcard_dir =
+            std::env::temp_dir().join(format!("deepthrust_variant_symbols_{}", std::process::id()));
+        std::fs::create_dir_all(&wildcard_dir).unwrap();
+        std::fs::write(wildcard_dir.join("AAA.parquet"), []).unwrap();
+        for strategy in [
+            "s001_rsi2_connors",
+            "s003_rsi4_2575",
+            "s006_double_7s",
+            "s033_52w_breakout",
+            "s041_mom_12_1",
+            "s021_index_overnight",
+            "s042_sector_momentum",
+            "s105_overnight_carry",
+        ] {
             let path = root.join(format!("{strategy}.yaml"));
             let text = std::fs::read_to_string(&path).unwrap();
             let doc: Value = serde_yaml::from_str(&text).unwrap();
@@ -472,8 +761,48 @@ variants:
                 variants.len()
             );
             for name in variants.keys().map(|key| key.as_str().unwrap()) {
+                let test_cli = if matches!(strategy, "s033_52w_breakout" | "s041_mom_12_1") {
+                    Cli {
+                        data_dir: Some(wildcard_dir.display().to_string()),
+                        symbols: None,
+                    }
+                } else {
+                    cli()
+                };
+                load_config(
+                    strategy,
+                    Some(path.to_str().unwrap()),
+                    &test_cli,
+                    Some(name),
+                )
+                .unwrap_or_else(|e| panic!("{strategy}/{name}: {e}"));
+            }
+        }
+        let _ = std::fs::remove_dir_all(wildcard_dir);
+    }
+
+    #[test]
+    fn overnight_strategies_and_variants_load() {
+        let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("configs");
+        for strategy in ["s021_index_overnight", "s105_overnight_carry"] {
+            let path = root.join(format!("{strategy}.yaml"));
+            let text = std::fs::read_to_string(&path).unwrap();
+            let doc: Value = serde_yaml::from_str(&text).unwrap();
+            let variants = doc
+                .get("variants")
+                .and_then(Value::as_mapping)
+                .unwrap_or_else(|| panic!("{strategy} has no variants"));
+            let baseline = load_config(strategy, Some(path.to_str().unwrap()), &cli(), None)
+                .unwrap_or_else(|error| panic!("{strategy}: {error}"));
+            assert_eq!(baseline.cost_ladder_multipliers, [0.5, 1.0, 2.0, 5.0]);
+            assert!(
+                variants.len() >= 30,
+                "{strategy} has only {} named variants",
+                variants.len()
+            );
+            for name in variants.keys().map(|key| key.as_str().unwrap()) {
                 load_config(strategy, Some(path.to_str().unwrap()), &cli(), Some(name))
-                    .unwrap_or_else(|e| panic!("{strategy}/{name}: {e}"));
+                    .unwrap_or_else(|error| panic!("{strategy}/{name}: {error}"));
             }
         }
     }

@@ -1,0 +1,48 @@
+# S021 Index Overnight Premium; total-return-adjusted daily bars include dividend effects.
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY
+benchmark: SPY
+start_date: "2016-01-04"
+participation_filter: none
+cost_bps_per_side: 1.0
+cost_ladder_multipliers: [0.5, 1.0, 2.0, 5.0]
+fills: close_to_open
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+n_timing_draws: 500
+seed: 20261031
+book_slots: 1
+
+variants:
+  sma50: {participation_filter: sma50}
+  qqq: {symbols: QQQ, benchmark: QQQ}
+  iwm: {symbols: IWM, benchmark: IWM}
+  cost05: {cost_bps_per_side: 0.5}
+  cost2: {cost_bps_per_side: 2.0}
+  cost5: {cost_bps_per_side: 5.0}
+  cost025: {cost_bps_per_side: 0.25}
+  cost10: {cost_bps_per_side: 10.0}
+  sma50_cost05: {participation_filter: sma50, cost_bps_per_side: 0.5}
+  sma50_cost2: {participation_filter: sma50, cost_bps_per_side: 2.0}
+  sma50_cost5: {participation_filter: sma50, cost_bps_per_side: 5.0}
+  sma50_cost10: {participation_filter: sma50, cost_bps_per_side: 10.0}
+  qqq_cost025: {symbols: QQQ, benchmark: QQQ, cost_bps_per_side: 0.25}
+  qqq_cost05: {symbols: QQQ, benchmark: QQQ, cost_bps_per_side: 0.5}
+  qqq_cost2: {symbols: QQQ, benchmark: QQQ, cost_bps_per_side: 2.0}
+  qqq_cost5: {symbols: QQQ, benchmark: QQQ, cost_bps_per_side: 5.0}
+  qqq_cost10: {symbols: QQQ, benchmark: QQQ, cost_bps_per_side: 10.0}
+  iwm_cost025: {symbols: IWM, benchmark: IWM, cost_bps_per_side: 0.25}
+  iwm_cost05: {symbols: IWM, benchmark: IWM, cost_bps_per_side: 0.5}
+  iwm_cost2: {symbols: IWM, benchmark: IWM, cost_bps_per_side: 2.0}
+  iwm_cost5: {symbols: IWM, benchmark: IWM, cost_bps_per_side: 5.0}
+  iwm_cost10: {symbols: IWM, benchmark: IWM, cost_bps_per_side: 10.0}
+  qqq_sma50: {symbols: QQQ, benchmark: QQQ, participation_filter: sma50}
+  iwm_sma50: {symbols: IWM, benchmark: IWM, participation_filter: sma50}
+  qqq_sma50_cost05: {symbols: QQQ, benchmark: QQQ, participation_filter: sma50, cost_bps_per_side: 0.5}
+  qqq_sma50_cost2: {symbols: QQQ, benchmark: QQQ, participation_filter: sma50, cost_bps_per_side: 2.0}
+  qqq_sma50_cost5: {symbols: QQQ, benchmark: QQQ, participation_filter: sma50, cost_bps_per_side: 5.0}
+  iwm_sma50_cost05: {symbols: IWM, benchmark: IWM, participation_filter: sma50, cost_bps_per_side: 0.5}
+  iwm_sma50_cost2: {symbols: IWM, benchmark: IWM, participation_filter: sma50, cost_bps_per_side: 2.0}
+  iwm_sma50_cost5: {symbols: IWM, benchmark: IWM, participation_filter: sma50, cost_bps_per_side: 5.0}

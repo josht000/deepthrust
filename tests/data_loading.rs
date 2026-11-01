@@ -173,6 +173,7 @@ fn study_loads_mixed_sources_and_aligns_their_symbols() {
         test: false,
         rebuild: false,
         profile: false,
+        debug: false,
     };
     let mut study = Study::new(&cfg, &dir.join("results"), &flags);
     let (panel, _) = study.load_all().unwrap();
@@ -238,11 +239,96 @@ fn study_loads_benchmark_from_separate_directory_without_trading_it() {
         test: false,
         rebuild: false,
         profile: false,
+        debug: false,
     };
     let study = Study::new(&cfg, &dir.join("results"), &flags);
     let (panel, benchmark) = study.load_all().unwrap();
 
     assert_eq!(panel.symbols, vec!["AAA"]);
     assert_eq!(benchmark.unwrap().0, "SPY");
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
+fn cli_hides_warnings_and_symbol_table_unless_debug_is_enabled() {
+    let dir = tmp("warning_verbosity");
+    let data = dir.join("data");
+    write_parquet(
+        &data.join("AAA_1Day_tr.parquet"),
+        &bars(&["2015-01-02", "2015-01-05"], 10.0),
+    );
+    let config = dir.join("strategy.yaml");
+    std::fs::write(
+        &config,
+        format!(
+            "data_dir: '{}'\ndata_suffix: _1Day_tr.parquet\nsymbols: AAA\n\
+             benchmark: SPY\nstart_date: '2005-01-01'\nmin_history: 1\n\
+             partition_split_date: '2024-01-01'\n",
+            data.display()
+        ),
+    )
+    .unwrap();
+
+    let run = |debug: bool| {
+        let mut command = std::process::Command::new(env!("CARGO_BIN_EXE_deepthrust"));
+        command
+            .args([
+                "--strategy",
+                "s001_rsi2_connors",
+                "--config",
+                config.to_str().unwrap(),
+                "--stages",
+                "rank",
+            ])
+            .current_dir(&dir);
+        if debug {
+            command.arg("--debug");
+        }
+        command.output().unwrap()
+    };
+
+    let quiet = run(false);
+    assert!(
+        quiet.status.success(),
+        "{}",
+        String::from_utf8_lossy(&quiet.stderr)
+    );
+    assert!(
+        !String::from_utf8_lossy(&quiet.stderr).contains("Warning:"),
+        "{}",
+        String::from_utf8_lossy(&quiet.stderr)
+    );
+    assert!(
+        !String::from_utf8_lossy(&quiet.stdout).contains("│ symbol │ fill"),
+        "{}",
+        String::from_utf8_lossy(&quiet.stdout)
+    );
+    assert!(dir
+        .join("results")
+        .join("s001_rsi2_connors")
+        .join("per_etf.csv")
+        .is_file());
+
+    let debug = run(true);
+    assert!(
+        debug.status.success(),
+        "{}",
+        String::from_utf8_lossy(&debug.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&debug.stderr).contains("Warning: AAA"),
+        "{}",
+        String::from_utf8_lossy(&debug.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&debug.stderr).contains("Benchmark warning:"),
+        "{}",
+        String::from_utf8_lossy(&debug.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&debug.stdout).contains("│ symbol │ fill"),
+        "{}",
+        String::from_utf8_lossy(&debug.stdout)
+    );
     let _ = std::fs::remove_dir_all(dir);
 }

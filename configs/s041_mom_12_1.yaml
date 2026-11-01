@@ -1,0 +1,55 @@
+data_dir:  C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+mom_window: 252
+skip_window: 21
+breadth_mode: decile
+decile: 0.10
+breadth: 50
+min_breadth: 1
+industry_neutral: false
+delisting_return: -0.30
+cost_bps_per_side: 15.0
+fills: close,next_open
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 50
+
+variants:
+  mom126_skip0: {mom_window: 126, skip_window: 0}
+  mom126_skip10: {mom_window: 126, skip_window: 10}
+  mom126_skip21: {mom_window: 126, skip_window: 21}
+  mom126_skip42: {mom_window: 126, skip_window: 42}
+  mom189_skip0: {mom_window: 189, skip_window: 0}
+  mom189_skip10: {mom_window: 189, skip_window: 10}
+  mom189_skip21: {mom_window: 189, skip_window: 21}
+  mom189_skip42: {mom_window: 189, skip_window: 42}
+  mom252_skip0: {mom_window: 252, skip_window: 0}
+  mom252_skip10: {mom_window: 252, skip_window: 10}
+  mom252_skip42: {mom_window: 252, skip_window: 42}
+  mom315_skip0: {mom_window: 315, skip_window: 0}
+  mom315_skip10: {mom_window: 315, skip_window: 10}
+  mom315_skip21: {mom_window: 315, skip_window: 21}
+  mom315_skip42: {mom_window: 315, skip_window: 42}
+  mom378_skip0: {mom_window: 378, skip_window: 0}
+  mom378_skip10: {mom_window: 378, skip_window: 10}
+  mom378_skip21: {mom_window: 378, skip_window: 21}
+  mom378_skip42: {mom_window: 378, skip_window: 42}
+  top10: {breadth_mode: top, breadth: 10, book_slots: 10}
+  top20: {breadth_mode: top, breadth: 20, book_slots: 20}
+  top30: {breadth_mode: top, breadth: 30, book_slots: 30}
+  top40: {breadth_mode: top, breadth: 40, book_slots: 40}
+  top50: {breadth_mode: top, breadth: 50, book_slots: 50}
+  top75: {breadth_mode: top, breadth: 75, book_slots: 75}
+  top100: {breadth_mode: top, breadth: 100, book_slots: 100}
+  top150: {breadth_mode: top, breadth: 150, book_slots: 150}
+  top200: {breadth_mode: top, breadth: 200, book_slots: 200}
+  decile5: {decile: 0.05, book_slots: 25}
+  decile15: {decile: 0.15, book_slots: 75}

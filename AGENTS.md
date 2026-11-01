@@ -1,3 +1,4 @@
+- Refer to this repo as "DeepThrust"
 - Layout: every strategy lives in `src/strategies/<name>/` (config in `configs/<name>.yaml`); one-off python tools live in `tools/`; one-off shell/batch scripts live in `scripts/`.
 - A study keeps ALL its outputs (trades, tables, partition CSV/report, figures, golden) in `results/<name>/`. Do not write study outputs to `reports/`.
 - Envs should always be repeatble so the cargo and other install/setup scripts need to be kept up to date. Notify the user (me) if updates are needed here. 

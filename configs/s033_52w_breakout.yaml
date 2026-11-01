@@ -1,0 +1,62 @@
+data_suffix: .parquet
+etf_symbols: SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,TLT,IEF,GLD,EFA,EEM
+include_stocks: true
+universe_top_n: 500
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+min_history: 260
+entry_window: 252
+exit_window: 126
+delisting_return: -0.30
+cost_bps_per_side: 10.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 50
+
+sources:
+  - name: etfs
+    data_dir: ..\trading_framework\data\cache\etf_tr
+    data_suffix: .parquet
+    symbols: SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,TLT,IEF,GLD,EFA,EEM
+    cost_bps_per_side: 5.0
+  - name: stocks
+    data_dir: ..\trading_framework\data\cache\daily_10years_tr
+    data_suffix: .parquet
+    symbols: "*"
+    cost_bps_per_side: 15.0
+
+variants:
+  entry63_exit21: {entry_window: 63, exit_window: 21}
+  entry63_exit63: {entry_window: 63, exit_window: 63}
+  entry63_exit126: {entry_window: 63, exit_window: 126}
+  entry126_exit21: {entry_window: 126, exit_window: 21}
+  entry126_exit63: {entry_window: 126, exit_window: 63}
+  entry126_exit126: {entry_window: 126, exit_window: 126}
+  entry189_exit21: {entry_window: 189, exit_window: 21}
+  entry189_exit63: {entry_window: 189, exit_window: 63}
+  entry189_exit126: {entry_window: 189, exit_window: 126}
+  entry252_exit21: {entry_window: 252, exit_window: 21}
+  entry252_exit63: {entry_window: 252, exit_window: 63}
+  entry315_exit21: {entry_window: 315, exit_window: 21}
+  entry315_exit63: {entry_window: 315, exit_window: 63}
+  entry315_exit126: {entry_window: 315, exit_window: 126}
+  entry63_exit21_top100: {entry_window: 63, exit_window: 21, universe_top_n: 100, book_slots: 20}
+  entry63_exit63_top100: {entry_window: 63, exit_window: 63, universe_top_n: 100, book_slots: 20}
+  entry63_exit126_top100: {entry_window: 63, exit_window: 126, universe_top_n: 100, book_slots: 20}
+  entry126_exit21_top100: {entry_window: 126, exit_window: 21, universe_top_n: 100, book_slots: 20}
+  entry126_exit63_top100: {entry_window: 126, exit_window: 63, universe_top_n: 100, book_slots: 20}
+  entry126_exit126_top100: {entry_window: 126, exit_window: 126, universe_top_n: 100, book_slots: 20}
+  entry189_exit21_top100: {entry_window: 189, exit_window: 21, universe_top_n: 100, book_slots: 20}
+  entry189_exit63_top100: {entry_window: 189, exit_window: 63, universe_top_n: 100, book_slots: 20}
+  entry189_exit126_top100: {entry_window: 189, exit_window: 126, universe_top_n: 100, book_slots: 20}
+  entry252_exit21_top100: {entry_window: 252, exit_window: 21, universe_top_n: 100, book_slots: 20}
+  entry252_exit63_top100: {entry_window: 252, exit_window: 63, universe_top_n: 100, book_slots: 20}
+  etf_only: {include_stocks: false, book_slots: 20}
+  etf_only_fast: {include_stocks: false, entry_window: 63, exit_window: 21, book_slots: 20}
+  etf_only_slow: {include_stocks: false, entry_window: 315, exit_window: 126, book_slots: 20}
+  top250: {universe_top_n: 250}
+  top1000: {universe_top_n: 1000, book_slots: 100}

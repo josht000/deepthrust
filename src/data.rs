@@ -26,6 +26,7 @@ pub struct Panel {
     pub high: Vec<Vec<f64>>,
     pub low: Vec<Vec<f64>>,
     pub close: Vec<Vec<f64>>,
+    pub volume: Vec<Vec<f64>>,
 }
 
 pub fn input_path(dir: &str, symbol: &str, suffix: &str) -> PathBuf {
@@ -206,6 +207,7 @@ pub fn build_panel(symbols: &[String], bars: &[Bars]) -> Panel {
         high: vec![vec![f64::NAN; n]; symbols.len()],
         low: vec![vec![f64::NAN; n]; symbols.len()],
         close: vec![vec![f64::NAN; n]; symbols.len()],
+        volume: vec![vec![f64::NAN; n]; symbols.len()],
     };
     for (j, b) in bars.iter().enumerate() {
         for (i, d) in b.dates.iter().enumerate() {
@@ -214,8 +216,132 @@ pub fn build_panel(symbols: &[String], bars: &[Bars]) -> Panel {
                 p.high[j][r] = b.high[i];
                 p.low[j][r] = b.low[i];
                 p.close[j][r] = b.close[i];
+                p.volume[j][r] = b.volume[i];
             }
         }
     }
     p
+}
+
+/// Point-in-time rank by trailing median dollar volume, using only observations
+/// through the prior session. `columns` defines the eligible stock universe.
+pub fn liquidity_ranks(
+    panel: &Panel,
+    columns: &[usize],
+    window: usize,
+    min_observations: usize,
+    min_price: f64,
+    min_history: usize,
+) -> Result<Vec<Vec<f64>>, String> {
+    if window == 0 || min_observations == 0 || min_observations > window {
+        return Err("liquidity rank window and minimum observations are invalid".into());
+    }
+    if !min_price.is_finite() || min_price < 0.0 {
+        return Err("liquidity rank minimum price must be finite and nonnegative".into());
+    }
+    let rows = panel.dates.len();
+    if panel.close.len() != panel.symbols.len()
+        || panel.volume.len() != panel.symbols.len()
+        || panel
+            .close
+            .iter()
+            .chain(&panel.volume)
+            .any(|series| series.len() != rows)
+        || columns.iter().any(|&col| col >= panel.symbols.len())
+    {
+        return Err("liquidity rank panel dimensions or column indices are invalid".into());
+    }
+    let mut ranks = vec![vec![f64::NAN; rows]; panel.symbols.len()];
+    let mut history = vec![0usize; panel.symbols.len()];
+    for day in 0..rows {
+        let start = day.saturating_sub(window);
+        let mut eligible = Vec::new();
+        if day > 0 {
+            for &col in columns {
+                let close = panel.close[col][day - 1];
+                if !close.is_finite() || close < min_price || history[col] < min_history {
+                    continue;
+                }
+                let mut dollar_volume: Vec<f64> = (start..day)
+                    .filter_map(|row| {
+                        let value = panel.close[col][row] * panel.volume[col][row];
+                        value.is_finite().then_some(value)
+                    })
+                    .collect();
+                if dollar_volume.len() < min_observations {
+                    continue;
+                }
+                let mid = dollar_volume.len() / 2;
+                dollar_volume.select_nth_unstable_by(mid, f64::total_cmp);
+                let median = if dollar_volume.len() % 2 == 0 {
+                    let lower = dollar_volume[..mid]
+                        .iter()
+                        .copied()
+                        .fold(f64::NEG_INFINITY, f64::max);
+                    (lower + dollar_volume[mid]) / 2.0
+                } else {
+                    dollar_volume[mid]
+                };
+                eligible.push((col, median));
+            }
+        }
+        eligible.sort_by(|(col_a, value_a), (col_b, value_b)| {
+            value_b.total_cmp(value_a).then_with(|| col_a.cmp(col_b))
+        });
+        for (rank, (col, _)) in eligible.into_iter().enumerate() {
+            ranks[col][day] = rank as f64 + 1.0;
+        }
+        for (col, series) in panel.close.iter().enumerate() {
+            if series[day].is_finite() {
+                history[col] += 1;
+            }
+        }
+    }
+    Ok(ranks)
+}
+
+#[cfg(test)]
+mod liquidity_rank_tests {
+    use super::*;
+
+    fn panel() -> Panel {
+        let dates = (0..5)
+            .map(|day| parse_date(&format!("2024-01-0{}", day + 1)).unwrap())
+            .collect::<Vec<_>>();
+        Panel {
+            dates,
+            symbols: vec!["A".into(), "B".into()],
+            open: vec![vec![10.0; 5], vec![10.0; 5]],
+            high: vec![vec![10.0; 5], vec![10.0; 5]],
+            low: vec![vec![10.0; 5], vec![10.0; 5]],
+            close: vec![vec![10.0; 5], vec![20.0; 5]],
+            volume: vec![vec![10.0; 5], vec![5.0; 5]],
+        }
+    }
+
+    #[test]
+    fn liquidity_rank_uses_prior_session_only_and_stable_ties() {
+        let mut panel = panel();
+        panel.volume[1][2] = 100.0;
+        let ranks = liquidity_ranks(&panel, &[0, 1], 2, 2, 5.0, 1).unwrap();
+        assert!(ranks[0][0].is_nan());
+        assert_eq!(ranks[0][2], 1.0);
+        assert_eq!(ranks[1][2], 2.0);
+        assert_eq!(ranks[0][3], 2.0);
+        assert_eq!(ranks[1][3], 1.0);
+    }
+
+    #[test]
+    fn liquidity_rank_enforces_price_history_and_history_length() {
+        let mut panel = panel();
+        panel.close[0][0] = 4.0;
+        panel.close[0][2] = 4.0;
+        panel.close[1][0] = f64::NAN;
+        panel.close[1][3] = f64::NAN;
+        let ranks = liquidity_ranks(&panel, &[0, 1], 3, 2, 5.0, 3).unwrap();
+        assert!(ranks[0][3].is_nan());
+        assert!(ranks[1][3].is_nan());
+        assert!(ranks[0][4].is_finite());
+        assert!(ranks[1][4].is_nan());
+    }
 }

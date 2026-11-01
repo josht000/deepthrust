@@ -1,0 +1,10 @@
+- **setup**: The strategy being tested.
+- **total**: Sum of the account's daily log returns, net of costs. The account is $5,000, 5 positions at 20% each, with days without trades counting as 0.
+- **trend_iwm**: What the market gave you. It is the IWM return from your 15:55 entry to your exit, weighted by how much of the account was invested each day. This is the headline trend.
+- **trend_spy**: The same measure using SPY. It is shown for reference and is not used in the skill calculation.
+- **random**: The average total from 2,000 random draws. Each day it picks the same number of stocks at random, with the same sizing. The summary row you pasted shows only the one baseline used for its p-value. The full table has two: random picks from the whole candidate universe, and random picks from the strategy's own filtered pool before ranking.
+- **bias**: How much the total is inflated by choosing the best of many things you tried. It can't be read from the equity curve. It is estimated by walk-forward tuning where a tuning procedure exists, and otherwise by the trial-count haircut. On test it is 0 by construction.
+- **skill**: The residual: total minus trend minus bias. Here it is 50.3 - (-1.3) - 148.1 = -96.5.
+- **skill%**: Skill divided by total. It shows n/a when skill is negative or total isn't positive.
+- **p**: The one-sided probability that skill is zero or negative. It comes from resampling the trading days 5,000 times.
+- **95% CI**: The 95% range for skill from that same resampling.

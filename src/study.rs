@@ -21,6 +21,18 @@ pub const S003_NAME: &str = "s003_rsi4_2575";
 pub const S003_TITLE: &str = "S003 RSI(4) 25/75 (Connors)";
 pub const S006_NAME: &str = "s006_double_7s";
 pub const S006_TITLE: &str = "S006 Double 7s";
+pub const S019_NAME: &str = "s019_gap_and_go";
+pub const S019_TITLE: &str = "S019 Gap-and-Go Continuation";
+pub const S021_NAME: &str = "s021_index_overnight";
+pub const S021_TITLE: &str = "S021 Index Overnight Premium";
+pub const S033_NAME: &str = "s033_52w_breakout";
+pub const S033_TITLE: &str = "S033 52-Week-High Breakout";
+pub const S041_NAME: &str = "s041_mom_12_1";
+pub const S041_TITLE: &str = "S041 12-1 Cross-Sectional Momentum";
+pub const S042_NAME: &str = "s042_sector_momentum";
+pub const S042_TITLE: &str = "S042 Sector Momentum Rotation";
+pub const S105_NAME: &str = "s105_overnight_carry";
+pub const S105_TITLE: &str = "S105 Volatility-Targeted Overnight Carry";
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -28,7 +40,26 @@ const MIN_TEST_TRADES: f64 = 30.0;
 pub trait StrategyDefinition: Sync {
     fn name(&self) -> &'static str;
     fn title(&self) -> &'static str;
-    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Signals;
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String>;
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        let params = SwingParams {
+            signal: &sig.signal,
+            exit_now: &sig.exit_now,
+            add_signal: sig.add_signal.as_ref(),
+            max_units: cfg.max_units,
+            stop_atr: sig.atr.as_ref(),
+            stop_pct: sig.stop_pct.as_ref(),
+            stop_mult: cfg.disaster_stop_atr,
+            signal_value: &sig.rsi,
+        };
+        Ok(engine::swing_trades(panel, &params, cfg, fill))
+    }
 }
 
 struct RsiStrategyDefinition {
@@ -45,8 +76,8 @@ impl StrategyDefinition for RsiStrategyDefinition {
         self.title
     }
 
-    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Signals {
-        signals::compute_signals(panel, cfg)
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        Ok(signals::compute_signals(panel, cfg))
     }
 }
 
@@ -61,8 +92,151 @@ impl StrategyDefinition for DoubleSevenStrategyDefinition {
         S006_TITLE
     }
 
-    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Signals {
-        signals::compute_double7_signals(panel, cfg)
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        Ok(signals::compute_double7_signals(panel, cfg))
+    }
+}
+
+struct GapAndGoStrategyDefinition;
+
+impl StrategyDefinition for GapAndGoStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S019_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S019_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        signals::compute_s019_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        signals::s019_trades(panel, sig, cfg, fill)
+    }
+}
+
+#[derive(Clone, Copy)]
+enum OvernightKind {
+    Index,
+    VolatilityTargeted,
+}
+
+struct OvernightStrategyDefinition {
+    name: &'static str,
+    title: &'static str,
+    kind: OvernightKind,
+}
+
+struct SectorMomentumStrategyDefinition;
+
+impl StrategyDefinition for SectorMomentumStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S042_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S042_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        signals::compute_s042_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        signals::s042_trades(panel, sig, cfg, fill)
+    }
+}
+
+struct BreakoutStrategyDefinition;
+
+impl StrategyDefinition for BreakoutStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S033_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S033_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        signals::compute_s033_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        signals::s033_trades(panel, sig, cfg, fill)
+    }
+}
+
+struct CrossSectionalMomentumStrategyDefinition;
+
+impl StrategyDefinition for CrossSectionalMomentumStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S041_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S041_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        signals::compute_s041_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        signals::s041_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for OvernightStrategyDefinition {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn title(&self) -> &'static str {
+        self.title
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        match self.kind {
+            OvernightKind::Index => signals::compute_s021_signals(panel, cfg),
+            OvernightKind::VolatilityTargeted => signals::compute_s105_signals(panel, cfg),
+        }
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        signals::overnight_trades(panel, sig, cfg, fill)
     }
 }
 
@@ -75,8 +249,32 @@ static S003_STRATEGY: RsiStrategyDefinition = RsiStrategyDefinition {
     title: S003_TITLE,
 };
 static S006_STRATEGY: DoubleSevenStrategyDefinition = DoubleSevenStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 3] =
-    [&S001_STRATEGY, &S003_STRATEGY, &S006_STRATEGY];
+static S019_STRATEGY: GapAndGoStrategyDefinition = GapAndGoStrategyDefinition;
+static S021_STRATEGY: OvernightStrategyDefinition = OvernightStrategyDefinition {
+    name: S021_NAME,
+    title: S021_TITLE,
+    kind: OvernightKind::Index,
+};
+static S105_STRATEGY: OvernightStrategyDefinition = OvernightStrategyDefinition {
+    name: S105_NAME,
+    title: S105_TITLE,
+    kind: OvernightKind::VolatilityTargeted,
+};
+static S042_STRATEGY: SectorMomentumStrategyDefinition = SectorMomentumStrategyDefinition;
+static S033_STRATEGY: BreakoutStrategyDefinition = BreakoutStrategyDefinition;
+static S041_STRATEGY: CrossSectionalMomentumStrategyDefinition =
+    CrossSectionalMomentumStrategyDefinition;
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 9] = [
+    &S001_STRATEGY,
+    &S003_STRATEGY,
+    &S006_STRATEGY,
+    &S019_STRATEGY,
+    &S021_STRATEGY,
+    &S033_STRATEGY,
+    &S041_STRATEGY,
+    &S042_STRATEGY,
+    &S105_STRATEGY,
+];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
     STRATEGY_REGISTRY
@@ -130,6 +328,7 @@ pub struct Flags {
     pub test: bool,
     pub rebuild: bool,
     pub profile: bool,
+    pub debug: bool,
 }
 
 pub struct State {
@@ -183,6 +382,12 @@ impl<'a> Study<'a> {
         self.results.clone()
     }
 
+    fn debug_warning(&self, message: impl std::fmt::Display) {
+        if self.flags.debug {
+            eprintln!("{message}");
+        }
+    }
+
     fn write(&self, name: &str, text: String) -> Result<(), String> {
         let path = self.out().join(format!("{}{}", self.cfg.prefix(), name));
         fs::write(&path, text).map_err(|e| format!("{}: {e}", path.display()))
@@ -199,7 +404,7 @@ impl<'a> Study<'a> {
                 let bars =
                     data::load_symbol(&source.data_dir, &source.data_suffix, &symbol, start)?;
                 if let Some(w) = data::start_gap_warning(&symbol, &bars, start) {
-                    eprintln!("Warning: {w}");
+                    self.debug_warning(format!("Warning: {w}"));
                 }
                 symbol_bars.push((symbol, bars));
             }
@@ -229,7 +434,7 @@ impl<'a> Study<'a> {
                 .map_err(|e| format!("benchmark {}: {e}", cfg.benchmark))?;
             if !symbols.contains(&cfg.benchmark) {
                 if let Some(w) = data::start_gap_warning(&cfg.benchmark, &b, start) {
-                    eprintln!("Warning: {w}");
+                    self.debug_warning(format!("Warning: {w}"));
                 }
             }
             Some((cfg.benchmark.clone(), b))
@@ -254,17 +459,17 @@ impl<'a> Study<'a> {
                 Some(b) => {
                     if !symbols.contains(&cfg.benchmark) {
                         if let Some(w) = data::start_gap_warning(&cfg.benchmark, &b, start) {
-                            eprintln!("Warning: {w}");
+                            self.debug_warning(format!("Warning: {w}"));
                         }
                     }
                     Some((cfg.benchmark.clone(), b))
                 }
                 None => {
-                    eprintln!(
+                    self.debug_warning(format!(
                         "Benchmark warning: {}; falling back to the equal-weight universe",
                         last_error
                             .unwrap_or_else(|| format!("no data source for {}", cfg.benchmark))
-                    );
+                    ));
                     None
                 }
             }
@@ -284,11 +489,11 @@ impl<'a> Study<'a> {
         if panel.dates.is_empty() {
             return Err("empty panel: no daily bars loaded".into());
         }
+        let definition = strategy_definition(&cfg.strategy)
+            .ok_or_else(|| format!("unregistered strategy {:?}", cfg.strategy))?;
         let sig = {
             let _g = timing::stage("signals");
-            strategy_definition(&cfg.strategy)
-                .ok_or_else(|| format!("unregistered strategy {:?}", cfg.strategy))?
-                .compute_signals(&panel, cfg)
+            definition.compute_signals(&panel, cfg)?
         };
         let n_rows = panel.dates.len();
         let split = data::parse_date(&cfg.partition_split_date)?;
@@ -304,37 +509,39 @@ impl<'a> Study<'a> {
             ("test".into(), (0..n_rows).map(|t| t >= split_row).collect()),
         ];
         let mut b_day = vec![0.0; n_rows];
-        for t in 1..n_rows {
-            let (mut s, mut n) = (0.0, 0usize);
-            for j in 0..panel.symbols.len() {
-                let r = panel.close[j][t] / panel.close[j][t - 1] - 1.0;
-                if sig.tradable[j][t] && r.is_finite() {
-                    s += r;
-                    n += 1;
-                }
+        if let Some(returns) = &sig.benchmark_returns {
+            if returns.len() != n_rows {
+                return Err(format!(
+                    "{} benchmark return length {} does not match panel rows {n_rows}",
+                    cfg.strategy,
+                    returns.len()
+                ));
             }
-            b_day[t] = s / n.max(1) as f64;
+            b_day.clone_from(returns);
+        } else {
+            for t in 1..n_rows {
+                let (mut s, mut n) = (0.0, 0usize);
+                for j in 0..panel.symbols.len() {
+                    let r = panel.close[j][t] / panel.close[j][t - 1] - 1.0;
+                    if sig.tradable[j][t] && r.is_finite() {
+                        s += r;
+                        n += 1;
+                    }
+                }
+                b_day[t] = s / n.max(1) as f64;
+            }
         }
         let trades = {
             let _g = timing::stage("trades");
-            let params = SwingParams {
-                signal: &sig.signal,
-                exit_now: &sig.exit_now,
-                add_signal: sig.add_signal.as_ref(),
-                max_units: cfg.max_units,
-                stop_atr: sig.atr.as_ref(),
-                stop_pct: sig.stop_pct.as_ref(),
-                stop_mult: cfg.disaster_stop_atr,
-                signal_value: &sig.rsi,
-            };
             cfg.fills_list()
                 .into_iter()
                 .map(|f| {
                     let _g = timing::stage(&format!("swing trades {f}"));
-                    let t = engine::swing_trades(&panel, &params, cfg, &f);
-                    (f, t)
+                    definition
+                        .build_trades(&panel, cfg, &sig, &f)
+                        .map(|trades| (f, trades))
                 })
-                .collect::<Vec<_>>()
+                .collect::<Result<Vec<_>, _>>()?
         };
         let close_ff = panel
             .close
@@ -404,15 +611,21 @@ impl<'a> Study<'a> {
                 }
             })
             .unwrap_or_else(|| self.cfg.cost());
-        let mat = if fill == "next_open" {
+        let default_mat = if fill == "next_open" {
             s.panel.open.clone()
         } else {
             s.panel.close.clone()
         };
+        let entry_mat = s
+            .sig
+            .entry_mat
+            .clone()
+            .unwrap_or_else(|| default_mat.clone());
+        let exit_mat = s.sig.exit_mat.clone().unwrap_or(default_mat);
         Book {
             close_ff: s.close_ff.clone(),
-            entry_mat: mat.clone(),
-            exit_mat: mat,
+            entry_mat,
+            exit_mat,
             cost: avg_cost,
             symbol_costs: s
                 .panel
@@ -638,7 +851,9 @@ impl<'a> Study<'a> {
             }
         }
         self.write("per_etf.csv", per)?;
-        table(&["symbol", "fill", "period", "trades"], &prow);
+        if self.flags.debug {
+            table(&["symbol", "fill", "period", "trades"], &prow);
+        }
         Ok(())
     }
 
@@ -775,7 +990,12 @@ impl<'a> Study<'a> {
         let ladder = {
             let _g = timing::stage("cost ladder");
             let pb = &books[0].1;
-            partition::cost_ladder(trades_of(&primary), pb, &s.masks, &[0.5, 1.0, 2.0, 3.0])
+            partition::cost_ladder(
+                trades_of(&primary),
+                pb,
+                &s.masks,
+                &cfg.cost_ladder_multipliers,
+            )
         };
         let mut csv = String::from("fill,cost_mult,cost_bps_side,period,total_log,sharpe\n");
         for (m, bps, p, tot, sh) in &ladder {
@@ -802,17 +1022,32 @@ impl<'a> Study<'a> {
                 }
             })
             .collect();
+        let mut baseline_series: Vec<(String, Vec<f64>)> = Vec::new();
+        match cfg.strategy.as_str() {
+            S021_NAME => {
+                baseline_series.push(("unconditional_overnight".into(), s.b_day.clone()));
+            }
+            S105_NAME => {
+                baseline_series.push(("s021_unscaled_overnight".into(), s.b_day.clone()));
+            }
+            _ => {
+                baseline_series.push(("ew_buy_hold".into(), s.b_day.clone()));
+                baseline_series.push(("sma200_timing".into(), timing_r));
+                baseline_series.push((
+                    "vol_matched_ew".into(),
+                    partition::vol_matched(&s.b_day, strat_r, dev_mask),
+                ));
+            }
+        }
+        if matches!(cfg.strategy.as_str(), S021_NAME | S105_NAME) {
+            if let Some((name, returns)) = &s.benchmark {
+                baseline_series.push((format!("{name}_total_return"), returns.clone()));
+            }
+        }
         let mut base = vec![];
-        for (label, arr) in [
-            ("ew_buy_hold", s.b_day.clone()),
-            ("sma200_timing", timing_r),
-            (
-                "vol_matched_ew",
-                partition::vol_matched(&s.b_day, strat_r, dev_mask),
-            ),
-        ] {
+        for (label, arr) in baseline_series {
             for (period, total, sharpe, cagr, dd) in partition::baseline_stats(&arr, &s.masks) {
-                base.push((label.to_string(), period, total, sharpe, cagr, dd));
+                base.push((label.clone(), period, total, sharpe, cagr, dd));
             }
         }
         {
@@ -1095,6 +1330,68 @@ impl<'a> Study<'a> {
 
     fn intro(&self) -> Vec<String> {
         let (c, s) = (self.cfg, self.state());
+        if c.strategy == S021_NAME {
+            return vec![
+                format!(
+                    "- Universe: {}; daily total-return-adjusted Parquet bars.",
+                    s.panel.symbols.join(", ")
+                ),
+                format!(
+                    "- Rule: hold from the previous close to the next open; participation filter={}.",
+                    c.participation_filter
+                ),
+                format!(
+                    "- Fill: `close_to_open`; {} bps/side. This uses the configured total-return-adjusted daily OHLC series, not Yahoo/CSV inputs or minute-auction data.",
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: unconditional overnight return and the configured instrument's close-to-close total return; random timing is also reported.".into(),
+                "- Limitations: close/open daily bars are proxies for auction fills; the total-return-adjusted series is used instead of a separate raw-price dividend ledger.".into(),
+            ];
+        }
+        if c.strategy == S105_NAME {
+            return vec![
+                format!(
+                    "- Universe: {}; daily total-return-adjusted Parquet bars.",
+                    s.panel.symbols.join(", ")
+                ),
+                format!(
+                    "- Rule: hold from the previous close to the next open; target volatility {:.1}% over {} overnight observations, capped at {:.1}x leverage and resized outside a {:.1}% band.",
+                    100.0 * c.target_vol,
+                    c.vol_window,
+                    c.max_leverage,
+                    100.0 * c.resize_band
+                ),
+                format!(
+                    "- Fill: `close_to_open`; {} bps/side, charged in proportion to exposure. Total-return-adjusted daily OHLC is used without Yahoo/CSV inputs.",
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: unscaled overnight return and the configured instrument's close-to-close total return; random timing is also reported.".into(),
+                "- Limitations: close/open daily bars proxy auction fills; volatility scaling of the overnight premium is a research hypothesis, not a result established by the cited momentum study.".into(),
+            ];
+        }
+        if c.strategy == S019_NAME {
+            return vec![
+                format!(
+                    "- Universe: {} liquid-stock sample; daily Parquet bars.",
+                    s.panel.symbols.join(", ")
+                ),
+                format!(
+                    "- Rule: open gap > {:.2} x prior-session ATR(20), confirmed by session volume > {:.2} x the prior {}-session median; long at close, stop={}, target={:.2}R, max hold {} sessions.",
+                    c.gap_atr_multiple,
+                    c.gap_volume_multiple,
+                    c.gap_volume_window,
+                    c.gap_stop_mode,
+                    c.gap_reward_risk,
+                    c.gap_max_hold
+                ),
+                format!(
+                    "- Fill: `close`; {} bps/side. Full-session volume is known before this entry.",
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: equal-weight buy-and-hold, SMA200 timing, dev-vol-matched buy-and-hold, and exposure-matched random timing.".into(),
+                "- Limitations: the configured large-cap stock sample is not a point-in-time universe; close fills do not include auction slippage.".into(),
+            ];
+        }
         let rule = if c.strategy == S006_NAME {
             let stop = if c.disaster_stop_atr == 0.0 {
                 "No stop is applied in this run.".to_string()
@@ -1126,10 +1423,33 @@ impl<'a> Study<'a> {
 
     pub fn caption(&self) -> String {
         let (c, s) = (self.cfg, self.state());
-        let strategy = if c.strategy == S006_NAME {
+        let strategy = if c.strategy == S021_NAME {
+            format!(
+                "overnight {} filter={}",
+                s.panel.symbols.join(","),
+                c.participation_filter
+            )
+        } else if c.strategy == S105_NAME {
+            format!(
+                "overnight vol{} target={:.1}% cap={:.1}x band={:.1}%",
+                c.vol_window,
+                100.0 * c.target_vol,
+                c.max_leverage,
+                100.0 * c.resize_band
+            )
+        } else if c.strategy == S006_NAME {
             format!(
                 "Double7s lookback={} SMA{} stop={}x ATR%",
                 c.lookback, c.sma_window, c.disaster_stop_atr
+            )
+        } else if c.strategy == S019_NAME {
+            format!(
+                "gap>{:.2}ATR, volume>{:.2}x{}d median, stop={}, target={:.2}R",
+                c.gap_atr_multiple,
+                c.gap_volume_multiple,
+                c.gap_volume_window,
+                c.gap_stop_mode,
+                c.gap_reward_risk
             )
         } else {
             format!(
@@ -1277,6 +1597,10 @@ impl<'a> Study<'a> {
                     exit: trade.exit_idx,
                     entry_px: trade.entry_px,
                     exit_px: trade.exit_px,
+                    weight: trade.weight,
+                    entry_turnover: trade.entry_turnover,
+                    exit_turnover: trade.exit_turnover,
+                    weighted: trade.weighted,
                 })
                 .collect();
             let (strategy_r, _) = partition::account_series_with_costs(

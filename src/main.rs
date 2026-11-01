@@ -30,6 +30,9 @@ struct Args {
     rebuild: bool,
     #[arg(long)]
     profile: bool,
+    /// show warnings and the per-symbol trade-count table
+    #[arg(long)]
+    debug: bool,
     /// validate inputs and write a manifest without running the study
     #[arg(long)]
     check_data: bool,
@@ -98,6 +101,35 @@ fn csv_field(value: &str) -> String {
     }
 }
 
+fn update_comparison_row(existing: &str, variant: &str, fill: &str, row: &str) -> String {
+    let mut output = String::new();
+    let mut found = false;
+    for (index, line) in existing.lines().enumerate() {
+        if index == 0 {
+            output.push_str(line);
+            output.push('\n');
+            continue;
+        }
+        let mut fields = line.splitn(3, ',');
+        let matches = fields.next() == Some(variant) && fields.next() == Some(fill);
+        if matches {
+            if !found {
+                output.push_str(row);
+                output.push('\n');
+                found = true;
+            }
+        } else {
+            output.push_str(line);
+            output.push('\n');
+        }
+    }
+    if !found {
+        output.push_str(row);
+        output.push('\n');
+    }
+    output
+}
+
 fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Result<(), String> {
     let strategy_dir = results.join(&cfg.strategy);
     std::fs::create_dir_all(&strategy_dir)
@@ -114,29 +146,7 @@ fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Resul
         .append(true)
         .open(&registry_path)
         .map_err(|e| format!("{}: {e}", registry_path.display()))?;
-    let mut comparison = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(strategy_dir.join("variants_comparison.csv"))
-        .map_err(|e| {
-            format!(
-                "{}: {e}",
-                strategy_dir.join("variants_comparison.csv").display()
-            )
-        })?;
     let comparison_path = strategy_dir.join("variants_comparison.csv");
-    if comparison
-        .metadata()
-        .map_err(|e| format!("{}: {e}", comparison_path.display()))?
-        .len()
-        == 0
-    {
-        writeln!(
-            comparison,
-            "variant,fill,dev_trades,dev_total_log,dev_skill,dev_sharpe,dev_pf,dev_win_pct,test_trades,test_total_log,test_skill,test_sharpe,test_pf,test_win_pct"
-        )
-        .map_err(|e| format!("{}: {e}", comparison_path.display()))?;
-    }
     let source_params: Vec<_> = cfg
         .source_list()
         .iter()
@@ -160,7 +170,14 @@ fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Resul
         "exit_mode": cfg.exit_mode,
         "exit_rsi": cfg.exit_rsi,
         "cost_bps_per_side": cfg.cost_bps_per_side,
-        "fills": cfg.fills
+        "fills": cfg.fills,
+        "gap_atr_multiple": cfg.gap_atr_multiple,
+        "gap_volume_multiple": cfg.gap_volume_multiple,
+        "gap_volume_window": cfg.gap_volume_window,
+        "gap_volume_mode": cfg.gap_volume_mode,
+        "gap_stop_mode": cfg.gap_stop_mode,
+        "gap_reward_risk": cfg.gap_reward_risk,
+        "gap_max_hold": cfg.gap_max_hold
     });
     for fill in cfg.fills_list() {
         let dev = study
@@ -178,23 +195,30 @@ fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Resul
             "dev": {"trades": dev.get("trades"), "total_log": dev.get("total_log"), "skill": dev.get("skill"), "sharpe": dev.get("sharpe"), "pf": dev.get("pf"), "win_pct": dev.get("win_pct")},
             "test": {"trades": test.get("trades"), "total_log": test.get("total_log"), "skill": test.get("skill"), "sharpe": test.get("sharpe"), "pf": test.get("pf"), "win_pct": test.get("win_pct")}
         });
-        let already_logged = existing_registry.lines().try_fold(false, |found, line| {
-            if found {
-                return Ok::<bool, String>(true);
-            }
-            let previous: serde_json::Value = serde_json::from_str(line)
-                .map_err(|e| format!("{} contains invalid JSON: {e}", registry_path.display()))?;
-            Ok(previous["strategy"] == record["strategy"]
-                && previous["variant"] == record["variant"]
-                && previous["fill"] == record["fill"]
-                && previous["parameters"] == record["parameters"])
-        })?;
-        if already_logged {
-            continue;
+        let previous = existing_registry.lines().try_fold(
+            None,
+            |found: Option<serde_json::Value>, line| -> Result<_, String> {
+                let previous: serde_json::Value = serde_json::from_str(line).map_err(|e| {
+                    format!("{} contains invalid JSON: {e}", registry_path.display())
+                })?;
+                if previous["strategy"] == record["strategy"]
+                    && previous["variant"] == record["variant"]
+                    && previous["fill"] == record["fill"]
+                    && previous["parameters"] == record["parameters"]
+                {
+                    Ok(Some(previous))
+                } else {
+                    Ok(found)
+                }
+            },
+        )?;
+        if previous.as_ref().map_or(true, |previous| {
+            previous["dev"] != record["dev"] || previous["test"] != record["test"]
+        }) {
+            writeln!(registry, "{record}")
+                .map_err(|e| format!("{}: {e}", registry_path.display()))?;
         }
-        writeln!(registry, "{record}").map_err(|e| format!("{}: {e}", registry_path.display()))?;
-        writeln!(
-            comparison,
+        let row = format!(
             "{},{},{},{},{},{},{},{},{},{},{},{},{},{}",
             csv_field(&cfg.variant),
             csv_field(&fill),
@@ -210,8 +234,22 @@ fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Resul
             test.get("sharpe"),
             test.get("pf"),
             test.get("win_pct")
-        )
-        .map_err(|e| format!("{}: {e}", comparison_path.display()))?;
+        );
+        let existing_comparison = if comparison_path.exists() {
+            std::fs::read_to_string(&comparison_path)
+                .map_err(|e| format!("{}: {e}", comparison_path.display()))?
+        } else {
+            String::new()
+        };
+        let header = "variant,fill,dev_trades,dev_total_log,dev_skill,dev_sharpe,dev_pf,dev_win_pct,test_trades,test_total_log,test_skill,test_sharpe,test_pf,test_win_pct";
+        let existing_comparison = if existing_comparison.is_empty() {
+            format!("{header}\n")
+        } else {
+            existing_comparison
+        };
+        let updated = update_comparison_row(&existing_comparison, &cfg.variant, &fill, &row);
+        std::fs::write(&comparison_path, updated)
+            .map_err(|e| format!("{}: {e}", comparison_path.display()))?;
     }
     Ok(())
 }
@@ -235,6 +273,7 @@ fn run(args: Args) -> Result<(), String> {
         test: args.test,
         rebuild: args.rebuild,
         profile: args.profile,
+        debug: args.debug,
     };
     let cli = Cli {
         data_dir: args.data_dir.clone(),
@@ -308,5 +347,45 @@ fn main() -> ExitCode {
             eprintln!("error: {e}");
             ExitCode::FAILURE
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::update_comparison_row;
+
+    #[test]
+    fn comparison_refreshes_the_matching_variant_and_removes_duplicates() {
+        let existing = concat!(
+            "variant,fill,metrics\n",
+            "baseline,close_to_open,old\n",
+            "cost05,close_to_open,stale\n",
+            "cost05,close_to_open,duplicate\n",
+        );
+        let updated = update_comparison_row(
+            existing,
+            "cost05",
+            "close_to_open",
+            "cost05,close_to_open,new",
+        );
+        assert_eq!(
+            updated,
+            concat!(
+                "variant,fill,metrics\n",
+                "baseline,close_to_open,old\n",
+                "cost05,close_to_open,new\n",
+            )
+        );
+    }
+
+    #[test]
+    fn comparison_appends_missing_rows() {
+        let updated = update_comparison_row(
+            "variant,fill,metrics\nbaseline,close_to_open,old\n",
+            "cost05",
+            "close_to_open",
+            "cost05,close_to_open,new",
+        );
+        assert!(updated.ends_with("cost05,close_to_open,new\n"));
     }
 }

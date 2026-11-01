@@ -1,0 +1,56 @@
+# S019 Gap-and-Go Continuation; full-session volume confirms the open gap.
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: AAPL,MSFT,NVDA,AMZN,GOOGL,META,JPM,XOM,WMT,COST,ORCL,HD,LLY,AVGO,ABBV,PG,KO,CSCO,CVX,CAT,GE,BAC,DIS,NFLX,CRM,AMD,INTC,QCOM,UNH,V
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-01-04"
+min_history: 20
+gap_atr_multiple: 1.0
+gap_volume_multiple: 2.0
+gap_volume_window: 20
+gap_volume_mode: high
+gap_stop_mode: prior_close
+gap_reward_risk: 2.0
+gap_max_hold: 5
+cost_bps_per_side: 10.0
+fills: close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+n_timing_draws: 500
+seed: 20261031
+book_slots: 10
+
+variants:
+  gap075: {gap_atr_multiple: 0.75}
+  gap125: {gap_atr_multiple: 1.25}
+  gap150: {gap_atr_multiple: 1.5}
+  gap200: {gap_atr_multiple: 2.0}
+  vol15: {gap_volume_multiple: 1.5}
+  vol25: {gap_volume_multiple: 2.5}
+  vol30: {gap_volume_multiple: 3.0}
+  vol10_window: {gap_volume_window: 10}
+  vol15_window: {gap_volume_window: 15}
+  vol30_window: {gap_volume_window: 30}
+  vol40_window: {gap_volume_window: 40}
+  stop_gap_low: {gap_stop_mode: gap_low}
+  target1r: {gap_reward_risk: 1.0}
+  target15r: {gap_reward_risk: 1.5}
+  target25r: {gap_reward_risk: 2.5}
+  target3r: {gap_reward_risk: 3.0}
+  hold3: {gap_max_hold: 3}
+  hold4: {gap_max_hold: 4}
+  hold7: {gap_max_hold: 7}
+  hold10: {gap_max_hold: 10}
+  quiet1x: {gap_volume_mode: low, gap_volume_multiple: 1.0}
+  gap075_vol15: {gap_atr_multiple: 0.75, gap_volume_multiple: 1.5}
+  gap075_vol25: {gap_atr_multiple: 0.75, gap_volume_multiple: 2.5}
+  gap125_vol15: {gap_atr_multiple: 1.25, gap_volume_multiple: 1.5}
+  gap125_vol25: {gap_atr_multiple: 1.25, gap_volume_multiple: 2.5}
+  gap150_vol15: {gap_atr_multiple: 1.5, gap_volume_multiple: 1.5}
+  gap075_stoplow: {gap_atr_multiple: 0.75, gap_stop_mode: gap_low}
+  gap125_stoplow: {gap_atr_multiple: 1.25, gap_stop_mode: gap_low}
+  target1r_stoplow: {gap_reward_risk: 1.0, gap_stop_mode: gap_low}
+  target3r_stoplow: {gap_reward_risk: 3.0, gap_stop_mode: gap_low}

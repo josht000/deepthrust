@@ -35,6 +35,10 @@ pub struct Leg {
     pub exit: usize,
     pub entry_px: f64,
     pub exit_px: f64,
+    pub weight: f64,
+    pub entry_turnover: f64,
+    pub exit_turnover: f64,
+    pub weighted: bool,
 }
 
 pub fn legs_of(trades: &[Trade]) -> Vec<Leg> {
@@ -46,6 +50,10 @@ pub fn legs_of(trades: &[Trade]) -> Vec<Leg> {
             exit: t.exit_idx,
             entry_px: t.entry_px,
             exit_px: t.exit_px,
+            weight: t.weight,
+            entry_turnover: t.entry_turnover,
+            exit_turnover: t.exit_turnover,
+            weighted: t.weighted,
         })
         .collect()
 }
@@ -69,10 +77,36 @@ pub fn account_series_with_costs(
     n_rows: usize,
     slots: usize,
 ) -> (Vec<f64>, Vec<f64>) {
+    let weighted_mode = legs.iter().any(|leg| leg.weighted);
     let (mut sums, mut count) = (vec![0.0f64; n_rows], vec![0.0f64; n_rows]);
     for l in legs {
         let cost = costs.get(l.col).copied().unwrap_or(0.0);
         for day in l.entry..=l.exit {
+            if weighted_mode {
+                let start = if day == l.entry {
+                    l.entry_px
+                } else {
+                    close_ff[l.col][day.saturating_sub(1)]
+                };
+                let end = if day == l.exit {
+                    l.exit_px
+                } else {
+                    close_ff[l.col][day]
+                };
+                let entry_cost = if day == l.entry {
+                    cost * l.entry_turnover
+                } else {
+                    0.0
+                };
+                let exit_cost = if day == l.exit {
+                    cost * l.exit_turnover
+                } else {
+                    0.0
+                };
+                sums[day] += l.weight * (end / start - 1.0) - entry_cost - exit_cost;
+                count[day] += 1.0;
+                continue;
+            }
             let start = if day == l.entry {
                 l.entry_px * (1.0 + cost)
             } else {
@@ -90,7 +124,13 @@ pub fn account_series_with_costs(
     let r = sums
         .iter()
         .zip(&count)
-        .map(|(s, c)| s / c.max(slots as f64))
+        .map(|(s, c)| {
+            if weighted_mode {
+                *s
+            } else {
+                s / c.max(slots as f64)
+            }
+        })
         .collect();
     (r, count)
 }
@@ -149,6 +189,10 @@ fn random_books(
                     exit: t.exit_idx,
                     entry_px: book.entry_mat[col][t.entry_idx],
                     exit_px: book.exit_mat[col][t.exit_idx],
+                    weight: t.weight,
+                    entry_turnover: t.entry_turnover,
+                    exit_turnover: t.exit_turnover,
+                    weighted: t.weighted,
                 }
             })
             .collect();
@@ -348,15 +392,28 @@ pub fn evaluate_fill(
             n_rows,
             book.slots,
         );
-        let f_day: Vec<f64> = count
-            .iter()
-            .map(|c: &f64| c / c.max(book.slots as f64))
-            .collect();
         let (mut ew, mut xw) = (vec![0.0; n_rows], vec![0.0; n_rows]);
-        for t in trades {
-            ew[t.entry_idx] += 1.0 / count[t.entry_idx].max(book.slots as f64);
-            xw[t.exit_idx] += 1.0 / count[t.exit_idx].max(book.slots as f64);
-        }
+        let weighted_mode = trades.iter().any(|trade| trade.weighted);
+        let f_day = if weighted_mode {
+            let mut exposure = vec![0.0; n_rows];
+            for trade in trades {
+                for day in trade.entry_idx..=trade.exit_idx {
+                    exposure[day] += trade.weight.abs();
+                }
+                ew[trade.entry_idx] += trade.entry_turnover;
+                xw[trade.exit_idx] += trade.exit_turnover;
+            }
+            exposure
+        } else {
+            for trade in trades {
+                ew[trade.entry_idx] += 1.0 / count[trade.entry_idx].max(book.slots as f64);
+                xw[trade.exit_idx] += 1.0 / count[trade.exit_idx].max(book.slots as f64);
+            }
+            count
+                .iter()
+                .map(|c: &f64| c / c.max(book.slots as f64))
+                .collect()
+        };
         (r_day, count, f_day, ew, xw)
     };
     let mut random = vec![];
@@ -638,6 +695,10 @@ pub fn random_timing(
                     exit: x,
                     entry_px: book.entry_mat[s][e],
                     exit_px: book.exit_mat[s][x],
+                    weight: t.weight,
+                    entry_turnover: t.entry_turnover,
+                    exit_turnover: t.exit_turnover,
+                    weighted: t.weighted,
                 });
                 break;
             }
@@ -729,6 +790,10 @@ mod tests {
             exit_reason: "signal",
             hold: exit - entry,
             signal_value: 5.0,
+            weight: 1.0,
+            entry_turnover: 1.0,
+            exit_turnover: 1.0,
+            weighted: false,
         }
     }
 
@@ -741,6 +806,10 @@ mod tests {
             exit: 3,
             entry_px: 100.0,
             exit_px: 102.0,
+            weight: 1.0,
+            entry_turnover: 1.0,
+            exit_turnover: 1.0,
+            weighted: false,
         }];
         let (r, c) = account_series(&legs, &close, 0.001, 4, 1);
         assert_eq!(c, vec![0.0, 1.0, 1.0, 1.0]);
@@ -764,6 +833,10 @@ mod tests {
                 exit: 0,
                 entry_px: 100.0,
                 exit_px: 100.0,
+                weight: 1.0,
+                entry_turnover: 1.0,
+                exit_turnover: 1.0,
+                weighted: false,
             },
             Leg {
                 col: 1,
@@ -771,6 +844,10 @@ mod tests {
                 exit: 0,
                 entry_px: 100.0,
                 exit_px: 100.0,
+                weight: 1.0,
+                entry_turnover: 1.0,
+                exit_turnover: 1.0,
+                weighted: false,
             },
         ];
         let costs = [0.0005, 0.0015];
@@ -781,6 +858,57 @@ mod tests {
             / 2.0;
         let (returns, _) = account_series_with_costs(&legs, &close, &costs, 1, 1);
         assert!((returns[0] - expected).abs() < 1e-12);
+    }
+
+    #[test]
+    fn weighted_account_scales_exposure_and_turnover_costs() {
+        let close = vec![vec![100.0; 2]];
+        let legs = vec![Leg {
+            col: 0,
+            entry: 1,
+            exit: 1,
+            entry_px: 100.0,
+            exit_px: 101.0,
+            weight: 0.5,
+            entry_turnover: 0.5,
+            exit_turnover: 0.5,
+            weighted: true,
+        }];
+        let (returns, _) = account_series(&legs, &close, 0.001, 2, 1);
+        assert!((returns[1] - (0.5 * 0.01 - 0.001)).abs() < 1e-12);
+    }
+
+    #[test]
+    fn weighted_partition_reports_exposure_and_weighted_turnover() {
+        let close = vec![vec![100.0; 2]];
+        let book = Book {
+            close_ff: close.clone(),
+            entry_mat: close.clone(),
+            exit_mat: close,
+            cost: 0.001,
+            symbol_costs: vec![0.001],
+            n_rows: 2,
+            b_day: vec![0.0; 2],
+            slots: 1,
+        };
+        let mut position = trade(1, 1, 100.0, 101.0);
+        position.weight = 0.5;
+        position.entry_turnover = 0.5;
+        position.exit_turnover = 0.5;
+        position.weighted = true;
+        position.ret = 0.004;
+        let all: Mask = vec![vec![true; 2]];
+        let masks: Masks = vec![
+            ("dev".into(), vec![false, true]),
+            ("test".into(), vec![true, false]),
+        ];
+        let result = evaluate_fill(&[position], &book, &masks, &all, &all, 1.0, 2, 10, 1, "");
+        assert_eq!(result.count[1], 1.0);
+        assert_eq!(result.f_day[1], 0.5);
+        let row = &result.by_period[0].1;
+        assert_eq!(row.get("avg_fraction_invested"), 0.5);
+        assert_eq!(row.get("avg_positions"), 1.0);
+        assert_eq!(row.get("turnover_annual"), 252.0);
     }
 
     #[test]

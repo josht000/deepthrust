@@ -51,8 +51,9 @@ alongside other agents: minimal diffs, no refactors, no long comments.
   be 2.7 on this machine).
 
 ## Variants budget
-- Baseline + AT MOST 100 variants total. Prefer the entry's own
-  `parameter_variants` first (they are registered alternatives), then one-lever
+- Baseline + AT MOST 100 variants total and no fewer than 30. You may add other indicators
+  as additional signals to clean up false positives, noise, or detect for regime shifts.
+  Prefer the entry's own `parameter_variants` first (they are registered alternatives), then one-lever
   modifications motivated by the baseline's failure mode, then a few combinations.
 - Run: `python run.py --strategy <name> --variant a,b,c` (baseline runs with no
   `--variant`; outputs are `<variant>__<file>`).

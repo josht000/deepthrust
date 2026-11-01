@@ -1,6 +1,6 @@
 # S003 RSI(4) 25/75 (Connors) - ETF total-return daily bars.
 data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
-data_suffix: _1Day_tr.parquet
+data_suffix: .parquet
 symbols: QQQ,SPY
 benchmark: SPY
 start_date: "2005-01-01"
@@ -79,5 +79,18 @@ variants:
     benchmark_data_suffix: _1Day_tr.parquet
     cost_bps_per_side: 10
     book_slots: 6
+  mixed_mega:
+    sources:
+      - name: etfs
+        data_dir: 'C:\data\trading\trading_framework\data\cache\etf_tr'
+        data_suffix: _1Day_tr.parquet
+        symbols: SPY,QQQ
+        cost_bps_per_side: 5
+      - name: stocks
+        data_dir: 'C:\data\trading\trading_framework\data\cache\daily_10years_tr'
+        data_suffix: _1Day_tr.parquet
+        symbols: AAPL,MSFT,NVDA,AMZN,GOOGL,META
+        cost_bps_per_side: 10
+    book_slots: 8
   pyramid2: {sizing: pyramid3, max_units: 2}
   pyramid_add10: {sizing: pyramid3, add_rsi: 10}
