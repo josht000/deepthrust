@@ -400,6 +400,9 @@ impl<'a> Study<'a> {
         let sources = cfg.source_list();
         let mut symbol_bars = Vec::new();
         for source in &sources {
+            if cfg.strategy == S033_NAME && !cfg.include_stocks && source.name == "stocks" {
+                continue;
+            }
             for symbol in crate::config::split_csv(&source.symbols) {
                 let bars =
                     data::load_symbol(&source.data_dir, &source.data_suffix, &symbol, start)?;
