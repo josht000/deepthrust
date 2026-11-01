@@ -1,6 +1,6 @@
 ---
 name: implement_strat
-description: Implement one trading strategy from a source document (usually an S-numbered entry in docs/strategies/Trading Strategy Catalog) into src/strategies/<name>/ as a registered study, run it plus up to 16 registered variants, mark the source doc's table of contents IMPLEMENTED, and record a reproduce command. Use when asked to implement, backtest, or study a numbered/named strategy from the catalog or another spec doc.
+description: Implement one trading strategy from a source document (usually an S-numbered entry in docs/strategies/Trading Strategy Catalog) into signals.rs as a registered study, run it and all registered variants, mark the source doc's table of contents IMPLEMENTED, and record a reproduce command. Use when asked to implement, backtest, or study a numbered/named strategy from the catalog or another spec doc.
 ---
 
 # implement_strat
@@ -38,25 +38,19 @@ alongside other agents: minimal diffs, no refactors, no long comments.
 - Name: `sNNN_<short_name>` for catalog entries (mirror `s075_residual_reversal`).
 - `configs/<name>.yaml`: all baseline parameters at top level; optional levers with
   baseline defaults; a `variants:` block of named overlays (dicts of key overrides).
-- `src/strategies/<name>/`: thin adapter, `@register(NAME)`, implement the
-  `Strategy` operations (see `src/strategies/s075_residual_reversal/strategy.py`).
-  Plug into `src/framework` (daily_partition/partition, report, dashboard, timing
-  instrumentation) — reuse, don't rebuild.
 - Every variant is a trial: `log_trials()` per (strategy, variant, parameter set)
   into `results/trial_registry.jsonl`; `results/<name>/variants_comparison.csv`
   tracks them. Select on DEV only; report TEST once.
-- All outputs under `results/<name>/` (never `reports/`); golden copies under
-  `results/<name>/golden/`.
+- All outputs under `results/<name>/` (never `reports/`)
 - Python: `C:\data\envs\trading_framework\Scripts\python.exe` (plain `python` may
   be 2.7 on this machine).
+- Attempt to download missing data. Report back to me results and any detlas from the catalog. Indicate IMPLEMENTED and/or DELTA in the catalog if needed. Ensure that all required data files are present and correctly formatted.
 
 ## Variants budget
 - Baseline + AT MOST 100 variants total and no fewer than 30. You may add other indicators
   as additional signals to clean up false positives, noise, or detect for regime shifts.
   Prefer the entry's own `parameter_variants` first (they are registered alternatives), then one-lever
   modifications motivated by the baseline's failure mode, then a few combinations.
-- Run: `python run.py --strategy <name> --variant a,b,c` (baseline runs with no
-  `--variant`; outputs are `<variant>__<file>`).
 
 ## Run & report
 
@@ -74,8 +68,7 @@ alongside other agents: minimal diffs, no refactors, no long comments.
    lives, baseline-vs-winner results table (dev/test total, skill, Sharpe,
    max DD, trades dev, trades test), and ALWAYS a `Reproduce:` line with the exact command(s).
    Keep it as terse as the S075 entry.
-3. Golden outputs: rebuild into `results/<name>/golden/` per the study's golden
-   tooling convention.
+4. Update the results/all_trade_metrics.csv with the following header: study,variant,win_pct,mean_ret_pct,pf,sharpe,max_dd_pct,fill,period,days,trades,total_log,trend,trend_beta,beta,beta_t,avg_fraction_invested,avg_positions,turnover_annual,bias,cagr_pct,avg_hold,random_pick_universe,random_p_universe,skill_vs_universe,random_pick_pool,random_p_pool,skill_vs_pool,skill,skill_pct,skill_pct_random,skill_lo,skill_hi,skill_p
 
 ## Hard rules
 - Minimal changes only. No refactors, no drive-by cleanups, no long notes or

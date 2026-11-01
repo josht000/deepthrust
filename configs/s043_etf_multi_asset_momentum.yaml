@@ -1,0 +1,51 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,EFA,EEM,IWM,TLT,LQD,GLD,GSG,IYR,SHY
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2008-01-01"
+min_history: 252
+mom_window: 252
+breadth: 5
+rebalance: monthly
+defensive_asset: SHY
+cost_bps_per_side: 5.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 5
+
+variants:
+  mom63_top1: {mom_window: 63, min_history: 63, breadth: 1}
+  mom63_top2: {mom_window: 63, min_history: 63, breadth: 2}
+  mom63_top3: {mom_window: 63, min_history: 63, breadth: 3}
+  mom63_top5: {mom_window: 63, min_history: 63, breadth: 5}
+  mom63_top7: {mom_window: 63, min_history: 63, breadth: 7}
+  mom126_top1: {mom_window: 126, min_history: 126, breadth: 1}
+  mom126_top2: {mom_window: 126, min_history: 126, breadth: 2}
+  mom126_top3: {mom_window: 126, min_history: 126, breadth: 3}
+  mom126_top5: {mom_window: 126, min_history: 126, breadth: 5}
+  mom126_top7: {mom_window: 126, min_history: 126, breadth: 7}
+  mom189_top1: {mom_window: 189, min_history: 189, breadth: 1}
+  mom189_top2: {mom_window: 189, min_history: 189, breadth: 2}
+  mom189_top3: {mom_window: 189, min_history: 189, breadth: 3}
+  mom189_top5: {mom_window: 189, min_history: 189, breadth: 5}
+  mom189_top7: {mom_window: 189, min_history: 189, breadth: 7}
+  mom252_top1: {mom_window: 252, min_history: 252, breadth: 1}
+  mom252_top2: {mom_window: 252, min_history: 252, breadth: 2}
+  mom252_top3: {mom_window: 252, min_history: 252, breadth: 3}
+  mom252_top7: {mom_window: 252, min_history: 252, breadth: 7}
+  mom315_top1: {mom_window: 315, min_history: 315, breadth: 1}
+  mom315_top2: {mom_window: 315, min_history: 315, breadth: 2}
+  mom315_top3: {mom_window: 315, min_history: 315, breadth: 3}
+  mom315_top5: {mom_window: 315, min_history: 315, breadth: 5}
+  mom315_top7: {mom_window: 315, min_history: 315, breadth: 7}
+  mom378_top1: {mom_window: 378, min_history: 378, breadth: 1}
+  mom378_top2: {mom_window: 378, min_history: 378, breadth: 2}
+  mom378_top3: {mom_window: 378, min_history: 378, breadth: 3}
+  mom378_top5: {mom_window: 378, min_history: 378, breadth: 5}
+  mom378_top7: {mom_window: 378, min_history: 378, breadth: 7}
+  mom504_top5: {mom_window: 504, min_history: 504, breadth: 5}

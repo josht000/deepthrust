@@ -1,0 +1,53 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_raw
+data_suffix: .parquet
+symbols: "*"
+exclude_symbols: cash_dividends
+corporate_actions_file: ..\trading_framework\data\cache\daily_10years_raw\cash_dividends.parquet
+benchmark: SPY
+start_date: "2016-01-04"
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+s024_min_yield: 0.0
+cost_bps_per_side: 5.0
+fills: ex_open,ex_close,next_close
+partition_split_date: "2024-01-01"
+n_draws: 100
+n_boot: 1000
+n_timing_draws: 100
+seed: 20261031
+book_slots: 10
+
+variants:
+  yield_gt0_25: {s024_min_yield: 0.0025}
+  yield_gt0_5: {s024_min_yield: 0.005}
+  yield_gt0_75: {s024_min_yield: 0.0075}
+  yield_gt1: {s024_min_yield: 0.01}
+  yield_gt1_25: {s024_min_yield: 0.0125}
+  yield_gt1_5: {s024_min_yield: 0.015}
+  yield_gt1_75: {s024_min_yield: 0.0175}
+  yield_gt2: {s024_min_yield: 0.02}
+  yield_gt2_25: {s024_min_yield: 0.0225}
+  yield_gt2_5: {s024_min_yield: 0.025}
+  yield_gt2_75: {s024_min_yield: 0.0275}
+  yield_gt3: {s024_min_yield: 0.03}
+  yield_gt3_25: {s024_min_yield: 0.0325}
+  yield_gt3_5: {s024_min_yield: 0.035}
+  yield_gt3_75: {s024_min_yield: 0.0375}
+  yield_gt4: {s024_min_yield: 0.04}
+  yield_gt4_5: {s024_min_yield: 0.045}
+  yield_gt5: {s024_min_yield: 0.05}
+  yield_gt5_5: {s024_min_yield: 0.055}
+  yield_gt6: {s024_min_yield: 0.06}
+  yield_gt6_5: {s024_min_yield: 0.065}
+  yield_gt7: {s024_min_yield: 0.07}
+  yield_gt7_5: {s024_min_yield: 0.075}
+  yield_gt8: {s024_min_yield: 0.08}
+  yield_gt8_5: {s024_min_yield: 0.085}
+  yield_gt9: {s024_min_yield: 0.09}
+  yield_gt10: {s024_min_yield: 0.10}
+  yield_gt12_5: {s024_min_yield: 0.125}
+  yield_gt15: {s024_min_yield: 0.15}
+  yield_gt20: {s024_min_yield: 0.20}

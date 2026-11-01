@@ -342,6 +342,7 @@ fn s041_cross_sectional_momentum_runs_with_daily_stock_bars() {
         );
     }
     let mut cfg = load_config("s041_mom_12_1", Some(cfg_path), &cli, None).unwrap();
+    cfg.rank_cache_dir.clear();
     cfg.start_date = "2015-01-01".into();
     cfg.partition_split_date = "2017-01-01".into();
     cfg.min_history = 200;
@@ -419,6 +420,9 @@ fn s033_mixed_etf_and_stock_breakout_runs_end_to_end() {
     }
     assert!(study.row("next_open", "dev").unwrap().get("trades") > 0.0);
     assert!(study.row("next_open", "test").unwrap().get("trades") > 0.0);
+    assert!(supports_strategy("s032_52w_high_proximity"));
+    assert!(supports_strategy("s033_52w_breakout"));
+    assert!(supports_strategy("s035_low_volatility"));
     let _ = std::fs::remove_dir_all(dir);
 }
 

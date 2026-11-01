@@ -26,6 +26,7 @@ pub struct Book {
     pub n_rows: usize,
     pub b_day: Vec<f64>,
     pub slots: usize,
+    pub periods_per_year: usize,
 }
 
 #[derive(Clone, Copy)]
@@ -39,6 +40,7 @@ pub struct Leg {
     pub entry_turnover: f64,
     pub exit_turnover: f64,
     pub weighted: bool,
+    pub borrow_cost_per_bar: f64,
 }
 
 pub fn legs_of(trades: &[Trade]) -> Vec<Leg> {
@@ -54,6 +56,7 @@ pub fn legs_of(trades: &[Trade]) -> Vec<Leg> {
             entry_turnover: t.entry_turnover,
             exit_turnover: t.exit_turnover,
             weighted: t.weighted,
+            borrow_cost_per_bar: t.borrow_cost_per_bar,
         })
         .collect()
 }
@@ -103,7 +106,8 @@ pub fn account_series_with_costs(
                 } else {
                     0.0
                 };
-                sums[day] += l.weight * (end / start - 1.0) - entry_cost - exit_cost;
+                let borrow_cost = l.weight.abs() * l.borrow_cost_per_bar;
+                sums[day] += l.weight * (end / start - 1.0) - entry_cost - exit_cost - borrow_cost;
                 count[day] += 1.0;
                 continue;
             }
@@ -193,6 +197,7 @@ fn random_books(
                     entry_turnover: t.entry_turnover,
                     exit_turnover: t.exit_turnover,
                     weighted: t.weighted,
+                    borrow_cost_per_bar: t.borrow_cost_per_bar,
                 }
             })
             .collect();
@@ -236,7 +241,12 @@ impl Row {
     }
 }
 
-fn perf(r: &[f64], trade_ret: &[f64], hold: &[f64]) -> Vec<(&'static str, f64)> {
+fn perf(
+    r: &[f64],
+    trade_ret: &[f64],
+    hold: &[f64],
+    periods_per_year: usize,
+) -> Vec<(&'static str, f64)> {
     let mut eq = 1.0;
     let (mut peak, mut dd) = (f64::MIN, 0.0f64);
     for v in r {
@@ -267,13 +277,14 @@ fn perf(r: &[f64], trade_ret: &[f64], hold: &[f64]) -> Vec<(&'static str, f64)> 
         (
             "cagr_pct",
             100.0
-                * (r.iter().map(|v| v.ln_1p()).sum::<f64>() * 252.0 / r.len().max(1) as f64)
+                * (r.iter().map(|v| v.ln_1p()).sum::<f64>() * periods_per_year as f64
+                    / r.len().max(1) as f64)
                     .exp_m1(),
         ),
         (
             "sharpe",
             if sd > 0.0 {
-                stats::mean(r) / sd * 252f64.sqrt()
+                stats::mean(r) / sd * (periods_per_year as f64).sqrt()
             } else {
                 f64::NAN
             },
@@ -339,8 +350,7 @@ fn bias_of(r_period: &[f64], n_eff: f64, oos: bool, note: &str) -> Bias {
     if oos {
         return Bias {
             value: 0.0,
-            src: "0: out-of-sample by construction (parameters fixed from the catalog, no tuning)"
-                .into(),
+            src: "0: no test bias haircut; an inspected test period is not a fresh holdout".into(),
         };
     }
     let logs: Vec<f64> = r_period.iter().map(|v| v.ln_1p()).collect();
@@ -363,6 +373,7 @@ pub struct FillResult {
     pub by_period: Vec<(String, Row, String)>, // (period, stats, bias source)
     pub r_day: Vec<f64>,
     pub f_day: Vec<f64>,
+    pub trend_exposure: Vec<f64>,
     pub count: Vec<f64>,
     pub random_mean_log: Vec<f64>,
 }
@@ -383,9 +394,9 @@ pub fn evaluate_fill(
     let _g = timing::stage("daily partition");
     let n_rows = book.n_rows;
     let legs = legs_of(trades);
-    let (r_day, count, f_day, entry_w, exit_w) = {
+    let (r_day, count, f_day, trend_exposure, entry_w, exit_w) = {
         let _g = timing::stage("account");
-        let (r_day, count) = account_series_with_costs(
+        let (r_day, mut count) = account_series_with_costs(
             &legs,
             &book.close_ff,
             &book.symbol_costs,
@@ -394,11 +405,20 @@ pub fn evaluate_fill(
         );
         let (mut ew, mut xw) = (vec![0.0; n_rows], vec![0.0; n_rows]);
         let weighted_mode = trades.iter().any(|trade| trade.weighted);
+        let mut net_exposure = vec![0.0; n_rows];
         let f_day = if weighted_mode {
             let mut exposure = vec![0.0; n_rows];
+            count.fill(0.0);
             for trade in trades {
-                for day in trade.entry_idx..=trade.exit_idx {
+                let first = if trade.entry_idx == trade.exit_idx {
+                    trade.entry_idx
+                } else {
+                    trade.entry_idx + 1
+                };
+                for day in first..=trade.exit_idx {
                     exposure[day] += trade.weight.abs();
+                    net_exposure[day] += trade.weight;
+                    count[day] += 1.0;
                 }
                 ew[trade.entry_idx] += trade.entry_turnover;
                 xw[trade.exit_idx] += trade.exit_turnover;
@@ -414,7 +434,10 @@ pub fn evaluate_fill(
                 .map(|c: &f64| c / c.max(book.slots as f64))
                 .collect()
         };
-        (r_day, count, f_day, ew, xw)
+        if !weighted_mode {
+            net_exposure.clone_from(&f_day);
+        }
+        (r_day, count, f_day, net_exposure, ew, xw)
     };
     let mut random = vec![];
     for (label, cands, offset) in [("universe", universe, 17u64), ("pool", pool, 0u64)] {
@@ -466,6 +489,7 @@ pub fn evaluate_fill(
         let row = partition_period(
             &r_day,
             &f_day,
+            &trend_exposure,
             &count,
             &book.b_day,
             mask,
@@ -477,6 +501,7 @@ pub fn evaluate_fill(
             seed,
             &entry_w,
             &exit_w,
+            book.periods_per_year,
         );
         by_period.push((name.clone(), row, bias.src));
     }
@@ -488,6 +513,7 @@ pub fn evaluate_fill(
         by_period,
         r_day,
         f_day,
+        trend_exposure,
         count,
         random_mean_log,
     }
@@ -497,6 +523,7 @@ pub fn evaluate_fill(
 fn partition_period(
     r_day: &[f64],
     f_day: &[f64],
+    trend_exposure: &[f64],
     count: &[f64],
     b_day: &[f64],
     mask: &[bool],
@@ -508,14 +535,16 @@ fn partition_period(
     seed: u64,
     entry_w: &[f64],
     exit_w: &[f64],
+    periods_per_year: usize,
 ) -> Row {
     let idx: Vec<usize> = (0..mask.len()).filter(|&t| mask[t]).collect();
     let n_days = idx.len();
     let log_r: Vec<f64> = idx.iter().map(|&t| r_day[t].ln_1p()).collect();
     let log_b: Vec<f64> = idx.iter().map(|&t| b_day[t].ln_1p()).collect();
     let f: Vec<f64> = idx.iter().map(|&t| f_day[t]).collect();
+    let net: Vec<f64> = idx.iter().map(|&t| trend_exposure[t]).collect();
     let total: f64 = log_r.iter().sum();
-    let trend: f64 = f.iter().zip(&log_b).map(|(a, b)| a * b).sum();
+    let trend: f64 = net.iter().zip(&log_b).map(|(a, b)| a * b).sum();
     let inv: Vec<usize> = (0..n_days).filter(|&i| f[i] > 0.0).collect();
     let (ly, lx): (Vec<f64>, Vec<f64>) = inv.iter().map(|&i| (log_r[i], log_b[i])).unzip();
     let (beta, beta_t) = stats::ols(&ly, &lx);
@@ -551,12 +580,15 @@ fn partition_period(
         },
     );
     let w: f64 = idx.iter().map(|&t| entry_w[t] + exit_w[t]).sum();
-    out.set("turnover_annual", w * 252.0 / n_days.max(1) as f64);
+    out.set(
+        "turnover_annual",
+        w * periods_per_year as f64 / n_days.max(1) as f64,
+    );
     out.set("bias", bias.value);
     let tr_ret: Vec<f64> = trades.iter().map(|t| t.ret).collect();
     let tr_hold: Vec<f64> = trades.iter().map(|t| t.hold as f64).collect();
     let r_period: Vec<f64> = idx.iter().map(|&t| r_day[t]).collect();
-    for (k, v) in perf(&r_period, &tr_ret, &tr_hold) {
+    for (k, v) in perf(&r_period, &tr_ret, &tr_hold, periods_per_year) {
         out.set(k, v);
     }
     let (pf_lo, pf_hi) = bootstrap_pf_ci(&tr_ret, n_boot, seed + 2);
@@ -604,7 +636,7 @@ fn partition_period(
     let (mut lo, mut hi, mut p) = (f64::NAN, f64::NAN, f64::NAN);
     if n_days > 0 && n_boot > 0 {
         let mut rng = Rng::new(seed + 1);
-        let resid: Vec<f64> = (0..n_days).map(|i| log_r[i] - f[i] * log_b[i]).collect();
+        let resid: Vec<f64> = (0..n_days).map(|i| log_r[i] - net[i] * log_b[i]).collect();
         let mut sk: Vec<f64> = (0..n_boot)
             .map(|_| (0..n_days).map(|_| resid[rng.below(n_days)]).sum::<f64>() - bias.value)
             .collect();
@@ -648,7 +680,7 @@ pub fn cost_ladder(
                 name.clone(),
                 r.iter().map(|v| v.ln_1p()).sum(),
                 if sd > 0.0 {
-                    stats::mean(&r) / sd * 252f64.sqrt()
+                    stats::mean(&r) / sd * (book.periods_per_year as f64).sqrt()
                 } else {
                     f64::NAN
                 },
@@ -699,6 +731,7 @@ pub fn random_timing(
                     entry_turnover: t.entry_turnover,
                     exit_turnover: t.exit_turnover,
                     weighted: t.weighted,
+                    borrow_cost_per_bar: t.borrow_cost_per_bar,
                 });
                 break;
             }
@@ -722,7 +755,11 @@ pub fn random_timing(
 }
 
 /// Baseline stats of a daily-return series: (period, total_log, sharpe, cagr_pct, max_dd_pct).
-pub fn baseline_stats(r_day: &[f64], masks: &Masks) -> Vec<(String, f64, f64, f64, f64)> {
+pub fn baseline_stats(
+    r_day: &[f64],
+    masks: &Masks,
+    periods_per_year: usize,
+) -> Vec<(String, f64, f64, f64, f64)> {
     masks
         .iter()
         .map(|(period, mask)| {
@@ -744,11 +781,11 @@ pub fn baseline_stats(r_day: &[f64], masks: &Masks) -> Vec<(String, f64, f64, f6
                 period.clone(),
                 total,
                 if sd > 0.0 {
-                    stats::mean(&r) / sd * 252f64.sqrt()
+                    stats::mean(&r) / sd * (periods_per_year as f64).sqrt()
                 } else {
                     f64::NAN
                 },
-                100.0 * (total * 252.0 / r.len().max(1) as f64).exp_m1(),
+                100.0 * (total * periods_per_year as f64 / r.len().max(1) as f64).exp_m1(),
                 if r.is_empty() { f64::NAN } else { 100.0 * dd },
             )
         })
@@ -794,6 +831,7 @@ mod tests {
             entry_turnover: 1.0,
             exit_turnover: 1.0,
             weighted: false,
+            borrow_cost_per_bar: 0.0,
         }
     }
 
@@ -810,6 +848,7 @@ mod tests {
             entry_turnover: 1.0,
             exit_turnover: 1.0,
             weighted: false,
+            borrow_cost_per_bar: 0.0,
         }];
         let (r, c) = account_series(&legs, &close, 0.001, 4, 1);
         assert_eq!(c, vec![0.0, 1.0, 1.0, 1.0]);
@@ -837,6 +876,7 @@ mod tests {
                 entry_turnover: 1.0,
                 exit_turnover: 1.0,
                 weighted: false,
+                borrow_cost_per_bar: 0.0,
             },
             Leg {
                 col: 1,
@@ -848,6 +888,7 @@ mod tests {
                 entry_turnover: 1.0,
                 exit_turnover: 1.0,
                 weighted: false,
+                borrow_cost_per_bar: 0.0,
             },
         ];
         let costs = [0.0005, 0.0015];
@@ -873,6 +914,7 @@ mod tests {
             entry_turnover: 0.5,
             exit_turnover: 0.5,
             weighted: true,
+            borrow_cost_per_bar: 0.0,
         }];
         let (returns, _) = account_series(&legs, &close, 0.001, 2, 1);
         assert!((returns[1] - (0.5 * 0.01 - 0.001)).abs() < 1e-12);
@@ -890,6 +932,7 @@ mod tests {
             n_rows: 2,
             b_day: vec![0.0; 2],
             slots: 1,
+            periods_per_year: 252,
         };
         let mut position = trade(1, 1, 100.0, 101.0);
         position.weight = 0.5;
@@ -909,6 +952,135 @@ mod tests {
         assert_eq!(row.get("avg_fraction_invested"), 0.5);
         assert_eq!(row.get("avg_positions"), 1.0);
         assert_eq!(row.get("turnover_annual"), 252.0);
+    }
+
+    #[test]
+    fn weighted_rebalances_do_not_double_count_exposure() {
+        let close = vec![vec![100.0; 5], vec![100.0; 5]];
+        let book = Book {
+            close_ff: close.clone(),
+            entry_mat: close.clone(),
+            exit_mat: close,
+            cost: 0.0,
+            symbol_costs: vec![0.0; 2],
+            n_rows: 5,
+            b_day: vec![0.0, 0.01, 0.01, 0.01, 0.01],
+            slots: 1,
+            periods_per_year: 12,
+        };
+        let mut first = trade(0, 2, 100.0, 100.0);
+        first.weighted = true;
+        let mut second = trade(2, 4, 100.0, 100.0);
+        second.sym_idx = 1;
+        second.weighted = true;
+        let masks: Masks = vec![("dev".into(), vec![true; 5])];
+        let universe: Mask = vec![vec![true; 5]; 2];
+        let result = evaluate_fill(
+            &[first, second],
+            &book,
+            &masks,
+            &universe,
+            &universe,
+            1.0,
+            1,
+            0,
+            1,
+            "",
+        );
+        assert_eq!(result.f_day, vec![0.0, 1.0, 1.0, 1.0, 1.0]);
+        assert_eq!(result.count, vec![0.0, 1.0, 1.0, 1.0, 1.0]);
+        assert!((result.by_period[0].1.get("trend") - 4.0 * 0.01_f64.ln_1p()).abs() < 1e-12);
+    }
+
+    #[test]
+    fn weighted_open_rebalance_preserves_both_return_segments() {
+        let close = vec![vec![100.0, 100.0, 105.0], vec![100.0, 100.0, 110.0]];
+        let legs = vec![
+            Leg {
+                col: 0,
+                entry: 0,
+                exit: 2,
+                entry_px: 100.0,
+                exit_px: 105.0,
+                weight: 1.0,
+                entry_turnover: 1.0,
+                exit_turnover: 1.0,
+                weighted: true,
+                borrow_cost_per_bar: 0.0,
+            },
+            Leg {
+                col: 1,
+                entry: 2,
+                exit: 2,
+                entry_px: 100.0,
+                exit_px: 110.0,
+                weight: 1.0,
+                entry_turnover: 1.0,
+                exit_turnover: 1.0,
+                weighted: true,
+                borrow_cost_per_bar: 0.0,
+            },
+        ];
+        let (returns, _) = account_series(&legs, &close, 0.0, 3, 1);
+        assert!((returns[2] - 0.15).abs() < 1e-12);
+    }
+
+    #[test]
+    fn monthly_performance_and_baselines_use_twelve_periods() {
+        let returns = [0.02, -0.01, 0.03, 0.01];
+        let monthly = perf(&returns, &[0.02, -0.01], &[1.0, 1.0], 12);
+        let daily = perf(&returns, &[0.02, -0.01], &[1.0, 1.0], 252);
+        let find =
+            |values: &[(&str, f64)], key: &str| values.iter().find(|x| x.0 == key).unwrap().1;
+        assert!(
+            (find(&monthly, "sharpe") / find(&daily, "sharpe") - (12.0_f64 / 252.0).sqrt()).abs()
+                < 1e-12
+        );
+        let expected = 100.0 * (returns.iter().map(|r| f64::ln_1p(*r)).sum::<f64>() * 3.0).exp_m1();
+        assert!((find(&monthly, "cagr_pct") - expected).abs() < 1e-12);
+        let masks = vec![("dev".to_string(), vec![true; 4])];
+        let baseline = baseline_stats(&returns, &masks, 12);
+        assert!((baseline[0].2 - find(&monthly, "sharpe")).abs() < 1e-12);
+        assert!((baseline[0].3 - expected).abs() < 1e-12);
+    }
+
+    #[test]
+    fn long_short_trend_uses_net_not_gross_exposure() {
+        let close = vec![vec![100.0; 3]; 2];
+        let book = Book {
+            close_ff: close.clone(),
+            entry_mat: close.clone(),
+            exit_mat: close,
+            cost: 0.0,
+            symbol_costs: vec![0.0; 2],
+            n_rows: 3,
+            b_day: vec![0.0, 0.1, 0.1],
+            slots: 1,
+            periods_per_year: 12,
+        };
+        let mut long = trade(0, 2, 100.0, 100.0);
+        long.weighted = true;
+        let mut short = long.clone();
+        short.sym_idx = 1;
+        short.weight = -1.0;
+        let masks = vec![("dev".to_string(), vec![true; 3])];
+        let universe = vec![vec![true; 3]; 2];
+        let result = evaluate_fill(
+            &[long, short],
+            &book,
+            &masks,
+            &universe,
+            &universe,
+            1.0,
+            1,
+            0,
+            1,
+            "",
+        );
+        assert_eq!(result.f_day, vec![0.0, 2.0, 2.0]);
+        assert_eq!(result.trend_exposure, vec![0.0, 0.0, 0.0]);
+        assert_eq!(result.by_period[0].1.get("trend"), 0.0);
+        assert_eq!(result.by_period[0].1.get("avg_fraction_invested"), 2.0);
     }
 
     #[test]
@@ -946,6 +1118,7 @@ mod tests {
             n_rows: n,
             b_day,
             slots: 1,
+            periods_per_year: 252,
         };
         let trades = vec![
             trade(10, 15, close[10], close[15]),

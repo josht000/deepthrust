@@ -21,6 +21,7 @@ pub struct Trade {
     pub entry_turnover: f64,
     pub exit_turnover: f64,
     pub weighted: bool,
+    pub borrow_cost_per_bar: f64,
 }
 
 /// Last row index with a finite close per symbol.
@@ -160,6 +161,7 @@ pub fn swing_trades(panel: &Panel, p: &SwingParams, cfg: &Config, fill: &str) ->
                     entry_turnover: 1.0,
                     exit_turnover: 1.0,
                     weighted: false,
+                    borrow_cost_per_bar: 0.0,
                 });
             }
             t_prev = Some(u_exit);

@@ -1,0 +1,19 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_raw
+data_suffix: .parquet
+symbols: "*"
+exclude_symbols: cash_dividends
+earnings_dates_file: ..\trading_framework\data\pit\edgar\filings.parquet
+# Supply a SimFin quarterly income CSV with ticker, fiscal year/period, Publish Date, and diluted EPS.
+s023_eps_file: ""
+benchmark: SPY
+start_date: "2016-01-04"
+min_history: 252
+atr_len: 20
+cost_bps_per_side: 5.0
+fills: open_to_next_close
+partition_split_date: "2025-01-01"
+n_draws: 100
+n_boot: 1000
+n_timing_draws: 100
+seed: 20261031
+book_slots: 10

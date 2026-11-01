@@ -14,6 +14,8 @@ pub struct Config {
     #[serde(default)]
     pub symbols: String,
     #[serde(default)]
+    pub exclude_symbols: String,
+    #[serde(default)]
     pub sources: Vec<DataSourceConfig>,
     #[serde(default)]
     pub benchmark: String,
@@ -96,6 +98,30 @@ pub struct Config {
     pub gap_max_hold: usize,
     #[serde(default = "d_universe_top_n")]
     pub universe_top_n: usize,
+    #[serde(default = "d_selection_mode")]
+    pub selection_mode: String,
+    #[serde(default = "d_ratio_floor")]
+    pub ratio_floor: f64,
+    #[serde(default = "d_holding_months")]
+    pub holding_months: usize,
+    #[serde(default)]
+    pub formation_skip_months: usize,
+    #[serde(default)]
+    pub sector_neutral: bool,
+    #[serde(default = "d_peer_top_n")]
+    pub peer_top_n: usize,
+    #[serde(default = "d_peer_level")]
+    pub peer_level: String,
+    #[serde(default = "d_min_peers")]
+    pub min_peers: usize,
+    #[serde(default = "d_beta_window")]
+    pub beta_window: usize,
+    #[serde(default = "d_beta_min_obs")]
+    pub beta_min_obs: usize,
+    #[serde(default = "d_resid_window")]
+    pub resid_window: usize,
+    #[serde(default = "d_max_hold")]
+    pub max_hold: usize,
     #[serde(default = "d_entry_window")]
     pub entry_window: usize,
     #[serde(default = "d_exit_window")]
@@ -124,6 +150,46 @@ pub struct Config {
     pub rebalance: String,
     #[serde(default = "d_signal")]
     pub signal: String,
+    #[serde(default = "d_signal_mode")]
+    pub signal_mode: String,
+    #[serde(default = "d_z_window")]
+    pub z_window: usize,
+    #[serde(default)]
+    pub min_abs_resid: f64,
+    #[serde(default)]
+    pub skip_days: usize,
+    #[serde(default = "d_fixed_hold")]
+    pub fixed_hold: usize,
+    #[serde(default)]
+    pub exit_z: f64,
+    #[serde(default)]
+    pub stop_loss: f64,
+    #[serde(default)]
+    pub take_profit: f64,
+    #[serde(default = "d_regime_mode")]
+    pub regime_mode: String,
+    #[serde(default = "d_regime_window")]
+    pub regime_window: usize,
+    #[serde(default = "d_regime_threshold")]
+    pub regime_threshold: f64,
+    #[serde(default)]
+    pub simfin_dir: String,
+    #[serde(default = "d_formation_cadence")]
+    pub formation_cadence: String,
+    #[serde(default = "d_formation_window")]
+    pub formation_window: usize,
+    #[serde(default = "d_min_t_stat")]
+    pub min_t_stat: f64,
+    #[serde(default = "d_fdr_q")]
+    pub fdr_q: f64,
+    #[serde(default = "d_top_fraction")]
+    pub top_fraction: f64,
+    #[serde(default = "d_extra_filter")]
+    pub extra_filter: String,
+    #[serde(default = "d_holding_mode")]
+    pub holding_mode: String,
+    #[serde(default)]
+    pub corporate_actions_file: String,
     #[serde(default)]
     pub etf_data_dir: String,
     #[serde(default)]
@@ -132,6 +198,46 @@ pub struct Config {
     pub include_stocks: bool,
     #[serde(default)]
     pub rank_source: String,
+    #[serde(default)]
+    pub rank_cache_dir: String,
+    #[serde(default)]
+    pub sp500_membership_file: String,
+    #[serde(default)]
+    pub earnings_dates_file: String,
+    #[serde(default)]
+    pub s023_eps_file: String,
+    #[serde(default)]
+    pub s024_min_yield: f64,
+    #[serde(default)]
+    pub industry_data_file: String,
+    #[serde(default)]
+    pub market_factor_file: String,
+    #[serde(default)]
+    pub weight_grid_path: String,
+    #[serde(default = "d_breakout_distance_atr")]
+    pub breakout_distance_atr: f64,
+    #[serde(default = "d_gap_guard_atr")]
+    pub gap_guard_atr: f64,
+    #[serde(default = "d_max_target_vol")]
+    pub max_target_vol: f64,
+    #[serde(default = "d_analog_count")]
+    pub analog_count: usize,
+    #[serde(default = "d_borrow_bps_annual")]
+    pub borrow_bps_annual: f64,
+    #[serde(default = "d_factor_design")]
+    pub factor_design: String,
+    #[serde(default = "d_earnings_window_sessions")]
+    pub earnings_window_sessions: usize,
+    #[serde(default = "d_pullback_days")]
+    pub pullback_days: usize,
+    #[serde(default = "d_pullback_distance")]
+    pub pullback_distance: f64,
+    #[serde(default = "d_periods_per_year")]
+    pub periods_per_year: usize,
+    #[serde(default = "d_defensive_asset")]
+    pub defensive_asset: String,
+    #[serde(default = "d_strategy_mode")]
+    pub strategy_mode: String,
     #[serde(default)]
     pub delisting_return: f64,
     #[serde(default)]
@@ -271,6 +377,36 @@ fn d_gap_max_hold() -> usize {
 fn d_universe_top_n() -> usize {
     500
 }
+fn d_selection_mode() -> String {
+    "rank".into()
+}
+fn d_ratio_floor() -> f64 {
+    0.8
+}
+fn d_holding_months() -> usize {
+    1
+}
+fn d_peer_top_n() -> usize {
+    1500
+}
+fn d_peer_level() -> String {
+    "sector".into()
+}
+fn d_min_peers() -> usize {
+    5
+}
+fn d_beta_window() -> usize {
+    60
+}
+fn d_beta_min_obs() -> usize {
+    40
+}
+fn d_resid_window() -> usize {
+    5
+}
+fn d_max_hold() -> usize {
+    10
+}
 fn d_entry_window() -> usize {
     252
 }
@@ -310,7 +446,82 @@ fn d_rebalance() -> String {
 fn d_signal() -> String {
     "mom12".into()
 }
+fn d_signal_mode() -> String {
+    "raw".into()
+}
+fn d_formation_cadence() -> String {
+    "annual".into()
+}
+fn d_formation_window() -> usize {
+    252
+}
+fn d_min_t_stat() -> f64 {
+    2.0
+}
+fn d_fdr_q() -> f64 {
+    0.05
+}
+fn d_top_fraction() -> f64 {
+    0.20
+}
+fn d_extra_filter() -> String {
+    "none".into()
+}
+fn d_holding_mode() -> String {
+    "overnight_only".into()
+}
+fn d_z_window() -> usize {
+    60
+}
+fn d_fixed_hold() -> usize {
+    5
+}
+fn d_regime_mode() -> String {
+    "none".into()
+}
+fn d_regime_window() -> usize {
+    20
+}
+fn d_regime_threshold() -> f64 {
+    0.10
+}
 fn d_baseline() -> String {
+    "baseline".into()
+}
+fn d_breakout_distance_atr() -> f64 {
+    0.1
+}
+fn d_gap_guard_atr() -> f64 {
+    1.0
+}
+fn d_max_target_vol() -> f64 {
+    0.50
+}
+fn d_analog_count() -> usize {
+    50
+}
+fn d_borrow_bps_annual() -> f64 {
+    300.0
+}
+fn d_factor_design() -> String {
+    "S045a".into()
+}
+fn d_earnings_window_sessions() -> usize {
+    5
+}
+fn d_pullback_days() -> usize {
+    3
+}
+fn d_pullback_distance() -> f64 {
+    0.02
+}
+fn d_periods_per_year() -> usize {
+    252
+}
+fn d_defensive_asset() -> String {
+    "BIL".into()
+}
+fn d_strategy_mode() -> String {
     "baseline".into()
 }
 
@@ -368,7 +579,12 @@ pub fn split_csv(s: &str) -> Vec<String> {
 }
 
 fn expand_wildcard_symbols(doc: &mut Mapping) -> Result<(), String> {
-    fn expand(dir: &str, suffix: &str, value: &mut Value) -> Result<(), String> {
+    fn expand(
+        dir: &str,
+        suffix: &str,
+        excluded: &[String],
+        value: &mut Value,
+    ) -> Result<(), String> {
         if value.as_str() != Some("*") {
             return Ok(());
         }
@@ -387,7 +603,7 @@ fn expand_wildcard_symbols(doc: &mut Mapping) -> Result<(), String> {
             }
             let name = entry.file_name().to_string_lossy().into_owned();
             if let Some(symbol) = name.strip_suffix(suffix) {
-                if !symbol.is_empty() {
+                if !symbol.is_empty() && !excluded.iter().any(|excluded| excluded == symbol) {
                     symbols.push(symbol.to_string());
                 }
             }
@@ -418,8 +634,13 @@ fn expand_wildcard_symbols(doc: &mut Mapping) -> Result<(), String> {
                 .and_then(Value::as_str)
                 .map(str::to_string)
                 .unwrap_or_else(d_suffix);
+            let excluded = map
+                .get("exclude_symbols")
+                .and_then(Value::as_str)
+                .map(split_csv)
+                .unwrap_or_default();
             if let Some(symbols) = map.get_mut("symbols") {
-                expand(&dir, &suffix, symbols)?;
+                expand(&dir, &suffix, &excluded, symbols)?;
             }
         }
     } else if doc.get("symbols").and_then(Value::as_str) == Some("*") {
@@ -433,8 +654,13 @@ fn expand_wildcard_symbols(doc: &mut Mapping) -> Result<(), String> {
             .and_then(Value::as_str)
             .map(str::to_string)
             .unwrap_or_else(d_suffix);
+        let excluded = doc
+            .get("exclude_symbols")
+            .and_then(Value::as_str)
+            .map(split_csv)
+            .unwrap_or_default();
         if let Some(symbols) = doc.get_mut("symbols") {
-            expand(&dir, &suffix, symbols)?;
+            expand(&dir, &suffix, &excluded, symbols)?;
         }
     }
     Ok(())
@@ -563,6 +789,9 @@ pub fn load_config(
     if cfg.lookback == 0 {
         return Err("lookback must be greater than zero".into());
     }
+    if cfg.periods_per_year == 0 {
+        return Err("periods_per_year must be greater than zero".into());
+    }
     if cfg.cost_ladder_multipliers.is_empty()
         || cfg
             .cost_ladder_multipliers
@@ -671,12 +900,14 @@ sources:
   - name: etfs
     data_dir: PLACEHOLDER
     data_suffix: _1Day_tr.parquet
+    exclude_symbols: CASH
     symbols: "*"
 "#,
         );
         let dir = path.parent().unwrap();
         std::fs::write(dir.join("SPY_1Day_tr.parquet"), []).unwrap();
         std::fs::write(dir.join("QQQ_1Day_tr.parquet"), []).unwrap();
+        std::fs::write(dir.join("CASH_1Day_tr.parquet"), []).unwrap();
         std::fs::write(dir.join("notes.csv"), []).unwrap();
         std::fs::create_dir(dir.join("nested_1Day_tr.parquet")).unwrap();
         let text = std::fs::read_to_string(&path)
@@ -742,11 +973,14 @@ variants:
             "s001_rsi2_connors",
             "s003_rsi4_2575",
             "s006_double_7s",
+            "s017_night_trading",
             "s033_52w_breakout",
             "s041_mom_12_1",
             "s021_index_overnight",
             "s042_sector_momentum",
+            "s075_residual_reversal",
             "s105_overnight_carry",
+            "s024_ex_dividend_capture",
         ] {
             let path = root.join(format!("{strategy}.yaml"));
             let text = std::fs::read_to_string(&path).unwrap();
@@ -760,8 +994,18 @@ variants:
                 "{strategy} has only {} named variants",
                 variants.len()
             );
+            if strategy == "s017_night_trading" {
+                std::fs::write(wildcard_dir.join("QQQ.parquet"), []).unwrap();
+                std::fs::write(wildcard_dir.join("cash_dividends.parquet"), []).unwrap();
+            }
             for name in variants.keys().map(|key| key.as_str().unwrap()) {
-                let test_cli = if matches!(strategy, "s033_52w_breakout" | "s041_mom_12_1") {
+                let test_cli = if matches!(
+                    strategy,
+                    "s017_night_trading"
+                        | "s033_52w_breakout"
+                        | "s041_mom_12_1"
+                        | "s075_residual_reversal"
+                ) {
                     Cli {
                         data_dir: Some(wildcard_dir.display().to_string()),
                         symbols: None,
@@ -769,13 +1013,23 @@ variants:
                 } else {
                     cli()
                 };
-                load_config(
+                let loaded = load_config(
                     strategy,
                     Some(path.to_str().unwrap()),
                     &test_cli,
                     Some(name),
                 )
                 .unwrap_or_else(|e| panic!("{strategy}/{name}: {e}"));
+                if strategy == "s017_night_trading" {
+                    let symbols = split_csv(&loaded.symbols);
+                    assert!(symbols.iter().any(|symbol| symbol == "AAA"));
+                    assert!(!symbols.iter().any(|symbol| symbol == "QQQ"));
+                    assert!(!symbols.iter().any(|symbol| symbol == "cash_dividends"));
+                }
+            }
+            if strategy == "s017_night_trading" {
+                std::fs::remove_file(wildcard_dir.join("QQQ.parquet")).unwrap();
+                std::fs::remove_file(wildcard_dir.join("cash_dividends.parquet")).unwrap();
             }
         }
         let _ = std::fs::remove_dir_all(wildcard_dir);

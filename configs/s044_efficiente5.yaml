@@ -1,0 +1,51 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,IWM,EFA,TLT,LQD,HYG,EEM,EMB,IYR,GSG,GLD,TIP,BIL
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2008-01-01"
+min_history: 126
+formation_window: 126
+rebalance: monthly
+target_vol: 0.05
+max_target_vol: 0.50
+weight_grid_path: C:\data\trading\trading_framework\data\cache\s044_efficiente5_weight_grid_v1.npy
+cost_bps_per_side: 5.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 1
+
+variants:
+  target10: {target_vol: 0.10}
+  lookback252: {formation_window: 252, min_history: 252}
+  lb63_t5: {formation_window: 63, min_history: 63, target_vol: 0.05}
+  lb63_t6: {formation_window: 63, min_history: 63, target_vol: 0.06}
+  lb63_t7: {formation_window: 63, min_history: 63, target_vol: 0.07}
+  lb63_t8: {formation_window: 63, min_history: 63, target_vol: 0.08}
+  lb63_t10: {formation_window: 63, min_history: 63, target_vol: 0.10}
+  lb84_t5: {formation_window: 84, min_history: 84, target_vol: 0.05}
+  lb84_t6: {formation_window: 84, min_history: 84, target_vol: 0.06}
+  lb84_t7: {formation_window: 84, min_history: 84, target_vol: 0.07}
+  lb84_t8: {formation_window: 84, min_history: 84, target_vol: 0.08}
+  lb84_t10: {formation_window: 84, min_history: 84, target_vol: 0.10}
+  lb126_t6: {formation_window: 126, min_history: 126, target_vol: 0.06}
+  lb126_t7: {formation_window: 126, min_history: 126, target_vol: 0.07}
+  lb126_t8: {formation_window: 126, min_history: 126, target_vol: 0.08}
+  lb189_t5: {formation_window: 189, min_history: 189, target_vol: 0.05}
+  lb189_t6: {formation_window: 189, min_history: 189, target_vol: 0.06}
+  lb189_t7: {formation_window: 189, min_history: 189, target_vol: 0.07}
+  lb189_t8: {formation_window: 189, min_history: 189, target_vol: 0.08}
+  lb189_t10: {formation_window: 189, min_history: 189, target_vol: 0.10}
+  lb252_t5: {formation_window: 252, min_history: 252, target_vol: 0.05}
+  lb252_t6: {formation_window: 252, min_history: 252, target_vol: 0.06}
+  lb252_t7: {formation_window: 252, min_history: 252, target_vol: 0.07}
+  lb252_t8: {formation_window: 252, min_history: 252, target_vol: 0.08}
+  lb315_t5: {formation_window: 315, min_history: 315, target_vol: 0.05}
+  lb315_t6: {formation_window: 315, min_history: 315, target_vol: 0.06}
+  lb315_t7: {formation_window: 315, min_history: 315, target_vol: 0.07}
+  lb315_t8: {formation_window: 315, min_history: 315, target_vol: 0.08}
+  lb315_t10: {formation_window: 315, min_history: 315, target_vol: 0.10}

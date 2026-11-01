@@ -1,0 +1,63 @@
+# S032 52-week-high proximity portfolio; stock TR bars from the .env data cache.
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+rank_cache_dir: ..\trading_framework\data\cache\liquid_ranks
+benchmark: SPY
+benchmark_data_dir: ..\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-01-04"
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+entry_window: 252
+selection_mode: rank
+ratio_floor: 0.8
+holding_months: 1
+formation_skip_months: 0
+decile: 0.10
+min_breadth: 1
+rebalance: monthly
+delisting_return: -0.30
+cost_bps_per_side: 15.0
+cost_ladder_multipliers: [0.5, 1.0, 2.0, 3.0]
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 50
+
+variants:
+  ratio80: {selection_mode: floor, ratio_floor: 0.80}
+  hold6_skip1: {holding_months: 6, formation_skip_months: 1, book_slots: 300}
+  high126: {entry_window: 126}
+  high189: {entry_window: 189}
+  high315: {entry_window: 315}
+  top05: {decile: 0.05, book_slots: 25}
+  top15: {decile: 0.15, book_slots: 75}
+  universe100: {universe_top_n: 100, book_slots: 10}
+  universe250: {universe_top_n: 250, book_slots: 25}
+  universe1000: {universe_top_n: 1000, book_slots: 100}
+  high126_top05: {entry_window: 126, decile: 0.05, book_slots: 25}
+  high126_top15: {entry_window: 126, decile: 0.15, book_slots: 75}
+  high189_top05: {entry_window: 189, decile: 0.05, book_slots: 25}
+  high189_top15: {entry_window: 189, decile: 0.15, book_slots: 75}
+  high315_top05: {entry_window: 315, decile: 0.05, book_slots: 25}
+  high315_top15: {entry_window: 315, decile: 0.15, book_slots: 75}
+  high126_n100: {entry_window: 126, universe_top_n: 100, book_slots: 10}
+  high126_n1000: {entry_window: 126, universe_top_n: 1000, book_slots: 100}
+  high189_n100: {entry_window: 189, universe_top_n: 100, book_slots: 10}
+  high189_n1000: {entry_window: 189, universe_top_n: 1000, book_slots: 100}
+  high315_n100: {entry_window: 315, universe_top_n: 100, book_slots: 10}
+  high315_n1000: {entry_window: 315, universe_top_n: 1000, book_slots: 100}
+  top05_n100: {decile: 0.05, universe_top_n: 100, book_slots: 5}
+  top05_n1000: {decile: 0.05, universe_top_n: 1000, book_slots: 50}
+  top15_n100: {decile: 0.15, universe_top_n: 100, book_slots: 15}
+  top15_n1000: {decile: 0.15, universe_top_n: 1000, book_slots: 150}
+  ratio80_n100: {selection_mode: floor, ratio_floor: 0.80, universe_top_n: 100, book_slots: 10}
+  ratio80_n1000: {selection_mode: floor, ratio_floor: 0.80, universe_top_n: 1000, book_slots: 100}
+  hold6_skip1_high315: {holding_months: 6, formation_skip_months: 1, entry_window: 315, book_slots: 300}
+  hold6_skip1_top15: {holding_months: 6, formation_skip_months: 1, decile: 0.15, book_slots: 450}

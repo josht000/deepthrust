@@ -8,6 +8,7 @@ license = "GPL-3.0"
 [dependencies]
 chrono = { version = "0.4", default-features = false, features = ["std", "clock"] }
 clap = { version = "4", features = ["derive"] }
+csv = "1"
 parquet = { version = "60", default-features = false, features = ["snap"] }
 plotters = { version = "0.3", default-features = false, features = ["svg_backend", "line_series", "full_palette"] }
 serde = { version = "1", features = ["derive"] }

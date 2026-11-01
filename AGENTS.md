@@ -8,3 +8,4 @@
 - Strategy variants: put named overlays in the strategy yaml `variants:` block and run `python run.py --strategy <name> --variant a,b`; variant outputs are `results/<name>/<variant>__<file>`, and `results/<name>/variants_comparison.csv` tracks every variant tried (count them as trials; select on dev only, report test once).
 - Plot the cumulative log returns of the benchmark such as SPY or QQQ alongside the strategy's cumulative log returns to visualize performance.
 - When refactoring code or adding new features, make sure to update the documentation and examples especially in the docs\strategies\Trading Strategy Catalog (105 strategies, markdown).md file or any other relevant documentation.
+- always implement strategies with the rules from .devin/skills/implement_strat/SKILL.md

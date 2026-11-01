@@ -44,7 +44,8 @@ index ETFs with the mega-cap stock sample and apply source-specific costs.
 
 Outputs (trades, partition dev/test CSVs, cost ladder, baselines, `report.md`, and a `summary.svg` nine-panel
 dashboard: cumulative returns, key metrics, partition decomposition, drawdown,
-calendar years, trade returns, holding period, exit reasons, open positions; a configured benchmark is added to panel A)
+calendar years, trade returns, holding period, exit reasons, open positions; a configured benchmark is added to panel A).
+Panel A accumulates all series from the evaluation start, excluding warm-up returns.
 land in `results/<strategy>/`. When charts are requested, `symbols_overview.svg` compares the baseline, the best
 dev-selected variant, each symbol's buy-and-hold, and the configured benchmark in one small-multiples plot;
 `symbols_summary.csv` retains metrics for every symbol and requested variant. Running `--variant a,b` also runs
@@ -52,3 +53,17 @@ the baseline and writes a combined overview. For universes above 24 symbols, the
 12 weakest symbols by baseline dev excess return; the CSV still includes all symbols. Only total elapsed timing is
 printed to the console. The full stage tree is written to `results/<strategy>/timing.txt`; `--profile` adds
 per-call mean/min/max columns to that report.
+
+For Family 4, partition trend uses the equal-weight return of the tradable universe selected at the
+previous close; S046 uses the mean French industry return. External benchmarks such as SPY remain
+separate chart comparisons. Weighted exposure counts the position held into each period instead of
+counting both sides of a rebalance. Trend uses signed net exposure, while invested fraction uses
+gross exposure; this is a close-to-close approximation for next-open trades.
+S041 and S042 use explicitly weighted rebalance legs, so an outgoing overnight segment and an
+incoming intraday segment are not divided by their combined position count on rebalance days.
+Their existing cost model charges full entry and exit costs on each rebalance leg, including
+unchanged holdings, rather than netting those holdings.
+Monthly studies set `periods_per_year: 12` for annualized Sharpe, CAGR, and turnover. The DEV bias
+currently adjusts for fill-model correlation, not for the full variant search; DEV rankings are
+exploratory, and an already inspected TEST period is not a fresh holdout. When DEV skill ties
+exactly, the Family 4 catalog uses the last configured candidate, matching the symbols overview.

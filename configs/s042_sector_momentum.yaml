@@ -1,13 +1,16 @@
 data_dir:  C:\data\trading\trading_framework\data\cache\etf_tr
 data_suffix: .parquet
 symbols: XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
 min_history: 252
 signal: mom12
 breadth: 3
 rebalance: monthly
 delisting_return: -0.30
 cost_bps_per_side: 5.0
-fills: close,next_open
+fills: next_open,close
 partition_split_date: "2024-01-01"
 n_draws: 1000
 n_boot: 5000

@@ -1,0 +1,51 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,EFA,AGG,BIL,TLT
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2008-01-01"
+min_history: 252
+mom_window: 252
+rebalance: monthly
+strategy_mode: absolute
+defensive_asset: BIL
+cost_bps_per_side: 5.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 1
+
+variants:
+  gem: {strategy_mode: gem}
+  absolute_tlt: {defensive_asset: TLT}
+  sma10_gate: {strategy_mode: sma10, sma_window: 210}
+  abs63_bil: {strategy_mode: absolute, mom_window: 63, defensive_asset: BIL}
+  abs63_tlt: {strategy_mode: absolute, mom_window: 63, defensive_asset: TLT}
+  abs126_bil: {strategy_mode: absolute, mom_window: 126, defensive_asset: BIL}
+  abs126_tlt: {strategy_mode: absolute, mom_window: 126, defensive_asset: TLT}
+  abs189_bil: {strategy_mode: absolute, mom_window: 189, defensive_asset: BIL}
+  abs189_tlt: {strategy_mode: absolute, mom_window: 189, defensive_asset: TLT}
+  abs315_bil: {strategy_mode: absolute, mom_window: 315, defensive_asset: BIL}
+  abs315_tlt: {strategy_mode: absolute, mom_window: 315, defensive_asset: TLT}
+  abs378_bil: {strategy_mode: absolute, mom_window: 378, defensive_asset: BIL}
+  gem63: {strategy_mode: gem, mom_window: 63, defensive_asset: BIL}
+  gem126: {strategy_mode: gem, mom_window: 126, defensive_asset: BIL}
+  gem189: {strategy_mode: gem, mom_window: 189, defensive_asset: BIL}
+  gem315: {strategy_mode: gem, mom_window: 315, defensive_asset: BIL}
+  gem378: {strategy_mode: gem, mom_window: 378, defensive_asset: BIL}
+  gem504: {strategy_mode: gem, mom_window: 504, defensive_asset: BIL}
+  gem630: {strategy_mode: gem, mom_window: 630, defensive_asset: BIL}
+  gem756: {strategy_mode: gem, mom_window: 756, defensive_asset: BIL}
+  gem1008: {strategy_mode: gem, mom_window: 1008, defensive_asset: BIL}
+  sma126_bil: {strategy_mode: sma10, sma_window: 126, defensive_asset: BIL}
+  sma126_tlt: {strategy_mode: sma10, sma_window: 126, defensive_asset: TLT}
+  sma168_bil: {strategy_mode: sma10, sma_window: 168, defensive_asset: BIL}
+  sma168_tlt: {strategy_mode: sma10, sma_window: 168, defensive_asset: TLT}
+  sma210_tlt: {strategy_mode: sma10, sma_window: 210, defensive_asset: TLT}
+  sma252_bil: {strategy_mode: sma10, sma_window: 252, defensive_asset: BIL}
+  sma252_tlt: {strategy_mode: sma10, sma_window: 252, defensive_asset: TLT}
+  sma315_bil: {strategy_mode: sma10, sma_window: 315, defensive_asset: BIL}
+  sma315_tlt: {strategy_mode: sma10, sma_window: 315, defensive_asset: TLT}

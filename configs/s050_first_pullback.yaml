@@ -1,0 +1,56 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+sp500_membership_file: C:\data\trading\deepthrust\data\cache\pit\sp500_ticker_start_end.csv
+earnings_dates_file: C:\data\trading\trading_framework\data\simfin\us-income-quarterly.csv
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2008-01-01"
+min_history: 252
+entry_window: 63
+formation_window: 10
+sma_window: 10
+pullback_days: 3
+pullback_distance: 0.02
+exit_window: 20
+max_hold: 10
+earnings_window_sessions: 5
+strategy_mode: baseline
+cost_bps_per_side: 15.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+
+variants:
+  breakout42_pullback2_dist1: {entry_window: 42, pullback_days: 2, pullback_distance: 0.01}
+  breakout42_pullback2_dist2: {entry_window: 42, pullback_days: 2, pullback_distance: 0.02}
+  breakout42_pullback2_dist3: {entry_window: 42, pullback_days: 2, pullback_distance: 0.03}
+  breakout42_pullback3_dist1: {entry_window: 42, pullback_days: 3, pullback_distance: 0.01}
+  breakout42_pullback3_dist2: {entry_window: 42, pullback_days: 3, pullback_distance: 0.02}
+  breakout42_pullback3_dist3: {entry_window: 42, pullback_days: 3, pullback_distance: 0.03}
+  breakout42_pullback4_dist1: {entry_window: 42, pullback_days: 4, pullback_distance: 0.01}
+  breakout42_pullback4_dist2: {entry_window: 42, pullback_days: 4, pullback_distance: 0.02}
+  breakout42_pullback4_dist3: {entry_window: 42, pullback_days: 4, pullback_distance: 0.03}
+  breakout63_pullback2_dist1: {entry_window: 63, pullback_days: 2, pullback_distance: 0.01}
+  breakout63_pullback2_dist2: {entry_window: 63, pullback_days: 2, pullback_distance: 0.02}
+  breakout63_pullback2_dist3: {entry_window: 63, pullback_days: 2, pullback_distance: 0.03}
+  breakout63_pullback3_dist1: {entry_window: 63, pullback_days: 3, pullback_distance: 0.01}
+  breakout63_pullback3_dist2: {entry_window: 63, pullback_days: 3, pullback_distance: 0.02}
+  breakout63_pullback3_dist3: {entry_window: 63, pullback_days: 3, pullback_distance: 0.03}
+  breakout63_pullback4_dist1: {entry_window: 63, pullback_days: 4, pullback_distance: 0.01}
+  breakout63_pullback4_dist2: {entry_window: 63, pullback_days: 4, pullback_distance: 0.02}
+  breakout63_pullback4_dist3: {entry_window: 63, pullback_days: 4, pullback_distance: 0.03}
+  breakout126_pullback2_dist1: {entry_window: 126, pullback_days: 2, pullback_distance: 0.01}
+  breakout126_pullback2_dist2: {entry_window: 126, pullback_days: 2, pullback_distance: 0.02}
+  breakout126_pullback2_dist3: {entry_window: 126, pullback_days: 2, pullback_distance: 0.03}
+  breakout126_pullback3_dist1: {entry_window: 126, pullback_days: 3, pullback_distance: 0.01}
+  breakout126_pullback3_dist2: {entry_window: 126, pullback_days: 3, pullback_distance: 0.02}
+  breakout126_pullback3_dist3: {entry_window: 126, pullback_days: 3, pullback_distance: 0.03}
+  breakout126_pullback4_dist1: {entry_window: 126, pullback_days: 4, pullback_distance: 0.01}
+  breakout126_pullback4_dist2: {entry_window: 126, pullback_days: 4, pullback_distance: 0.02}
+  breakout126_pullback4_dist3: {entry_window: 126, pullback_days: 4, pullback_distance: 0.03}
+  avoid_earnings: {strategy_mode: avoid_earnings}
+  breakout126_pullback4_dist2_avoid_earnings: {entry_window: 126, pullback_days: 4, pullback_distance: 0.02, strategy_mode: avoid_earnings}

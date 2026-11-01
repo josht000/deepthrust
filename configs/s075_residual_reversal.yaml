@@ -1,0 +1,70 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_split
+data_suffix: .parquet
+symbols: "*"
+simfin_dir: ..\trading_framework\data\simfin
+universe_top_n: 500
+peer_top_n: 1500
+peer_level: sector
+min_price: 5.0
+min_history: 250
+min_peers: 5
+rank_window: 60
+rank_min_observations: 40
+beta_window: 60
+beta_min_obs: 40
+resid_window: 5
+decile: 0.10
+sma_window: 200
+max_hold: 10
+signal_mode: raw
+z_window: 60
+min_abs_resid: 0.0
+skip_days: 0
+exit_mode: resid
+fixed_hold: 5
+exit_z: 0.0
+stop_loss: 0.0
+take_profit: 0.0
+regime_mode: none
+regime_window: 20
+regime_threshold: 0.10
+delisting_return: -0.30
+cost_bps_per_side: 15.0
+fills: close,next_open
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 50
+
+variants:
+  skip1: {skip_days: 1}
+  win3: {resid_window: 3}
+  win10: {resid_window: 10}
+  dec05: {decile: 0.05}
+  zscore: {signal_mode: zscore}
+  nosma: {sma_window: 0}
+  big5: {min_abs_resid: 0.05}
+  big8: {min_abs_resid: 0.08}
+  big10: {min_abs_resid: 0.10}
+  exit_z05: {exit_mode: zscore, exit_z: 0.5}
+  fixed5: {exit_mode: fixed, fixed_hold: 5}
+  fixed3: {exit_mode: fixed, fixed_hold: 3}
+  stop8: {stop_loss: 0.08}
+  cap5: {max_hold: 5}
+  ew_dd10: {regime_mode: ew_drawdown, regime_window: 20, regime_threshold: 0.10}
+  ew_vol30: {regime_mode: ew_vol, regime_window: 20, regime_threshold: 0.30}
+  big5_ez05: {min_abs_resid: 0.05, exit_mode: zscore, exit_z: 0.5}
+  big8_ez05: {min_abs_resid: 0.08, exit_mode: zscore, exit_z: 0.5}
+  big5_dec05: {min_abs_resid: 0.05, decile: 0.05}
+  peer_industry: {peer_level: industry}
+  beta40: {beta_window: 40, beta_min_obs: 30}
+  beta90: {beta_window: 90, beta_min_obs: 60}
+  min_peers3: {min_peers: 3}
+  peer_top1000: {peer_top_n: 1000}
+  decile15: {decile: 0.15}
+  zscore_both: {signal_mode: zscore, exit_mode: zscore, exit_z: 0.5}
+  stop10: {stop_loss: 0.10}
+  target10: {take_profit: 0.10}
+  fixed10: {exit_mode: fixed, fixed_hold: 10}
+  skip3: {skip_days: 3}

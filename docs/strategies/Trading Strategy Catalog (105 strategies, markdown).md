@@ -1,4 +1,4 @@
-# Daily-Bar Trading Strategy Catalog for Systematic Backtesting
+﻿# Daily-Bar Trading Strategy Catalog for Systematic Backtesting
 
 **Version:** 1.2 (revised after adversarial review R1, `docs/strategies/review/r1.md`) - compiled for handoff to a coding/backtesting agent
 **Scope:** 105 original strategy numbers; **90 entries remain** after merges (file names keep the original "105" label; strategy numbers are preserved and a merged strategy keeps its LOWEST number, see the merge map below). Most entries use daily OHLCV; entries requiring sub-daily OHLCV for the primary specification or a registered variant are tagged `NOT_DAILY, DEFER` in the TOC and strategy entry. Composition, tagged per entry in the JSON as `frequency_class`:
@@ -8,9 +8,9 @@
 
 **Status mix:** 62 active, 23 demoted (control / falsification / overlay only), 4 dropped (documented null or untestable edge; kept for the record and excluded from the backtest queue), 1 forward-test only.
 
-**Data-frequency status:** `NOT_DAILY, DEFER` means the strategy requires sub-daily OHLCV for its primary execution or a registered variant; its existing research status is unchanged.
+**Data-frequency status:** `NOT_DAILY, DEFER` means the strategy requires sub-daily OHLCV for its primary execution or a registered variant. `NOT_DAILY, DELTA` marks an implemented daily-bar adaptation that differs from that planned specification.
 
-**Determinism convention:** where an entry lists alternative fills, exits, or parameters, the FIRST-listed value is the primary baseline; everything after "or"/"optional"/"variant" is a robustness alternative for the backtester to run second. Each entry's `parameter_variants` field lists the registered alternatives (including those inherited from merged strategies); every variant is a registered trial in `results/trial_registry.jsonl` and must not be counted as an independent discovery.
+**Determinism convention:** where an entry lists alternative fills, exits, or parameters, the FIRST-listed value is the primary baseline; everything after "or"/"optional"/"variant" is a robustness alternative for the backtester to run second. Each entry's `parameter_variants` field lists the registered alternatives; every variant is a registered trial in `results/trial_registry.jsonl` and must not be counted as an independent discovery.
 
 ---
 
@@ -20,28 +20,28 @@
 - [Shared backtest and execution specification (applies to every strategy)](#shared-backtest-and-execution-specification-applies-to-every-strategy)
 - [Review R1 resolution log](#review-r1-resolution-log)
 - [Family 1 — ETF Index Mean Reversion (Connors lineage)](#family-1--etf-index-mean-reversion-connors-lineage)
-    - [S001 | RSI(2) Classic (Connors) - cluster control (absorbs S002, S092)](#s001--rsi2-classic-connors---cluster-control-absorbs-s002-s092) — IMPLEMENTED — NOT_DAILY, DEFER
-    - [S003 | RSI(4) 25/75 (Connors)](#s003--rsi4-2575-connors) — IMPLEMENTED — NOT_DAILY, DEFER
+    - [S001 | RSI(2) Classic (Connors) - cluster control](#s001--rsi2-classic-connors---cluster-control) — IMPLEMENTED — NOT_DAILY, DELTA
+    - [S003 | RSI(4) 25/75 (Connors)](#s003--rsi4-2575-connors) — IMPLEMENTED — NOT_DAILY, DELTA
     - [S004 | Cumulative RSI(2)](#s004--cumulative-rsi2) — NOT_DAILY, DEFER
     - [S005 | Connors %b (Bollinger Band)](#s005--connors-b-bollinger-band) — NOT_DAILY, DEFER
-    - [S006 | Double 7s](#s006--double-7s) — IMPLEMENTED — NOT_DAILY, DEFER
+    - [S006 | Double 7s](#s006--double-7s) — IMPLEMENTED — NOT_DAILY, DELTA
     - [S007 | 3-Day Pullback](#s007--3-day-pullback) — NOT_DAILY, DEFER
     - [S008 | ConnorsRSI(3,2,100) Stock Pullback](#s008--connorsrsi32100-stock-pullback) — NOT_DAILY, DEFER
     - [S009 | 3 Days Down Overnight (SPY)](#s009--3-days-down-overnight-spy) — NOT_DAILY, DEFER
-    - [S010 | Turnaround Tuesday (absorbs S085)](#s010--turnaround-tuesday-absorbs-s085)
-    - [S011 | Z-Score / Bollinger Lower-Band Mean Reversion (absorbs S012)](#s011--z-score--bollinger-lower-band-mean-reversion-absorbs-s012) — NOT_DAILY, DEFER
+    - [S010 | Turnaround Tuesday](#s010--turnaround-tuesday)
+    - [S011 | Z-Score / Bollinger Lower-Band Mean Reversion](#s011--z-score--bollinger-lower-band-mean-reversion) — NOT_DAILY, DEFER
     - [S013 | TLT Mean Reversion (RSI(2))](#s013--tlt-mean-reversion-rsi2)
     - [S014 | Sector ETF Basket Mean Reversion](#s014--sector-etf-basket-mean-reversion) — NOT_DAILY, DEFER
 - [Family 2 — Overnight and Gap Strategies](#family-2--overnight-and-gap-strategies)
-    - [S015 | Chan Buy-on-Gap (absorbs S022)](#s015--chan-buy-on-gap-absorbs-s022) — NOT_DAILY, DEFER
+    - [S015 | Chan Buy-on-Gap](#s015--chan-buy-on-gap) — NOT_DAILY, DEFER
     - [S016 | Short-on-Gap-Up (Chan mirror)](#s016--short-on-gap-up-chan-mirror) — NOT_DAILY, DEFER
-    - [S017 | Night Trading Overnight-Bias Stock Selection (absorbs S034)](#s017--night-trading-overnight-bias-stock-selection-absorbs-s034)
+    - [S017 | Night Trading Overnight-Bias Stock Selection](#s017--night-trading-overnight-bias-stock-selection) — IMPLEMENTED — DAILY, DELTA
     - [S018 | Gap Fade (Fill the Gap)](#s018--gap-fade-fill-the-gap) — NOT_DAILY, DEFER
-    - [S019 | Gap-and-Go Continuation (absorbs S025)](#s019--gap-and-go-continuation-absorbs-s025) — IMPLEMENTED
-    - [S020 | Earnings-Eve Estimate-Drift Mean Reversion (Chan/Estimize)](#s020--earnings-eve-estimate-drift-mean-reversion-chanestimize)
-    - [S021 | Index Overnight Premium (SPY close-to-open only; absorbs S084)](#s021--index-overnight-premium-spy-close-to-open-only-absorbs-s084) — IMPLEMENTED
-    - [S023 | Post-Earnings Overnight Drift](#s023--post-earnings-overnight-drift)
-    - [S024 | Ex-Dividend Window Capture (absorbs S101)](#s024--ex-dividend-window-capture-absorbs-s101)
+    - [S019 | Gap-and-Go Continuation](#s019--gap-and-go-continuation) — IMPLEMENTED
+    - [S020 | Earnings-Eve Estimate-Drift Mean Reversion (Chan/Estimize)](#s020--earnings-eve-estimate-drift-mean-reversion-chanestimize) — DROPPED
+    - [S021 | Index Overnight Premium (SPY close-to-open only)](#s021--index-overnight-premium-spy-close-to-open-only) — IMPLEMENTED
+    - [S023 | Post-Earnings Overnight Drift](#s023--post-earnings-overnight-drift) — IMPLEMENTED
+    - [S024 | Ex-Dividend Window Capture](#s024--ex-dividend-window-capture) — IMPLEMENTED
     - [S026 | Exhaustion Gap Fade After 3-Day Run](#s026--exhaustion-gap-fade-after-3-day-run) — NOT_DAILY, DEFER
 - [Family 3 — Cross-Sectional Short-Term Reversal](#family-3--cross-sectional-short-term-reversal)
     - [S027 | Lehmann 1-Week Loser Reversal](#s027--lehmann-1-week-loser-reversal) — NOT_DAILY, DEFER
@@ -49,26 +49,26 @@
     - [S029 | Capitulation-Volume Loser Reversal](#s029--capitulation-volume-loser-reversal) — NOT_DAILY, DEFER
     - [S030 | Down-Streak Reversal (5+ Days)](#s030--down-streak-reversal-5-days) — NOT_DAILY, DEFER
     - [S031 | Up-Streak Fade (5+ Days)](#s031--up-streak-fade-5-days)
-    - [S032 | 52-Week-High Proximity Portfolio (George-Hwang)](#s032--52-week-high-proximity-portfolio-george-hwang)
-    - [S033 | 52-Week-High Breakout (Donchian-style)](#s033--52-week-high-breakout-donchian-style) — IMPLEMENTED
-    - [S035 | Low-Volatility Anomaly Portfolio](#s035--low-volatility-anomaly-portfolio)
+    - [S032 | 52-Week-High Proximity Portfolio (George-Hwang)](#s032--52-week-high-proximity-portfolio-george-hwang) — IMPLEMENTED
+    - [S035 | Low-Volatility Anomaly Portfolio](#s035--low-volatility-anomaly-portfolio) — IMPLEMENTED
 - [Family 4 — Momentum, Breakout, and Rotation](#family-4--momentum-breakout-and-rotation)
-    - [S036 | Donchian Breakout, Turtle Systems 1 and 2 (absorbs S037)](#s036--donchian-breakout-turtle-systems-1-and-2-absorbs-s037)
-    - [S038 | NR7 / Inside-Day Breakout (absorbs S039)](#s038--nr7--inside-day-breakout-absorbs-s039)
-    - [S040 | Volume-Confirmed 20-Day-High Breakout](#s040--volume-confirmed-20-day-high-breakout)
+    - [S033 | 52-Week-High Breakout (Donchian-style)](#s033--52-week-high-breakout-donchian-style) — IMPLEMENTED — DAILY, DELTA
+    - [S036 | Donchian Breakout, Turtle Systems 1 and 2](#s036--donchian-breakout-turtle-systems-1-and-2)
+    - [S038 | NR7 / Inside-Day Breakout](#s038--nr7--inside-day-breakout)
+    - [S040 | Volume-Confirmed 20-Day-High Breakout](#s040--volume-confirmed-20-day-high-breakout) — IMPLEMENTED
     - [S041 | 12-1 Cross-Sectional Momentum](#s041--12-1-cross-sectional-momentum) — IMPLEMENTED
     - [S042 | Sector Momentum Rotation](#s042--sector-momentum-rotation) — IMPLEMENTED
-    - [S043 | ETF Multi-Asset Momentum Rotation (absorbs S068, S074)](#s043--etf-multi-asset-momentum-rotation-absorbs-s068-s074)
-    - [S044 | Efficiente 5 MPT Replication](#s044--efficiente-5-mpt-replication)
-    - [S045 | Multi-Factor Characteristic Blend (US Adaptation; S045a paper design, S045b catalog design)](#s045--multi-factor-characteristic-blend-us-adaptation-s045a-paper-design-s045b-catalog-design)
-    - [S046 | Industry Rotation via Market-State Similarity](#s046--industry-rotation-via-market-state-similarity)
-    - [S047 | Absolute / Dual Momentum (S047a absolute SPY vs cash; S047b Antonacci GEM)](#s047--absolute--dual-momentum-s047a-absolute-spy-vs-cash-s047b-antonacci-gem)
+    - [S043 | ETF Multi-Asset Momentum Rotation](#s043--etf-multi-asset-momentum-rotation) — IMPLEMENTED
+    - [S044 | Efficiente 5 MPT Replication](#s044--efficiente-5-mpt-replication) — IMPLEMENTED
+    - [S045 | Multi-Factor Characteristic Blend (US Adaptation; S045a paper design, S045b catalog design)](#s045--multi-factor-characteristic-blend-us-adaptation-s045a-paper-design-s045b-catalog-design) — IMPLEMENTED
+    - [S046 | Industry Rotation via Market-State Similarity](#s046--industry-rotation-via-market-state-similarity) — IMPLEMENTED
+    - [S047 | Absolute / Dual Momentum (S047a absolute SPY vs cash; S047b Antonacci GEM)](#s047--absolute--dual-momentum-s047a-absolute-spy-vs-cash-s047b-antonacci-gem) — IMPLEMENTED
     - [S048 | Validea Short-Term Sector Momentum](#s048--validea-short-term-sector-momentum)
     - [S049 | Acceleration Momentum](#s049--acceleration-momentum)
-    - [S050 | First Pullback After Breakout](#s050--first-pullback-after-breakout)
-    - [S051 | Darvas Box Breakout](#s051--darvas-box-breakout)
+    - [S050 | First Pullback After Breakout](#s050--first-pullback-after-breakout) — IMPLEMENTED
+    - [S051 | Darvas Box Breakout](#s051--darvas-box-breakout) — IMPLEMENTED
 - [Family 5 — Earnings, News, and LLM Strategies](#family-5--earnings-news-and-llm-strategies)
-    - [S052 | Earnings Announcement Premium (Monthly; absorbs S086 weekly version)](#s052--earnings-announcement-premium-monthly-absorbs-s086-weekly-version)
+    - [S052 | Earnings Announcement Premium (Monthly)](#s052--earnings-announcement-premium-monthly)
     - [S053 | Pre-Earnings Run-Up (consensus-free; replaces the Earnings Whispers Score setup)](#s053--pre-earnings-run-up-consensus-free-replaces-the-earnings-whispers-score-setup)
     - [S054 | PEAD Earnings-Surprise Drift (SUE / announcement-return, point-in-time)](#s054--pead-earnings-surprise-drift-sue--announcement-return-point-in-time)
     - [S055 | Post-Earnings-Oversold Bounce](#s055--post-earnings-oversold-bounce) — NOT_DAILY, DEFER
@@ -90,13 +90,13 @@
 - [Family 7 — Pairs and Spread Strategies](#family-7--pairs-and-spread-strategies)
     - [S071 | Cointegrated ETF Pair Z-Score](#s071--cointegrated-etf-pair-z-score)
     - [S072 | Gold/Silver Ratio Mean Reversion](#s072--goldsilver-ratio-mean-reversion)
-    - [S073 | GDX/GDXJ Miners Spread](#s073--gdxgdxj-miners-spread)
-    - [S075 | Stock-vs-Sector Residual Reversal](#s075--stock-vs-sector-residual-reversal) — IMPLEMENTED — NOT_DAILY, DEFER
-    - [S076 | Twin-ETF Convergence (SPY/IVV/VOO)](#s076--twin-etf-convergence-spyivvvoo)
-    - [S077 | Energy Pair: XLE/USO Spread](#s077--energy-pair-xleuso-spread)
+    - [S073 | GDX/GDXJ Miners Spread](#s073--gdxgdxj-miners-spread) — DROPPED
+    - [S075 | Stock-vs-Sector Residual Reversal](#s075--stock-vs-sector-residual-reversal) — IMPLEMENTED — DAILY, DELTA
+    - [S076 | Twin-ETF Convergence (SPY/IVV/VOO)](#s076--twin-etf-convergence-spyivvvoo) — DROPPED
+    - [S077 | Energy Pair: XLE/USO Spread](#s077--energy-pair-xleuso-spread) — DROPPED
     - [S078 | Chan-Style Statistical Arbitrage Basket](#s078--chan-style-statistical-arbitrage-basket)
 - [Family 8 — Calendar Strategies](#family-8--calendar-strategies)
-    - [S079 | Turn-of-the-Month Effect (window grid; absorbs S083)](#s079--turn-of-the-month-effect-window-grid-absorbs-s083)
+    - [S079 | Turn-of-the-Month Effect (window grid)](#s079--turn-of-the-month-effect-window-grid)
     - [S080 | Pre-Holiday Effect](#s080--pre-holiday-effect)
     - [S081 | Pre-FOMC Announcement Drift](#s081--pre-fomc-announcement-drift) — NOT_DAILY, DEFER
     - [S082 | Options-Expiration-Week Drift](#s082--options-expiration-week-drift)
@@ -137,8 +137,8 @@ Each entry is written so a coding agent can implement it without interpretation.
 - `status`: `active` (implement), `demoted` (control/falsification/overlay only), `dropped` (documented null; excluded from the queue), `forward_test_only` (cannot be backtested cleanly; live paper capture only).
 - `priority`: P1 (high value, feasible now) to P4 (retire or last).
 - `data_needs`: required series; `DP-*` codes are defined in the data-prerequisite table below.
-- `parameter_variants`: registered alternatives, including those absorbed from merged strategies.
-- `merged_from`: strategy numbers absorbed into this entry.
+- `parameter_variants`: registered alternatives in the trial grid.
+- `merged_from`: original strategy numbers represented by this entry.
 - `review`: the R1 verdict and the source-check result.
 
 **Performance claims:** almost nothing in this catalog has been verified by an independent backtest. Where a source reports performance it is quoted in the notes and is unverified until reproduced under the specification below. The old blanket "Sharpe > 2 / profit factor > 2" screen is replaced by class gates (see Validation): it would reject every published slow sleeve (Efficiente 5 Sharpe 0.5-0.6) and tells nothing about overlays, while PF > 2 on fewer than 100 trades is routinely produced by noise.
@@ -240,9 +240,9 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 *Why this family works: broad equity index ETFs mean-revert at short horizons. Daily index returns are negatively autocorrelated over 1–5 days because of liquidity provision: panicky sellers are compensated by patient buyers, and index-level dips that occur without fundamental news are usually repaired. The 200-day SMA regime filter restricts dip-buying to bull regimes where the drift assists the bounce. Chan's 2008 SP1500 example showed Sharpe 4.8 before costs (3.5 after 10 bps round trip) over a single year (2008): one extreme-volatility year is not evidence of enduring profitability. The Connors evidence base is hypothetical backtests without transaction costs or data-mining corrections (CXO), and the S&P 500 edge is largely a post-2000 phenomenon.*
 
-### S001 | RSI(2) Classic (Connors) - cluster control (absorbs S002, S092)
+### S001 | RSI(2) Classic (Connors) - cluster control
 - family: ETF index mean reversion
-- ohlcv_status: NOT_DAILY, DEFER
+- ohlcv_status: NOT_DAILY, DELTA
 - concept: Deep short-term oversold readings inside a bull regime revert to the mean within days; Connors found buying RSI(2) below 5 returned more than below 10.
 - universe: SPY, QQQ, IWM, DIA plus the 11 SPDR sector ETFs (per-ETF and pooled results)
 - direction: long
@@ -255,7 +255,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - status: active
 - priority: P2
 - sources: [StockCharts ChartSchool — RSI(2)](https://chartschool.stockcharts.com/table-of-contents/trading-strategies-and-models/trading-strategies/rsi-2)
-- notes: StockCharts: SMA200 filter, RSI(2) < 10 (below 5 returned more), exit above 5-day SMA, buy before the close, no stops. Independent evidence says the edge is regime-limited and post-2000 (Trading Garden S&P 500: 1963-today CAGR 5.4% vs 10.9% buy-and-hold; 2000-today 8.6% vs 8.3%, 187 trades; Be The Puck: beat buy-and-hold Sharpe on 50/371 stocks). Cluster control for the whole Connors family (S003-S014, S030); report per-ETF and pooled, vs exposure-matched random timing and vs buy-and-hold / SMA200 timing. Merged strategies: S002 (sizing) and S092 (alternative regime gate) are parameters of this entry; every combination below is a registered trial.
+- notes: StockCharts: SMA200 filter, RSI(2) < 10 (below 5 returned more), exit above 5-day SMA, buy before the close, no stops. Independent evidence says the edge is regime-limited and post-2000 (Trading Garden S&P 500: 1963-today CAGR 5.4% vs 10.9% buy-and-hold; 2000-today 8.6% vs 8.3%, 187 trades; Be The Puck: beat buy-and-hold Sharpe on 50/371 stocks). Cluster control for the whole Connors family (S003-S014, S030); report per-ETF and pooled, vs exposure-matched random timing and vs buy-and-hold / SMA200 timing. Every combination below is a registered trial.
 - parameter_variants: RSI threshold {10 primary, 5}; exit {close > SMA5 primary, RSI(2) > 70}; fill {moc_proxy primary, next_open, close}; gate {SMA200 primary, 21-day return > 0 (ex-S092: replaces the 200-day gate, faster regime adaptation)}; sizing {single unit primary, pyramid3 (ex-S002: unit = 1/3 of the position budget; buy 1 unit at RSI(2) < 10, add 1 unit on each NEW session with RSI(2) < 5 while holding, max 3 units, all units exit together on close > SMA5)}; disaster stop {off primary, close < entry - 3 x ATR(14)}
 - merged_from: S002, S092
 - data_needs: ETF total-return daily series (DP-ETF)
@@ -270,7 +270,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S003 | RSI(4) 25/75 (Connors)
 - family: ETF index mean reversion
-- ohlcv_status: NOT_DAILY, DEFER
+- ohlcv_status: NOT_DAILY, DELTA
 - concept: Slightly slower RSI smooths the oversold signal; Connors' original used exit at RSI 75, but the modified exit at 55 halves drawdowns with similar expectancy.
 - universe: QQQ, SPY
 - direction: long
@@ -316,6 +316,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - frequency: weekly across a stock universe
 - provenance: adapted
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P2
 - sources: [DYR - Cumulative RSI strategy](https://tradingwithdyr.com/cumulative-rsi-strategy/) (page could not be retrieved in review; verify); Connors/Alvarez, Short Term Trading Strategies That Work, chapter on cumulative RSI (rule as transcribed: cumulative RSI(2,2) below 35 above SMA200, exit RSI(2) > 65); Quantitativo replication (blog claim, unverified)
 - notes: Primary now follows Connors' original (thresholds 35 / 65), not the earlier threshold-20 selection with an up-close next-open exit. Registered alternates: threshold 20 with exit close > SMA5; threshold 10 with exit at next open (Quantitativo, 3 positions, large caps, ~26%/yr blog claim). Trading Garden S&P 500 (cumulative RSI): 1963-today CAGR 8.3%; 2000-today 10.6% (199 trades). Single-stock runs are earnings-window contaminated: report with and without signals within +/-3 sessions of an earnings release (G-12).
@@ -345,7 +346,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S006 | Double 7s
 - family: ETF index mean reversion
-- ohlcv_status: NOT_DAILY, DEFER
+- ohlcv_status: NOT_DAILY, DELTA
 - concept: A 7-day closing low in a bull regime is a statistically favorable dip: no stop loss, exit at the opposite 7-day extreme, letting mean reversion complete.
 - universe: SPY or broad ETFs, pooled across ETFs (SPY alone gives ~5 trades/yr, ~50 in a 10-year window)
 - direction: long
@@ -434,7 +435,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - data_needs: ETF raw prices + dividends (DP-ETF raw+div)
 - review: RESOLVED
 
-### S010 | Turnaround Tuesday (absorbs S085)
+### S010 | Turnaround Tuesday
 - family: calendar (weekday reversal)
 - concept: A weak Monday tends to reverse on Tuesday. The relevant nulls are the unconditional Tuesday and unconditional post-down-day drift; calendar effects are the weakest evidence class (Atlas 9.5) and Be The Puck notes the Monday effect 'vanished after 1975'.
 - universe: SPY
@@ -448,13 +449,13 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - status: active
 - priority: P3
 - sources: [Papers With Backtest - Turnaround Tuesday (generic article; its two code snippets define 'Monday drop' inconsistently and one computes win ratio by conditioning on the outcome, i.e. look-ahead)](https://paperswithbacktest.com/course/turnaround-tuesday)
-- notes: Earlier note corrected: the 56% win rate, 212 trades and 0.3% avg gain are Quantified Strategies figures (unverified) and do not appear on the cited page. The old rule 'open(t) < close(t-1)' was a Monday GAP-down, a different event from a weak Monday; both are now explicit variants. Run the identical rule for every weekday as a placebo. Absorbs S085 (enhanced variant).
+- notes: Earlier note corrected: the 56% win rate, 212 trades and 0.3% avg gain are Quantified Strategies figures (unverified) and do not appear on the cited page. The old rule 'open(t) < close(t-1)' was a Monday GAP-down, a different event from a weak Monday; both are now explicit variants. Run the identical rule for every weekday as a placebo.
 - parameter_variants: Monday weakness {close(Mon) < close(Fri) primary; return <= -0.5% (ex-S085: Monday close-to-close decline > 0.5%); gap-down open(Mon) < close(Fri)}; VIX filter {off primary; VIX(t) > VIX(t-1) (ex-S085)}; exit {Tuesday open, Tuesday close}; placebo weekdays {Mon..Fri}
 - merged_from: S085
 - data_needs: ETF raw prices (DP-ETF); VIX for the S085 filter (DP-VIX)
 - review: RESOLVED
 
-### S011 | Z-Score / Bollinger Lower-Band Mean Reversion (absorbs S012)
+### S011 | Z-Score / Bollinger Lower-Band Mean Reversion
 - family: ETF index mean reversion
 - ohlcv_status: NOT_DAILY, DEFER
 - concept: A close more than 2 standard deviations below its 20-day mean (z < -2, algebraically identical to a close below the lower Bollinger Band(20,2) up to ddof) is a >95th-percentile stretch; the 20-day mean is the magnet. S011 (z-score with SMA200 gate) and S012 (lower-band close with RSI(2) filter, no gate) are cells of one family.
@@ -519,7 +520,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 *Why this family works: the overnight session is structurally different from the intraday session. Overnight returns carry the bulk of equity risk premium in index ETFs, yet overnight volatility is lower — a favorable risk/return asymmetry documented in the "Night Trading" SSRN paper (its overnight-bias strategy earned twice the market's return with one-third the beta). Gaps also create forced flows: panic sellers at the open, stop cascades, and overnight-news overreaction that reverts or continues depending on volume context.*
 
-### S015 | Chan Buy-on-Gap (absorbs S022)
+### S015 | Chan Buy-on-Gap
 - family: overnight and gap
 - ohlcv_status: NOT_DAILY, DEFER
 - concept: Panic gap-down opens in stocks still in uptrends (open above 20-day MA) are overreactions; buying the open and exiting at the same day's close harvests intraday recovery. This is Chan's documented strategy from Quantitative Trading.
@@ -534,7 +535,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - status: active
 - priority: P2
 - sources: [Chan Buy-on-Gap reproduction (l3a0 GitHub)](https://github.com/l3a0/quantitative-trading/blob/main/blog/buy-on-gap-lessons.md)
-- notes: l3a0 reproduces Chan's printed APR 8.7% / Sharpe 1.5 on his own survivor-biased file (497 stocks, 2006-05 to 2012-04, no costs; with the other std helper 8.4%/1.7). Chan traded a version that 'suffered from diminishing returns from 2009 onward' and a trader cannot know the official open in time (pre-open quotes pick different stocks). Our 2016+ sample is entirely post-decay: run as a pre-registered falsification test with an expected skill of about zero. Absorbs S022 (fixed-percentage trigger).
+- notes: l3a0 reproduces Chan's printed APR 8.7% / Sharpe 1.5 on his own survivor-biased file (497 stocks, 2006-05 to 2012-04, no costs; with the other std helper 8.4%/1.7). Chan traded a version that 'suffered from diminishing returns from 2009 onward' and a trader cannot know the official open in time (pre-open quotes pick different stocks). Our 2016+ sample is entirely post-decay: run as a pre-registered falsification test with an expected skill of about zero.
 - parameter_variants: gap rule {Chan std-based primary; fixed_pct (ex-S022): open(t)/close(t-1) - 1 < -1% / -2% / -3% AND close(t-1) > SMA200 (S022 used a fixed -2%, S&P 500 stocks, which fires in bulk in March 2020 and 2022)}; exit {same-day close primary, next open}; std {population primary, sample}
 - merged_from: S022
 - data_needs: daily_10years (D1) + 09:31 minute bars for candidate days
@@ -559,7 +560,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - data_needs: daily_10years (D1) + 09:31 minute bars + borrow assumptions
 - review: RESOLVED
 
-### S017 | Night Trading Overnight-Bias Stock Selection (absorbs S034)
+### S017 | Night Trading Overnight-Bias Stock Selection
 - family: overnight and gap
 - concept: Roughly one-fifth of stocks have persistent, statistically significant positive overnight-return biases; holding only their overnight sessions earned twice the market's return with one-third the beta (SSRN). These stocks tend to have negative intraday returns — the premium is paid for overnight risk-bearing.
 - universe: liquid_top_N US stocks with 1+ year of history (liquidity floor, price >= $5)
@@ -571,11 +572,20 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - frequency: daily
 - provenance: source-specified
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P1
 - sources: [SSRN — Night Trading: Lower Risk But Higher Returns?](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2633476)
-- notes: Lachance (SSRN 2633476; single author, also Rev. Financial Economics): one fifth of stocks have significant positive overnight biases; investing overnight in them the next year yields twice the market return for a third of the beta, and they average negative returns intraday. The t > 2 screen is the catalog's operationalisation (about 2.3% pass by chance one-sided vs 20% flagged, hence FDR). A daily round trip costs 2 x (half-spread + slippage): at 10-15 bps per side that is 25-38%/yr, comparable to the claimed premium: use auction fills and report the break-even cost. Opening-print bid-ask bounce biases measured overnight returns upward (use first-minute VWAP/mid for exits where minute data exist, plus a liquidity floor). Add Lou-Polk-Skouras (2019 JFE, 'A tug of war', verify citation) persistence as a robustness check. Absorbs S034: the cross-sectional monthly-formation variant and its holding conventions below.
+- notes: Lachance (SSRN 2633476; single author, also Rev. Financial Economics): one fifth of stocks have significant positive overnight biases; investing overnight in them the next year yields twice the market return for a third of the beta, and they average negative returns intraday. The t > 2 screen is the catalog's operationalisation (about 2.3% pass by chance one-sided vs 20% flagged, hence FDR). A daily round trip costs 2 x (half-spread + slippage): at 10-15 bps per side that is 25-38%/yr, comparable to the claimed premium: use auction fills and report the break-even cost. Opening-print bid-ask bounce biases measured overnight returns upward (use first-minute VWAP/mid for exits where minute data exist, plus a liquidity floor). Add Lou-Polk-Skouras (2019 JFE, 'A tug of war', verify citation) persistence as a robustness check.
 - parameter_variants: formation cadence {annual primary; quarterly; monthly (ex-S034)}; holding convention {overnight-only primary; full-day; long overnight / short intraday of the same stocks}; extra filter {none primary; negative trailing intraday return (ex-S034, kept only if it improves a hold-out)}; hold {daily overnight primary; one week dropped}
 - merged_from: S034
+- implementation_results: Rust implementation in `src/signals.rs` / `src/study.rs`; 30 named variants. Supports annual, quarterly, and monthly formation; close-to-open, full-day, and overnight-minus-intraday holdings; liquidity/price/history filters; BH-FDR selection; and dividend/split corporate-action adjustments. Synthetic tests cover monthly selection and dividend adjustment. Full daily-data baseline (1,223 symbols, 2016-01-04 to 2026-10-23; close-to-open, 15 bps/side):
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | trades dev | test total (log) | test skill | test Sharpe | test max DD | trades test |
+  |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+  | baseline | -3.4005 | -3.9467 | -2.7182 | -96.71% | 29369 | -1.2426 | -1.6440 | -2.4462 | -70.94% | 16240 |
+
+  No variant winner has been selected; only the baseline has been run. The baseline is not profitable after costs. The config excludes the reference ETF-like ticker list; any other non-benchmark input symbols are treated as stocks, so use a common-stock-only universe.
+  Reproduce baseline: `cargo run --release -- --strategy s017_night_trading --stages partition`. Run the S017 variant matrix with the strategy-specific command in `run_strats.bat`: `target\release\deepthrust.exe --strategy s017_night_trading --variant quarterly,monthly_s034,full_day,overnight_intraday,negative_intraday,top10,top30,top40,fdr01,fdr10,t15,t25,t30,window126,window189,window315,quarterly_top10,quarterly_top30,monthly_top10,monthly_top30,fdr01_top10,fdr10_top30,t25_fdr01,t15_fdr10,full_day_top10,full_day_top30,spread_top10,spread_top30,negative_top10,negative_quarterly`.
 - data_needs: daily_10years raw OHLC (D1) + dividend calendar (DP-CAL) for dividend-correct overnight returns
 - review: RESOLVED
 
@@ -599,7 +609,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - data_needs: daily_10years (D1) + 09:31 minute bars + earnings/FOMC/dividend calendars (DP-EARN, DP-CAL)
 - review: RESOLVED
 
-### S019 | Gap-and-Go Continuation (absorbs S025)
+### S019 | Gap-and-Go Continuation
 - family: overnight and gap
 - concept: Breakaway gaps with high volume tend to continue in the gap direction — institutional repositioning does not complete in one session.
 - universe: liquid stocks (primary); index ETFs SPY, QQQ, IWM, DIA and sector ETFs (ex-S025 index version, same code, different universe)
@@ -645,7 +655,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - data_needs: BLOCKED for the profitable variant (Estimize/IBES estimates not available); price-only version is a null control
 - review: DROP (documented null) | source MISMATCH
 
-### S021 | Index Overnight Premium (SPY close-to-open only; absorbs S084)
+### S021 | Index Overnight Premium (SPY close-to-open only)
 - family: overnight and gap
 - concept: Nearly all of SPY's long-term return accrues overnight; holding only the overnight session captures the premium with lower volatility than full-day holding.
 - universe: SPY
@@ -659,7 +669,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - status: active
 - priority: P1
 - sources: [SSRN - Night Trading: Lower Risk But Higher Returns? (stock-selection evidence; see S017)](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2633476); Cooper, Cliff & Gulen, Return Differences between Trading and Non-trading Hours (SSRN 1004081): the US equity premium over their decade is solely due to overnight returns for stocks, indexes and index futures
-- notes: Market-level evidence is Cooper-Cliff-Gulen, not Lachance (stock selection); the SMA(50) filter is the catalog's adaptation. At 5 bps/side the strategy loses by arithmetic (504 sides a year = 25%/yr): the result is purely a function of the cost assumption, so run a cost-sensitivity ladder (0.5 / 1 / 2 / 5 bps per side), report the break-even cost, and use auction fills. A split-only series understates SPY's overnight return by roughly its dividend yield (~1.3-1.5%/yr): use raw open/close plus dividends added back at the ex-date. Null = SPY close-to-open buy-and-hold. Report the per-weekday decomposition and subperiods (2016-19, 2020, 2021, 2022, 2023-26) for decay. Absorbs S084 (Friday-close to Monday-open weekend slice): Be The Puck notes the weekend effect 'vanished after 1975', so the weekend slice is a table in this study (test both signs), not a separate strategy.
+- notes: Market-level evidence is Cooper-Cliff-Gulen, not Lachance (stock selection); the SMA(50) filter is the catalog's adaptation. At 5 bps/side the strategy loses by arithmetic (504 sides a year = 25%/yr): the result is purely a function of the cost assumption, so run a cost-sensitivity ladder (0.5 / 1 / 2 / 5 bps per side), report the break-even cost, and use auction fills. A split-only series understates SPY's overnight return by roughly its dividend yield (~1.3-1.5%/yr): use raw open/close plus dividends added back at the ex-date. Null = SPY close-to-open buy-and-hold. Report the per-weekday decomposition and subperiods (2016-19, 2020, 2021, 2022, 2023-26) for decay. Be The Puck notes the weekend effect 'vanished after 1975', so the weekend slice is a table in this study (test both signs), not a separate strategy.
 - parameter_variants: filter {none primary, SMA(50) gate}; cost per side {0.5, 1, 2, 5 bps}; weekday table {Mon..Fri overnight returns, incl. ex-S084 Friday-close to Monday-open, both signs}; universe {SPY primary, QQQ, IWM}
 - merged_from: S084
 - data_needs: SPY raw OHLC + dividends (DP-ETF raw+div)
@@ -689,13 +699,15 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - notes: The entry buys the open AFTER the surprise gap, so the overnight reaction is already realised; the claimed continuation from open(t) to close(t+1) needs its own evidence. The gap itself must not be used as the surprise. SUE = (EPS_q - EPS_{q-4}) / std of the last 8 such differences (seasonal random walk) at the Publish Date; consensus data is not in the repo. Shorts are a separate later experiment (G-09).
 - data_needs: SimFin quarterly EPS + Publish Date; EDGAR 8-K 2.02 timestamps 2023-09+ (DP-EARN); daily_10years (D1)
 - review: RESOLVED
+- implementation_results: **IMPLEMENTED; backtest DATA-BLOCKED.** Rust implementation in `src/family2.rs` classifies SEC 8-K Item 2.02 acceptance timestamps as BMO/AMC in US Eastern time; computes point-in-time seasonal EPS differences using only previously published q-4 values; standardizes against the prior eight differences and applies a 90th-percentile cutoff over prior SUE observations in a 756-calendar-day window (minimum 20 observations). It implements the long top-decile rule and open-to-next-close exit; the short-miss leg remains deferred per G-09. Synthetic tests pass. No local SimFin quarterly EPS input was found, so no real-data backtest or performance claim is available.
+  Reproduce after setting `s023_eps_file` in the config to a valid local SimFin quarterly EPS file: `cargo run -- --strategy s023_post_earnings_drift --config configs/s023_post_earnings_drift.yaml`
 
-### S024 | Ex-Dividend Window Capture (absorbs S101)
+### S024 | Ex-Dividend Window Capture
 - family: overnight and gap
 - concept: The ex-date price drop is typically 80-100% of the dividend, so gross edge is expected near zero; the study measures the ex-day drop ratio and then P&L over several holding windows. No documented mechanism supports a systematic post-ex recovery.
 - universe: liquid high-yield stocks and ETFs; S&P 500 stocks with yield > 2% (~100 names, ~4 ex-dates a year each) for the ex-S101 window
 - direction: long
-- indicators: ex-dividend calendar; dividend yield vs 20-day price change
+- indicators: ex-dividend calendar; trailing 365-day cash-dividend yield; ex-day drop ratio (diagnostic)
 - entry: Buy at the close of the session before the ex-dividend date (primary)
 - exit: Sell at the open of the ex-date (overnight over the ex-date, primary); alternates: close of the ex-date; close of ex-date +1 (ex-S101: buy close 1 session before ex, sell close 1 session after, 3 sessions)
 - hold: 1-3 sessions
@@ -704,11 +716,20 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - status: active
 - priority: P3
 - sources: [Quantified Strategies - 200 free backtested strategies (index page, no rule)](https://www.quantifiedstrategies.com/trading-strategies-free/)
-- notes: P&L = ex-date return + dividend; with two spreads, costs and the 61-day qualified-dividend rule the net edge is expected negative for most names. Use UNADJUSTED prices with explicit dividend credits and report the ex-day drop ratio (P_cum_close - P_ex_open)/D by yield bucket before P&L. SimFin 'Dividend' exists only 2020-11 to 2025-10: Alpaca corporate actions or Polygon/Massive are needed for 2016+. Absorbs S101 (hold through the ex-date).
-- parameter_variants: hold window {buy close before ex -> sell ex-date open (primary); -> ex-date close; -> ex-date+1 close (ex-S101)}; yield bucket {all; > 2%}
+- notes: P&L = ex-date return + dividend; with two spreads, costs and the 61-day qualified-dividend rule the net edge is expected negative for most names. Use UNADJUSTED prices with explicit dividend credits and report the ex-day drop ratio (P_cum_close - P_ex_open)/D by yield bucket before P&L. The local raw daily-bar corporate-action cache supplies dividend events back to 2016.
+- parameter_variants: hold window {buy close before ex -> sell ex-date open (primary); -> ex-date close; -> ex-date+1 close (ex-S101)}; trailing-yield threshold {0% baseline; 30 registered thresholds from 0.25% through 20%, including 2%}
 - merged_from: S101
 - data_needs: raw prices + dividend/ex-date calendar 2016+ (DP-CAL); daily_10years (D1)
 - review: RESOLVED
+- implementation_results: **IMPLEMENTED — DELTA.** Rust implementation in `src/family2.rs`, using raw daily bars and the configured cash-dividend Parquet input. Point-in-time liquidity ranks restrict the eligible dividend universe to the top 500 names; this is not a historical S&P 500 universe and includes ETFs. The optional `yield_gt2` variant uses trailing 365-day cash dividends divided by the pre-ex-date close; the catalog's 20-day price-change indicator is not part of the implemented signal. The run covered 742 candidate symbols and 2,718 sessions (2016-01-04–2026-10-23), with a 2024-01-01 dev/test split and 5 bps/side. Event-level diagnostics include the ex-day price-drop ratio by trailing-yield bucket.
+
+  | variant / exit | dev total / skill / Sharpe / max DD | test total / skill / Sharpe / max DD | trades (dev+test) |
+  |---|---|---|---|
+  | baseline / ex-date open | -0.207 / -1.020 / -0.358 / -25.6% | -0.052 / -0.366 / -0.340 / -10.8% | 12,139+5,162 |
+  | yield > 9% / ex-date+1 close (dev-selected; evidence-qualified) | +0.183 / +0.175 / 0.268 / -10.6% | +0.025 / +0.006 / 0.289 / -2.1% | 310+116 |
+
+  The all-events ex-day drop ratio (mean / median) was 0.708 / 0.693 below 2% yield, 0.941 / 0.848 at 2–4%, and 0.312 / 0.901 at 4%+ (23,795 events). The complete 30-variant yield-threshold grid was evaluated. The dev-selected row is selected only among candidates meeting the 100-dev / 30-test trade minimum; the 15% and 20% yield thresholds are `insufficient evidence`. Across 93 variant/fill trials, no locked-test DSR exceeded 0.95; per-variant DSR and regime coverage are in `results/s024_ex_dividend_capture/s024_deflated_sharpe.csv` and `s024_regime_coverage.csv`. No tested row met the joint PF > 1.5, Sharpe > 1.5, and skill > 1 threshold. The test PF > 2 outlier is yield > 20% / ex-date close (PF 3.65, 19 trades), below the minimum evidence gate; no Sharpe exceeded 2. The signal uses the ex-date cash amount to qualify the prior-close entry and assumes that amount was publicly known by then; the cached event record has no announcement timestamp to independently verify that timing. Five-bps-per-side costs are not spread/ADV-aware for stocks; the daily-bar fills are proxies, and taxes and the qualified-dividend holding rule are not modeled.
+  Reproduce: `cargo run -- --strategy s024_ex_dividend_capture --variant yield_gt0_25,yield_gt0_5,yield_gt0_75,yield_gt1,yield_gt1_25,yield_gt1_5,yield_gt1_75,yield_gt2,yield_gt2_25,yield_gt2_5,yield_gt2_75,yield_gt3,yield_gt3_25,yield_gt3_5,yield_gt3_75,yield_gt4,yield_gt4_5,yield_gt5,yield_gt5_5,yield_gt6,yield_gt6_5,yield_gt7,yield_gt7_5,yield_gt8,yield_gt8_5,yield_gt9,yield_gt10,yield_gt12_5,yield_gt15,yield_gt20`
 
 ### S026 | Exhaustion Gap Fade After 3-Day Run
 - family: overnight and gap
@@ -851,32 +872,14 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - parameter_variants: selection {top decile by rank primary; ratio >= 0.8 floor}; holding {1 month primary; 6 months overlapping with 1-month skip}
 - data_needs: daily_10years (D1)
 - review: RESOLVED
-
-### S033 | 52-Week-High Breakout (Donchian-style)
-- family: trend / slow breakout
-- concept: Buy at a new 252-day high, exit at a 126-day low — a slow breakout system; documented max single-trade loss 12.9% (max MAE) in the Trading Garden test.
-- universe: primary: sector/asset ETF set and liquid_top_N stocks (pooled trades and effective sample size); reference: SPY / S&P index (via MES in the source)
-- direction: long
-- indicators: 252-day rolling high; 126-day rolling low
-- entry: Close(t) = 252-day closing high; buy at close of t
-- exit: Close = 126-day closing low; sell at close of that session
-- hold: weeks to months
-- frequency: ~1-3 new positions per year on the index; run across sector ETFs and stocks for frequency
-- provenance: source-specified
-- status: active
-- priority: P3
-- sources: [Trading Garden — 16 S&P 500 trading strategies](https://trading-garden.com/sp500-trading-strategies.html)
-- notes: Trading Garden (vendor AVALONPLUS comparison, S&P cash index/MES, sized by max MAE): 31 trades 1963-today, 71% win, CAGR 11.0% vs 10.9% buy-and-hold, worst single-trade loss 12.9% (max MAE), but only 14 trades since 2000 (CAGR 16.0% reinvested on MES): no statistical power on an index alone; it adds value as a regime overlay or when run across many ETFs/stocks. Compare with 200-day SMA timing as the null. The 63-day-high / 21-day-low fast variant is a second registered trial.
-- parameter_variants: speed {252-day high / 126-day low primary; 63-day high / 21-day low}
-- data_needs: ETF total-return daily series (DP-ETF); daily_10years (D1)
-- review: KEEP (overlay/anchor) | source OK
-- implementation_results: `src/strategies/s033_52w_breakout`; 20 ETF + liquid-top-500 stock pooled book (TR bars), 10 bps/side blended, next_open primary; dev < 2024-01-01 <= test. `etf_only` = stocks excluded (dev-selected of 2 variants; only positive dev skill but 79 dev trades = `insufficient evidence`, and test sign flips = DECAYED; its test PF 4.7 on 32 trades is small-n noise).
+- rust_implementation: Registered as `s032_52w_high_proximity` with PIT liquidity-rank filtering, monthly high-proximity ranking, ratio-floor selection, and overlapping holding cohorts; 30 named variants.
+- implementation_results: `src/signals.rs` / `src/study.rs` and `configs/s032_52w_high_proximity.yaml`; 1,400 stock TR series, 15 bps/side, next_open primary, 2016-12-30 through 2026-10-23; dev < 2024-01-01 <= test.
 
   | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev+test) |
   |---|---|---|---|---|---|---|---|---|---|
-  | baseline (next_open) | +0.65 | -0.09 (p=0.63) | 0.62 | -31% | +0.41 | +0.01 (p=0.45) | 0.97 | -21% | 2468+893 |
-  | etf_only (next_open) | +0.33 | +0.03 (p=0.33) | 0.71 | -13% | +0.20 | -0.02 | 0.89 | -10% | 79+32 |
-  Reproduce: baseline `python run.py --strategy s033_52w_breakout`; variants `python run.py --strategy s033_52w_breakout --variant fast,etf_only`
+  | baseline | +0.259 | -0.501 | 0.306 | -30.4% | +0.298 | -0.092 | 0.757 | -17.0% | 4113+1665 |
+  | top15_n100 (dev-selected) | +0.678 | -0.164 | 0.612 | -30.3% | +0.443 | -0.144 | 0.836 | -28.0% | 1260+510 |
+  `top15_n100` ranked highest on dev skill among the 30 variants, but both it and the baseline remain below the random-pick skill benchmark. `hold6_skip1_top15` had test PF 2.17 but dev skill -0.172 and test skill +0.021 (DECAYED); no look-ahead was found in the close-signal/next-open cohort logic. Reproduce: `target\release\deepthrust.exe --strategy s032_52w_high_proximity --stages partition`; selected: add `--variant top15_n100`.
 
 ### S035 | Low-Volatility Anomaly Portfolio
 - family: cross-sectional short-term reversal
@@ -890,20 +893,68 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - frequency: monthly rebalance
 - provenance: adapted
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P2
 - sources: Attached paper (user upload) - Multi-Factor Investing in Borsa Istanbul (low-vol = minus the annualised std over the last 252 trading days, eq. 1); Frazzini & Pedersen (2014); Novy-Marx & Velikov
 - notes: CORRECTED: the paper uses 252-day vol on a top-100 liquid universe (ranked by 60-day median traded value); the 60-day vol appears only as the vol-targeting estimator for the whole book. Paper numbers: pure low-vol net Sharpe 1.07 / CAGR 21.8% / max drawdown -66.8% in lira terms, USD Sharpe 0.13; the sector-neutral run adds only +1.4% alpha (t = 0.48). Low-vol deciles are utilities/staples/REIT heavy (2022 rate sensitivity, sector concentration). Benchmark: vol-matched equal-weight universe, not just the cap-weighted index.
 - parameter_variants: vol window {252-day primary, 60-day}; universe N {500 primary, 100}; sector-neutral {off primary, on}; low-beta decile (shrunk 252-day beta = 0.6 x beta_ts + 0.4, beta-scaled to 1) as a variant
-- data_needs: daily_10years (D1) + SPY (DP-ETF) for the beta variant
+- data_needs: daily_10years (D1); SPY (DP-ETF) for low-beta; SimFin company/sector mapping for sector-neutral
 - review: RESOLVED
+- rust_implementation: Registered as `s035_low_volatility` with annualized rolling stock volatility, shrunk-SPY-beta selection and scaling, sector-neutral selection, and 31 named variants. Sector-neutral mode uses the available SimFin company/industry mapping, which is not point-in-time.
+- implementation_results: `src/signals.rs` / `src/study.rs` and `configs/s035_low_volatility.yaml`; 1,400 stocks plus SPY TR bars, 15 bps/side stocks, next_open primary, 2016-12-29 through 2026-10-23; dev < 2024-01-01 <= test.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | +0.397 | -0.333 | 0.458 | -35.3% | +0.288 | -0.101 | 1.017 | -9.6% | 4067+1666 |
+  | vol504 (dev-selected) | +0.274 | -0.276 | 0.367 | -35.0% | +0.267 | -0.121 | 0.928 | -8.4% | 3479+1666 |
+  `vol504` ranked highest on dev skill among the 31 variants, but its skill remains negative on both partitions; neither result supports an anomaly after the vol-matched random-pick comparison. Reproduce: `target\release\deepthrust.exe --strategy s035_low_volatility --stages partition`; selected: add `--variant vol504`.
 
 ---
 
 # Family 4 — Momentum, Breakout, and Rotation
 
+**Recalculated:** The tables below use prior-session tradable-universe trend, corrected rebalance exposure and monthly annualization. DEV rankings do not include a full variant-search bias adjustment; TEST has already been inspected and is not a fresh holdout. Next-open trend uses a close-to-close exposure approximation. Exact DEV ties use the last configured candidate, matching the symbols overview.
+
+Across the complete grids, PF or Sharpe exceeded 2 in 14 S042, 45 S043, 33 S044,
+and 65 S047 variant/fill/partition rows; none of the S046 rows exceeded 2 after
+correcting annualization and short trade returns. Review timing and evidence
+before interpreting these figures. S042's `top1` exceeded SPY by at least 10%
+in DEV but failed the 100-trade DEV gate. S041's baseline and 15 variants,
+and S043's `mom189_top1`, `mom252_top1`, `mom315_top1`, and `mom378_top1`,
+exceeded SPY's cumulative growth by at least 10% in TEST. SPY is close-to-close
+and is not fill-timing-matched; the inspected TEST results are not fresh evidence.
+
 *Why this family works: momentum is the most replicated anomaly in finance — 3-12 month winners keep winning (Jegadeesh & Titman 1993). At daily granularity, breakouts from consolidation (Donchian channels, NR7 compression) exploit the same underreaction. Rotation systems (sector, factor, asset-class) harvest momentum with diversification. Chan notes the standard lookback is roughly 11 of the most recent 12 months, skipping the most recent month (the reversal window).*
 
-### S036 | Donchian Breakout, Turtle Systems 1 and 2 (absorbs S037)
+### S033 | 52-Week-High Breakout (Donchian-style)
+- family: trend / slow breakout
+- concept: Buy at a new 252-day high, exit at a 126-day low — a slow breakout system; documented max single-trade loss 12.9% (max MAE) in the Trading Garden test.
+- universe: primary: sector/asset ETF set and liquid_top_N stocks (pooled trades and effective sample size); reference: SPY / S&P index (via MES in the source)
+- direction: long
+- indicators: 252-day rolling high; 126-day rolling low
+- entry: Signal when Close(t) = 252-day closing high; enter at the next open (primary), with close fill as a sensitivity
+- exit: Signal when Close(t) is at or below the 126-day closing low; exit at the next open (primary), with close fill as a sensitivity
+- hold: weeks to months
+- frequency: ~1-3 new positions per year on the index; run across sector ETFs and stocks for frequency
+- provenance: source-specified
+- status: active
+- rust_status: IMPLEMENTED
+- priority: P3
+- sources: [Trading Garden — 16 S&P 500 trading strategies](https://trading-garden.com/sp500-trading-strategies.html)
+- notes: Trading Garden (vendor AVALONPLUS comparison, S&P cash index/MES, sized by max MAE): 31 trades 1963-today, 71% win, CAGR 11.0% vs 10.9% buy-and-hold, worst single-trade loss 12.9% (max MAE), but only 14 trades since 2000 (CAGR 16.0% reinvested on MES): no statistical power on an index alone; it adds value as a regime overlay or when run across many ETFs/stocks. Compare with 200-day SMA timing as the null. The 63-day-high / 21-day-low fast variant is a second registered trial.
+- parameter_variants: speed {252-day high / 126-day low primary; 63-day high / 21-day low}
+- data_needs: ETF total-return daily series (DP-ETF); daily_10years (D1)
+- review: KEEP (overlay/anchor) | source OK
+- rust_implementation: Registered as `s033_52w_breakout` in `src/study.rs`, with rolling 252/126-day close signals, next-open execution, ETF plus PIT-liquidity-ranked stock sources, and 30 named variants.
+- implementation_results: `src/signals.rs` / `src/study.rs` and `configs/s033_52w_breakout.yaml`; 20 ETFs plus liquid-top-500 stocks (1,420 input symbols), 5 bps/side ETFs and 15 bps/side stocks, next_open primary, 2017-01-12 through 2026-10-23; dev < 2024-01-01 <= test.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | +0.748 | -0.007 | 0.646 | -33.6% | +0.631 | +0.227 | 1.040 | -22.1% | 2439+841 |
+  | top250 (dev-selected) | +0.832 | +0.069 | 0.691 | -31.8% | +0.390 | -0.079 | 0.878 | -23.0% | 1287+462 |
+  `top250` had positive but statistically weak dev skill (p=0.394); test skill flips negative (`DECAYED`). Its PF is >2 on dev (2.44) and test (2.28), so treat those trade-level figures cautiously; the index/MES source differs from this pooled ETF/stock adaptation. Code inspection found signals use completed closes and primary entries/exits occur at the following open. Reproduce: `target\release\deepthrust.exe --strategy s033_52w_breakout --stages partition`; selected: add `--variant top250`.
+
+### S036 | Donchian Breakout, Turtle Systems 1 and 2
 - family: momentum and breakout
 - concept: Entering on an N-day high breakout captures the start of multi-week trends; the shorter opposite-extreme exit cuts losers fast; unit sizing normalizes volatility. Turtle returns came from a diversified futures book (rates, FX, commodities); on equity-only ETFs this is mostly whipsaw long-equity beta, so the universe must be diversified. Run as ONE family with speeds {20, 55}.
 - universe: diversified ETF set (equity SPY/QQQ/IWM, rates TLT/IEF, gold GLD, oil USO, USD UUP/dollar ETF, commodities GSG) plus sector ETFs; long-only and long-short reported separately
@@ -917,13 +968,13 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - status: demoted
 - priority: P3
 - sources: [Kagels Trading — Original Turtle rules](https://kagels-trading.com/blog/turtle-trading/); [Investopedia — Donchian Channels](https://www.investopedia.com/terms/d/donchianchannels.asp)
-- notes: Kagels and Be The Puck agree with the rules (20-day entry / 10-day exit, N = 20-day ATR average, 1% risk per N, skip the breakout if the last would have won, out on a close below the prior 10-day low or 2N below entry). Be The Puck results: single stocks 62/372 (S1) and 61/372 (S2) beat buy-and-hold Sharpe; S&P 500 index CAGR +2.5% / +2.8% vs +8.9% (Sharpe 0.13 / 0.16 vs 0.45), long only. The Atlas (10.1, Kurth et al. 2026) finds short-term trend in ~100 futures stopped delivering since roughly 2009. Sizing at 1% equity / (N x point value) does not fit a $5,000 account with $1,000 positions. Trend-cluster control (with S033, S051, S091). Absorbs S037 (System 2); report the correlation between speeds.
+- notes: Kagels and Be The Puck agree with the rules (20-day entry / 10-day exit, N = 20-day ATR average, 1% risk per N, skip the breakout if the last would have won, out on a close below the prior 10-day low or 2N below entry). Be The Puck results: single stocks 62/372 (S1) and 61/372 (S2) beat buy-and-hold Sharpe; S&P 500 index CAGR +2.5% / +2.8% vs +8.9% (Sharpe 0.13 / 0.16 vs 0.45), long only. The Atlas (10.1, Kurth et al. 2026) finds short-term trend in ~100 futures stopped delivering since roughly 2009. Sizing at 1% equity / (N x point value) does not fit a $5,000 account with $1,000 positions. Trend-cluster control (with S033, S051, S091). Report the correlation between speeds.
 - parameter_variants: speed {20/10 System 1 primary; 55/20 System 2 (ex-S037)}; last-trade filter {on for speed 20, off for speed 55}; exit {channel exit primary; chandelier 3 x ATR(22) (see S091)}; direction {long-only, long-short}
 - merged_from: S037
 - data_needs: ETF total-return daily series incl. TLT, GLD, USO, GSG, dollar ETF (DP-ETF)
 - review: RESOLVED
 
-### S038 | NR7 / Inside-Day Breakout (absorbs S039)
+### S038 | NR7 / Inside-Day Breakout
 - family: momentum and breakout
 - concept: Toby Crabel's compression idea: the narrowest range of 7 sessions (or an inside day) precedes expansion; buying the break of the setup bar's high (or shorting the low break) trades the direction of the resolution.
 - universe: liquid stocks and ETFs
@@ -937,7 +988,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - status: demoted
 - priority: P3
 - sources: [Fractiz - NR7 / inside day breakout rules](https://www.fractiz.com/strategies/nr7-inside-breakout/); StockCharts ChartSchool (Crabel's setup is an opening-range breakout with profits taken at the close of the first day or first profitable close); Validated Strategies NR7 page (https://validatedstrategies.com/strategy/nr7-xauusd) returned HTTP 404 in review, so the PF 0.64 gold claim is unverifiable
-- notes: Fractiz's sample runs (2020-2024, daily futures) show weak edges and ~40% drawdowns: NQ win 44%, PF 1.04, max drawdown 40.6%; ES PF 1.21, DD 39.3%; GC PF 1.39, DD 38.4% (154-163 trades). Be The Puck NR7: S&P 500 index -2.1%/yr vs +8.9%, beat buy-and-hold Sharpe on 52/372. Holding two sessions differs from Crabel's quick exit. NR7 or inside day, both sides, doubles the trial count. Falsification test: require a positive net PF with the bootstrap CI lower bound > 1. Absorbs S039 (stop and 2R target as an exit variant; a stop at the opposite side of an NR7 bar is typically 0.3-0.8% of price, so '1% equity risk' sizing would imply 1.3-3x notional and the cap makes the 1% risk fictional).
+- notes: Fractiz's sample runs (2020-2024, daily futures) show weak edges and ~40% drawdowns: NQ win 44%, PF 1.04, max drawdown 40.6%; ES PF 1.21, DD 39.3%; GC PF 1.39, DD 38.4% (154-163 trades). Be The Puck NR7: S&P 500 index -2.1%/yr vs +8.9%, beat buy-and-hold Sharpe on 52/372. Holding two sessions differs from Crabel's quick exit. NR7 or inside day, both sides, doubles the trial count. Falsification test: require a positive net PF with the bootstrap CI lower bound > 1. The stop and 2R target are an exit variant; a stop at the opposite side of an NR7 bar is typically 0.3-0.8% of price, so '1% equity risk' sizing would imply 1.3-3x notional and the cap makes the 1% risk fictional.
 - parameter_variants: setup {NR7 or inside day; NR7 only; inside day only}; exit {2-session flatten primary; first profitable close; opposite break; stop + 2R target (ex-S039)}
 - merged_from: S039
 - data_needs: daily_10years (D1); ETF daily bars (DP-ETF)
@@ -958,8 +1009,18 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - priority: P2
 - sources: [Kvants - Volume breakout strategy (generic framework article, no daily rules or numbers)](https://studio.kvants.ai/blog/volume-breakout-strategy)
 - notes: The Kvants page is a framework article ('a testable version must define the level, breakout distance, volume baseline...'); the parameters here (0.1 ATR, 1.5x median volume, 2R, 8 sessions) are the catalog's own, hence research-hypothesis. The Atlas (10.4, Mittal & Choudhary 2026) argues 'quiet-looking moves travel further than visually impressive breakouts', so both volume regimes are tested. Entering at the next open after a high-volume breakout carries gap risk. Be The Puck's 20-day-style rules (Four-Week Rule 74/372; Bollinger Breakout 54/372) are mediocre vs buy-and-hold.
-- parameter_variants: volume regime {> 1.5x median primary; < 1.0x median}; entry {next open primary with gap guard; limit at close(t)}
+- parameter_variants: lookback {10, 20 primary, 30, 40 sessions}; breakout distance {0.05, 0.10 primary, 0.20 ATR}; volume threshold {1.25x, 1.5x primary, 2.0x}; quiet-volume regime and limit-at-close execution are separate variants.
 - data_needs: daily_10years (D1)
+- rust_status: IMPLEMENTED
+- implementation_delta: DELTA — the S&P universe comes from a public GitHub-aggregated ticker interval CSV, not an official S&P source; available stock bars start 2016-01-04 despite the config warm-up start of 2008.
+- implementation_results: Rust in `src/family4.rs` / `src/study.rs`, config `configs/s040_volume_breakout.yaml`; Universe: A, AABA, AAL, AAP, AAPL, ABBV, ABMD, ABNB, ABT, ACGL, ACN, ADBE, ADI, ADM, ADP, ADSK, ADT, AEE, AEP, AES, AET, AFL, AGN, AIG, AIZ, AJG, AKAM, AKS, ALB, ALGN, ALK, ALL, ALLE, ALXN, AMAT, AMCR, AMD, AME, AMG, AMGN, AMP, AMT, AMZN, AN, ANDV, ANET, ANF, ANSS, AON, AOS, APA, APC, APD, APH, APO, APP, APTV, AR, ARE, ARES, ARNC, ATI, ATO, ATVI, AVB, AVGO, AVY, AWK, AXON, AXP, AYI, AZO, BA, BAC, BALL, BAX, BBBY, BBWI, BBY, BCR, BDX, BEN, BF.B, BG, BIIB, BIO, BK, BKNG, BKR, BLDR, BLK, BMY, BNY, BR, BRK.B, BRO, BSX, BUD, BWA, BX, BXP, C, CAG, CAH, CAR, CARR, CASY, CAT, CB, CBOE, CBRE, CBS, CCEP, CCI, CCK, CCL, CDNS, CDW, CE, CEG, CELG, CERN, CF, CFG, CG, CHD, CHRW, CHTR, CI, CIEN, CINF, CL, CLF, CLX, CMA, CMCSA, CME, CMG, CMI, CMS, CNC, CNP, CNX, COF, COHR, COIN, COL, COO, COP, COR, COST, COTY, CPAY, CPB, CPRI, CPRT, CPT, CRH, CRL, CRM, CRWD, CSCO, CSGP, CSX, CTAS, CTL, CTLT, CTRA, CTSH, CTVA, CTXS, CVNA, CVS, CVX, CXO, CZR, D, DAL, DASH, DAY, DD, DDOG, DE, DECK, DELL, DFS, DG, DGX, DHI, DHR, DIS, DISCA, DISCK, DISH, DLR, DLTR, DOC, DOV, DOW, DPZ, DRE, DRI, DTE, DUK, DVA, DVN, DWDP, DXC, DXCM, EA, EBAY, ECHO, ECL, ED, EFX, EG, EIX, EL, ELV, EME, EMN, EMR, ENDP, ENPH, EOG, EPAM, EQIX, EQR, EQT, ES, ESRX, ESS, ESV, ETFC, ETN, ETR, ETSY, EVHC, EVRG, EW, EXC, EXE, EXPD, EXPE, EXR, F, FANG, FAST, FCX, FDC, FDS, FDX, FE, FERG, FFIV, FHN, FI, FICO, FIS, FISV, FITB, FIX, FL, FLEX, FLR, FLS, FLT, FMC, FOX, FOXA, FRC, FSLR, FTI, FTNT, FTR, FTV, GD, GDDY, GE, GEHC, GEN, GEV, GGP, GILD, GIS, GL, GLW, GM, GME, GNRC, GOOG, GOOGL, GPC, GPN, GRMN, GS, GT, GWW, HAL, HAR, HAS, HBAN, HBI, HCA, HCP, HD, HES, HFC, HIG, HII, HLT, HOG, HOLX, HON, HOOD, HP, HPE, HPQ, HRB, HRL, HRS, HSIC, HST, HSY, HUBB, HUM, HWM, IAC, IBKR, IBM, ICE, IDXX, IEX, IFF, ILMN, INCY, INTC, INTU, INVH, IP, IPG, IPGP, IQV, IR, IRM, ISRG, IT, ITW, IVZ, J, JBHT, JBL, JCI, JCP, JEC, JKHY, JNJ, JNPR, JPM, JWN, K, KATE, KDP, KEY, KEYS, KHC, KIM, KKR, KLAC, KMB, KMI, KMX, KO, KORS, KR, KSS, KSU, KVUE, LB, LDOS, LEN, LH, LHX, LII, LIN, LITE, LKQ, LLL, LLTC, LLY, LM, LMT, LNC, LNT, LOW, LPX, LRCX, LSI, LULU, LUMN, LUV, LVLT, LVS, LW, LYB, LYV, M, MA, MAA, MAC, MAR, MAS, MAT, MCD, MCHP, MCK, MCO, MDLZ, MDT, MET, META, MGM, MHK, MJN, MKC, MKTX, MLM, MMC, MMM, MNK, MNST, MO, MOH, MON, MOS, MPC, MPWR, MRK, MRNA, MRO, MRSH, MRVL, MS, MSCI, MSFT, MSI, MTB, MTCH, MTD, MU, MUR, MXIM, MYL, NBL, NBR, NCLH, NDAQ, NEE, NEM, NFLX, NI, NKE, NKTR, NLSN, NOC, NOV, NOW, NRG, NSC, NTAP, NTRS, NUE, NVDA, NVR, NWL, NXPI, O, ODFL, OKE, OMC, ON, ORCL, ORLY, OTIS, OXY, PANW, PAYC, PAYX, PBCT, PCAR, PCG, PEG, PENN, PEP, PFE, PFG, PG, PGR, PH, PHM, PKG, PLD, PLTR, PM, PNC, PNR, PNW, PODD, POOL, PPG, PPL, PRGO, PRU, PSA, PSX, PTC, PVH, PWR, PX, PXD, PYPL, Q, QCOM, QRVO, RAI, RCL, RDDT, RDS.A, REG, REGN, RF, RHI, RHT, RIG, RJF, RL, RMD, ROK, ROL, ROP, ROST, RRC, RSG, RTN, RTX, RVTY, S, SATS, SBAC, SBNY, SBUX, SCG, SCHW, SE, SEDG, SEE, SHW, SIG, SIVB, SJM, SLB, SLG, SMCI, SNA, SNDK, SNI, SNPS, SNV, SO, SPG, SPGI, SRCL, SRE, STE, STJ, STLD, STT, STX, STZ, SW, SWK, SWKS, SWN, SYF, SYK, SYMC, SYY, T, TAP, TDG, TDY, TE, TECH, TEL, TER, TFC, TFX, TGT, THC, TIF, TJX, TKO, TMO, TMUS, TPL, TPR, TRGP, TRIP, TROW, TRV, TSCO, TSLA, TSN, TSS, TT, TTD, TTWO, TWTR, TWX, TXN, TXT, TYL, UA, UAA, UAL, UBER, UDR, UHS, ULTA, UNH, UNM, UNP, UPS, URBN, URI, USB, UTX, V, VAR, VEEV, VFC, VIAB, VIAV, VICI, VLO, VLTO, VMC, VMRK, VNO, VRSK, VRSN, VRT, VRTX, VST, VTR, VTRS, VZ, WAB, WAT, WB, WBA, WBD, WCG, WDAY, WDC, WEC, WELL, WFC, WFM, WFT, WHR, WLL, WM, WMB, WMT, WPX, WRB, WRK, WSM, WST, WTW, WU, WY, WYNN, XEC, XEL, XL, XLNX, XOM, XRAY, XRX, XYL, XYZ, YUM, ZBH, ZBRA, ZION, ZTS (daily bars from 1 sources); each symbol at most one position, book slots 1.; Data: `C:\data\trading\trading_framework\data\cache\daily_10years_tr`; sessions 2016-01-04 .. 2026-10-23; evaluation starts 2016-01-04.. Full grid: 30 settings including baseline, 30 variant/fill rows; primary fill `next_open`. DEV-only selection `w40_d020_v125`; baseline DEV/TEST skill -1.787/-0.671; selected DEV/TEST skill -1.345/-0.720. Selected TEST Sharpe -0.731, PF +0.882, win +39.5%, trades 4509. no selected-result evidence or high-metric flag. Variant-search bias is not included; TEST has been inspected.
+  | portfolio | variant | partition | total log | trend log | random-pick baselines (log; p) | skill (log) | skill vs random U / pool (log) | bias (log) | skill % | skill p | Sharpe | PF | max DD | win % | trades |
+  |---|---|---|---:|---:|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | baseline | `baseline` | DEV | -1.106 | +0.681 | U -0.330 (p=+0.999); pool -0.357 (p=+0.999) | -1.787 | U -0.776; pool -0.749 | +0.000 | n/a | +1.000 | -0.776 | +0.860 | -73.2% | +40.0% | 12203 |
+  | baseline | `baseline` | TEST | -0.292 | +0.378 | U -0.128 (p=+0.934); pool -0.125 (p=+0.939) | -0.671 | U -0.164; pool -0.167 | +0.000 | n/a | +0.998 | -0.636 | +0.855 | -30.4% | +39.1% | 4402 |
+  | DEV-selected | `w40_d020_v125` | DEV | -0.644 | +0.701 | U -0.236 (p=+0.936); pool -0.258 (p=+0.934) | -1.345 | U -0.409; pool -0.386 | +0.000 | n/a | +1.000 | -0.452 | +0.830 | -55.2% | +39.7% | 12491 |
+  | DEV-selected | `w40_d020_v125` | TEST | -0.316 | +0.404 | U -0.064 (p=+0.985); pool -0.069 (p=+0.989) | -0.720 | U -0.252; pool -0.247 | +0.000 | n/a | +0.998 | -0.731 | +0.882 | -30.6% | +39.5% | 4509 |
+  Reproduce: full matrix `cargo run --release -- --strategy s040_volume_breakout --variant quiet_breakout,limit_close,w10_d005_v125,w10_d005_v150,w10_d005_v200,w10_d010_v125,w10_d010_v150,w10_d010_v200,w10_d020_v125,w10_d020_v150,w10_d020_v200,w20_d005_v125,w20_d005_v150,w20_d005_v200,w20_d010_v125,w20_d010_v200,w20_d020_v125,w20_d020_v150,w20_d020_v200,w40_d005_v125,w40_d005_v150,w40_d005_v200,w40_d010_v125,w40_d010_v150,w40_d010_v200,w40_d020_v125,w40_d020_v150,w40_d020_v200,w30_d010_v150`; DEV-selected winner `cargo run --release -- --strategy s040_volume_breakout --variant w40_d020_v125`.
 - review: RESOLVED
 
 ### S041 | 12-1 Cross-Sectional Momentum
@@ -974,20 +1035,23 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - frequency: monthly rebalance
 - provenance: source-specified
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P1
 - sources: [Better System Trader — Ernie Chan interview (momentum lookback)](https://bettersystemtrader.com/012-ernest-chan/); [Jegadeesh-Titman 1993 (via Bauer College)](https://www.bauer.uh.edu/rsusmel/phd/jegadeesh-titman93.pdf)
 - notes: Chan interview: standard momentum lookback is roughly 11 of the most recent 12 months; Jegadeesh & Titman 1993 (formation J and holding K of 3-12 months; one-week gap between formation and holding in their main tests). Be The Puck 12-1 momentum beat buy-and-hold Sharpe on 120/369, the best of its momentum family. Crash exposure: a long-only top decile is far less crash-prone than long-short but 2009 and 2020 rebounds hit it (overlays: S104). Required comparisons: vs random 10-stock placebo and vs the vol-matched equal-weight universe (the Borsa appendix: momentum as a negative control, random placebo beat residual momentum in 99.3% of draws, winners were high-vol stocks); industry-neutral variant (industry momentum drives much of stock momentum, Moskowitz-Grinblatt).
-- parameter_variants: breadth {top decile research; top-10 paper}; industry-neutral {off primary, on}; overlay {none primary; S104 gate; vol-scaling}
+- parameter_variants: lookback {126, 189, 252 primary, 315, 378 sessions}; skip {0, 10, 21 primary, 42 sessions}; breadth {5%, 10% primary, 15%, top 10/20/30/40/50/75/100/150/200}; industry-neutral {off primary, on}. S104-gate and volatility-scaling overlays are not included in the tested matrix.
 - data_needs: daily_10years (D1) total-return-adjusted incl. delistings
+- rust_implementation: Registered as `s041_mom_12_1` with daily 12-1 momentum, monthly reconstitution, PIT liquidity ranks, and named lookback/breadth variants. Industry-neutral processing is available using the latest SimFin company/industry snapshot; this mapping is not historical point-in-time.
+- implementation_delta: DELTA — next-open is the executable primary fill; same-close is reported only as an upper bound. The Rust book is long-only; the optional short leg and S104/volatility-scaling overlays are not implemented. PIT liquidity ranks are used, but industry labels are the latest SimFin snapshot rather than historical PIT assignments.
 - review: KEEP | source OK
-- implementation_results: `src/strategies/s041_mom_12_1`; liquid-top-500 PIT universe (60d median dollar-volume rank over common stocks; `data/cache/liquid_ranks`), Alpaca TR bars incl. delistings (1400 ever-top-600 names), -30% delisting-return convention, 15 bps/side, month-end close primary + next_open; dev < 2024-01-01 <= test. `top10` = top-10 breadth (dev-selected of 3 variants; industry-neutral hurts, consistent with Moskowitz-Grinblatt).
-
-  | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev+test) |
-  |---|---|---|---|---|---|---|---|---|---|
-  | baseline decile (close) | +0.80 | +0.07 (p=0.45) | 0.53 | -44% | +0.74 | +0.35 (p=0.26) | 0.83 | -39% | 4116+1666 |
-  | top10 (close) | +0.92 | +0.18 (p=0.44) | 0.52 | -61% | +1.44 | +1.04 | 1.12 | -48% | 840+340 |
-  Reproduce: baseline `python run.py --strategy s041_mom_12_1`; variants `python run.py --strategy s041_mom_12_1 --variant top10,indneutral,top10_ind`
-
+- implementation_results: Rust in `src/family4.rs` / `src/study.rs`, config `configs/s041_mom_12_1.yaml`; Universe: A, AA, AABA, AAL, AAOI, AAP, AAPL, ABBV, ABCM, ABEV, ABMD, ABNB, ABT, ACB, ACC, ACGL, ACHR, ACIA, ACN, ADBE, ADI, ADM, ADP, ADSK, ADT, AEE, AEHR, AEIS, AEM, AEO, AEP, AER, AES, AET, AFL, AFRM, AG, AGN, AGNC, AGQ, AHT, AI, AIG, AIRC, AIZ, AJG, AKAM, AKRX, AKS, ALAB, ALB, ALC, ALGN, ALK, ALL, ALLE, ALLY, ALNY, ALXN, AMAT, AMBA, AMC, AMCR, AMD, AME, AMG, AMGN, AMKR, AMP, AMRN, AMT, AMTD, AMZN, AN, ANDV, ANET, ANF, ANSS, AON, AOS, APA, APC, APD, APH, APHA, APLD, APLS, APO, APP, APPN, APPS, APTV, AR, ARCH, ARCT, ARE, ARES, ARGX, ARM, ARMK, ARNC, ARRS, ARRY, ARWR, ASAN, ASML, ASST, ASTS, ASX, ATHM, ATHN, ATI, ATO, ATUS, ATVI, AU, AUY, AVAV, AVB, AVGO, AVLR, AVTR, AVY, AWK, AXON, AXP, AXTA, AXTI, AYI, AYX, AZEK, AZN, AZO, B, BA, BABA, BAC, BAH, BALL, BAM, BAP, BAX, BB, BBAI, BBBY, BBD, BBIG, BBL, BBWI, BBY, BCR, BCS, BDX, BE, BEAV, BEKE, BEN, BF.B, BFH, BG, BHC, BHI, BHP, BHVN, BIDU, BIIB, BILI, BILL, BIO, BIOR, BIVV, BJ, BK, BKI, BKNG, BKR, BLD, BLDP, BLDR, BLK, BLNK, BLUE, BMNR, BMRN, BMY, BN, BNGO, BNO, BNTX, BNY, BOIL, BOX, BP, BPL, BPMC, BR, BRCD, BRK.A, BRK.B, BRO, BROS, BSX, BTBT, BTDR, BTG, BTI, BTU, BUD, BULL, BURL, BWA, BWLD, BWXT, BX, BXP, BYND, BZUN, C, CAA, CACI, CAG, CAH, CAN, CAR, CARR, CART, CASY, CAT, CAVA, CAVM, CB, CBI, CBOE, CBRE, CBS, CC, CCEP, CCI, CCJ, CCK, CCL, CDE, CDNS, CDW, CE, CEG, CEI, CELG, CELH, CERN, CF, CFG, CFLT, CG, CGC, CGNX, CHD, CHGG, CHKP, CHPT, CHRD, CHRW, CHTR, CHWY, CI, CIEN, CIFR, CINF, CIT, CL, CLF, CLOV, CLR, CLS, CLSK, CLVS, CLX, CM, CMA, CMCSA, CME, CMG, CMI, CMS, CNC, CNH, CNI, CNK, CNP, CNQ, CNX, COF, COH, COHR, COIN, COL, COMM, CONE, COO, COP, COR, CORZ, COST, COTY, COUP, CP, CPAY, CPB, CPN, CPNG, CPRI, CPRT, CPT, CRCL, CRDO, CREE, CRH, CRI, CRL, CRM, CRON, CROX, CRS, CRSP, CRUS, CRWD, CRWV, CSC, CSCO, CSGP, CSIQ, CSL, CSX, CTAS, CTL, CTLT, CTRA, CTRP, CTSH, CTVA, CTXS, CVE, CVNA, CVS, CVX, CW, CWAN, CWH, CX, CXO, CY, CYBR, CYTK, CZR, D, DAL, DAR, DASH, DATA, DAY, DB, DBX, DD, DDD, DDOG, DE, DECK, DELL, DEN, DEO, DFS, DG, DGX, DHI, DHR, DINO, DIS, DISCA, DISCK, DISH, DJT, DK, DKNG, DKS, DLPH, DLR, DLTR, DNKN, DOC, DOCN, DOCU, DOV, DOW, DPS, DPZ, DQ, DRE, DRI, DT, DTE, DUK, DUOL, DVA, DVMT, DVN, DWDP, DXC, DXCM, EA, EAT, EBAY, ECA, ECHO, ECL, ED, EDIT, EDU, EFX, EG, EGN, EH, EIX, EL, ELAN, ELF, ELLI, ELV, EME, EMN, EMR, ENB, ENDP, ENPH, ENTG, ENVX, EOG, EOSE, EPAM, EPD, EQH, EQIX, EQNR, EQR, EQT, ERI, ERIC, ES, ESRX, ESS, ESTC, ESV, ET, ETFC, ETH, ETHE, ETN, ETP, ETR, ETSY, EVHC, EVRG, EW, EXAS, EXC, EXE, EXEL, EXPD, EXPE, EXR, F, FANG, FAST, FBIN, FCAU, FCEL, FCNCA, FCX, FDC, FDS, FDX, FE, FERG, FEYE, FFIV, FHN, FI, FICO, FIG, FIRY, FIS, FISV, FIT, FITB, FIVE, FIVN, FIX, FL, FLEX, FLG, FLGT, FLNA, FLR, FLS, FLT, FLUT, FLY, FMC, FN, FND, FNF, FNSR, FNV, FORM, FOUR, FOX, FOXA, FRC, FSLR, FSLY, FSR, FTAI, FTCH, FTI, FTNT, FTR, FTV, FUBO, FUTU, FVRR, FWONK, FXE, GAP, GBT, GBTC, GD, GDDY, GDS, GE, GEHC, GEN, GEV, GEVO, GFI, GFS, GG, GGB, GGP, GH, GILD, GIS, GL, GLDM, GLOB, GLW, GM, GME, GNRC, GOOG, GOOGL, GOOS, GOTU, GPC, GPN, GRAB, GRMN, GRWG, GS, GSK, GT, GTLB, GTLS, GTM, GWPH, GWR, GWRE, GWW, GXP, HAIN, HAL, HALO, HAR, HAS, HBAN, HBI, HCA, HCP, HD, HDB, HDS, HES, HFC, HIG, HII, HIMS, HL, HLF, HLN, HLT, HOG, HOLX, HON, HOOD, HP, HPE, HPQ, HR, HRB, HRC, HRL, HRS, HSBC, HSIC, HST, HSY, HTHT, HUBB, HUBS, HUM, HUN, HUT, HWM, HYLN, HZNP, IAC, IAU, IAUM, IBKR, IBM, IBN, ICE, ICLR, IDEX, IDTI, IDXX, IEX, IFF, ILMN, IMGN, IMMU, INCY, INFY, INMD, INO, INSM, INSP, INTC, INTU, INVH, INXN, IONQ, IONS, IOT, IP, IPG, IPGP, IPHI, IQ, IQV, IR, IRBT, IREN, IRM, ISEE, ISRG, IT, ITCI, ITUB, ITW, IVZ, J, JAZZ, JBHT, JBL, JBLU, JCI, JCP, JD, JEC, JHX, JKHY, JKS, JMIA, JNJ, JNPR, JOBY, JOYY, JPM, JUNO, JWN, K, KATE, KDP, KEY, KEYS, KGC, KHC, KIM, KITE, KKR, KL, KLAC, KMB, KMI, KMX, KNX, KO, KODK, KOLD, KORS, KR, KRTX, KSS, KSU, KTOS, KVUE, LAC, LAD, LB, LBRDK, LBTYA, LBTYK, LCID, LDOS, LEA, LEN, LEU, LGND, LH, LHX, LI, LII, LIN, LITE, LKQ, LLL, LLTC, LLY, LM, LMND, LMT, LNC, LNG, LNT, LOGC, LOGM, LOW, LOXO, LPLA, LPT, LPX, LRCX, LSCC, LSI, LSPD, LTHM, LULU, LUMN, LUNR, LUV, LVGO, LVLT, LVS, LW, LYB, LYFT, LYV, M, MA, MAA, MAC, MAN, MAR, MARA, MAS, MASI, MAT, MBLY, MCD, MCHP, MCK, MCO, MDB, MDCO, MDGL, MDLZ, MDSO, MDT, MELI, MENT, MET, META, MGA, MGM, MGNI, MHK, MIDD, MIME, MJN, MKC, MKSI, MKTX, MLCO, MLM, MLNX, MMC, MMM, MNDY, MNK, MNST, MO, MOD, MOH, MOMO, MON, MOS, MP, MPC, MPLX, MPT, MPW, MPWR, MRK, MRNA, MRO, MRSH, MRVL, MS, MSCC, MSCI, MSFT, MSI, MSTR, MT, MTB, MTCH, MTD, MTN, MTSI, MTZ, MU, MULE, MUR, MVIS, MXIM, MXL, MYL, MYOK, NBIS, NBIX, NBL, NBR, NCLH, NDAQ, NEE, NEM, NET, NEWR, NFLX, NI, NIO, NKE, NKLA, NKTR, NLSN, NLY, NNDM, NOC, NOK, NOV, NOW, NRG, NSC, NTAP, NTES, NTLA, NTNX, NTR, NTRA, NTRS, NU, NUAN, NUE, NVAX, NVCR, NVDA, NVMI, NVO, NVR, NVS, NVT, NVTA, NVTS, NWL, NXH, NXPI, NXT, O, OA, OC, OCGN, OCLR, ODFL, OKE, OKLO, OKTA, OLED, OLLI, OMC, ON, ONCE, ONDS, ONON, ONTO, OPEN, OPTU, ORCL, ORLY, OSCR, OSH, OTIS, OVV, OWL, OXY, P, PAA, PAAS, PACB, PACW, PAGS, PANW, PATH, PAYC, PAYX, PBCT, PBF, PBR, PBR.A, PBYI, PCAR, PCG, PCOR, PCTY, PDD, PE, PEG, PEN, PENN, PEP, PF, PFE, PFG, PFPT, PG, PGR, PH, PHM, PHYS, PII, PINS, PKG, PL, PLAN, PLD, PLNT, PLTR, PLUG, PM, PNC, PNR, PNRA, PNW, PODD, POET, POOL, POT, PPG, PPL, PPLI, PR, PRGO, PRMB, PRU, PRXL, PSA, PSLV, PSTG, PSX, PTC, PTEN, PTON, PVH, PWR, PX, PXD, PYPL, Q, QBTS, QCOM, QDEL, QFIN, QGEN, QRVO, QS, QSR, QTS, QUBT, QVCA, QXO, RACE, RAI, RBA, RBLX, RBRK, RCL, RDDT, RDFN, RDS.A, RDS.B, RDW, REG, REGN, RETA, RF, RGEN, RGLD, RGTI, RH, RHI, RHT, RICE, RIG, RIO, RIOT, RIVN, RJF, RKLB, RKT, RL, RMBS, RMD, RNA, RNG, ROIV, ROK, ROKU, ROL, ROP, ROST, RP, RR, RRC, RRX, RS, RSG, RSPP, RTN, RTX, RUN, RVMD, RVTY, RXDX, RXRX, RY, S, SABR, SAGE, SAIA, SAIL, SAM, SAP, SATS, SAVA, SAVE, SBAC, SBE, SBET, SBNY, SBUX, SCCO, SCG, SCHW, SCO, SE, SEDG, SEE, SERV, SFIX, SFM, SGEN, SGI, SGOL, SHAK, SHEL, SHLL, SHOP, SHPG, SHW, SI, SIG, SIGA, SIMO, SINA, SIRI, SITM, SIVB, SIVR, SIX, SJM, SKLZ, SKX, SLB, SLCA, SLG, SLW, SM, SMAR, SMCI, SMR, SMTC, SN, SNA, SNAP, SNDK, SNDL, SNI, SNOW, SNPS, SNV, SNY, SO, SOFI, SOLO, SONY, SOS, SOUN, SPCE, SPCX, SPG, SPGI, SPLK, SPOT, SPR, SPRU, SQM, SRC, SRCL, SRE, SRNE, SRPT, SSNC, STE, STJ, STLA, STLD, STM, STNE, STOR, STRL, STT, STX, STZ, SU, SUI, SUM, SW, SWAV, SWK, SWKS, SWN, SWTX, SXL, SYF, SYK, SYMC, SYY, T, TAL, TAP, TCO, TCOM, TD, TDG, TDOC, TDY, TE, TEAM, TECD, TECH, TECK, TEL, TEM, TER, TEVA, TFC, TFX, TGT, THC, THO, TIF, TIGR, TJX, TKO, TLN, TLRY, TMDX, TME, TMO, TMUS, TNDM, TNL, TOL, TOST, TPL, TPR, TREX, TRGP, TRI, TRIP, TROW, TRP, TRU, TRV, TS, TSCO, TSEM, TSLA, TSM, TSN, TSO, TSRO, TSS, TT, TTD, TTE, TTMI, TTWO, TW, TWLO, TWST, TWTR, TWX, TXG, TXN, TXRH, TXT, TYL, U, UA, UAA, UAL, UBER, UCO, UDR, UEC, UGI, UGL, UHS, UL, ULTA, UMC, UNG, UNH, UNM, UNP, UPS, UPST, URBN, URI, USAR, USB, USFD, UTHR, UTX, UUUU, V, VAL, VALE, VALE.P, VAR, VEEV, VER, VFC, VG, VIAB, VIAV, VICI, VICR, VIK, VIPS, VISN, VKTX, VLO, VLTO, VMC, VMRK, VMW, VNO, VNTV, VOD, VOYA, VRNA, VRSK, VRSN, VRT, VRTX, VRX, VSH, VST, VTR, VTRS, VUZI, VXRT, VZ, W, WAB, WAL, WAT, WB, WBA, WBC, WBD, WBS, WCC, WCG, WCN, WDAY, WDC, WEC, WELL, WEX, WFC, WFM, WFRD, WFT, WHR, WING, WISH, WIX, WKHS, WLK, WLL, WM, WMB, WMGI, WMT, WNR, WOLF, WORK, WP, WPC, WPM, WPX, WRB, WRK, WSM, WSO, WST, WTW, WU, WUBA, WULF, WWAV, WWD, WWE, WY, WYN, WYNN, XEC, XEL, XL, XLNX, XNET, XOM, XP, XPEV, XPO, XRAY, XRX, XYL, XYZ, Y, YELP, YHOO, YUM, YUMC, Z, ZAYO, ZBH, ZBRA, ZEN, ZETA, ZG, ZIM, ZION, ZM, ZNGA, ZS, ZSL, ZTO, ZTS (daily bars from 1 sources); each symbol at most one position, book slots 50.; Data: `C:\data\trading\trading_framework\data\cache\daily_10years_tr`; sessions 2016-01-04 .. 2026-10-23; evaluation starts 2016-12-29.. Full grid: 33 settings including baseline, 66 variant/fill rows; primary fill `next_open`. DEV-only selection `mom126_skip10`; baseline DEV/TEST skill -0.070/+0.342; selected DEV/TEST skill +0.021/+0.168. Selected TEST Sharpe +0.697, PF +1.355, win +52.0%, trades 1665. no selected-result evidence or high-metric flag. Variant-search bias is not included; TEST has been inspected.
+  | portfolio | variant | partition | total log | trend log | random-pick baselines (log; p) | skill (log) | skill vs random U / pool (log) | bias (log) | skill % | skill p | Sharpe | PF | max DD | win % | trades |
+  |---|---|---|---:|---:|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | baseline | `baseline` | DEV | +0.656 | +0.726 | U +0.469 (p=+0.063); pool +0.465 (p=+0.055) | -0.070 | U +0.187; pool +0.191 | +0.000 | n/a | +0.546 | +0.460 | +1.222 | -46.2% | +51.7% | 4063 |
+  | baseline | `baseline` | TEST | +0.735 | +0.394 | U +0.303 (p=+0.001); pool +0.301 (p=+0.001) | +0.342 | U +0.432; pool +0.435 | +0.000 | +46.5% | +0.263 | +0.820 | +1.441 | -38.5% | +51.5% | 1666 |
+  | DEV-selected | `mom126_skip10` | DEV | +0.766 | +0.745 | U +0.491 (p=+0.017); pool +0.496 (p=+0.012) | +0.021 | U +0.275; pool +0.270 | +0.000 | +2.7% | +0.486 | +0.526 | +1.252 | -39.1% | +51.9% | 4114 |
+  | DEV-selected | `mom126_skip10` | TEST | +0.561 | +0.393 | U +0.309 (p=+0.002); pool +0.304 (p=+0.006) | +0.168 | U +0.252; pool +0.257 | +0.000 | +30.0% | +0.364 | +0.697 | +1.355 | -38.9% | +52.0% | 1665 |
+  Reproduce: full matrix `cargo run --release -- --strategy s041_mom_12_1 --variant indneutral,top10_ind,mom126_skip0,mom126_skip10,mom126_skip21,mom126_skip42,mom189_skip0,mom189_skip10,mom189_skip21,mom189_skip42,mom252_skip0,mom252_skip10,mom252_skip42,mom315_skip0,mom315_skip10,mom315_skip21,mom315_skip42,mom378_skip0,mom378_skip10,mom378_skip21,mom378_skip42,top10,top20,top30,top40,top50,top75,top100,top150,top200,decile5,decile15`; DEV-selected winner `cargo run --release -- --strategy s041_mom_12_1 --variant mom126_skip10`.
 ### S042 | Sector Momentum Rotation
 - family: momentum and breakout
 - concept: Momentum works at the sector level with less idiosyncratic noise: hold the 3 strongest of 10 US equity sectors by 12-month momentum, rebalance monthly.
@@ -1000,21 +1064,24 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - frequency: monthly rebalance
 - provenance: source-specified
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P2
 - sources: [Quantpedia — Sector Momentum rotational system](https://quantpedia.com/strategies/sector-momentum-rotational-system)
 - notes: Quantpedia: ten sector ETFs, top 3 by 12-month momentum, monthly; its backtests (Faber, French-Fama sector data back to the 1920s) 'explicitly exclude taxes, commissions and slippage' and quote 100-400% annual turnover; the 1/3/6/9/12 grid with breadth 1-9 is dozens of trials in the source itself. Faber's data were French sectors, not ETFs. Benchmarks: equal-weight sector basket and SPY. Costs per the shared spec. S048 is registered as a variant of this entry.
-- parameter_variants: signal {12-month primary; combined 1/3/6/9/12 average rank}; breadth {top 3 primary}
+- parameter_variants: signal {12-month primary; rank-average and 1/3/6/9/12 blend}; breadth {top 1/2/3 primary/5/7/9}; rebalance {monthly primary; weekly}.
 - data_needs: sector ETF total-return daily series (DP-ETF) + PIT sector universe table
+- rust_implementation: Registered as `s042_sector_momentum` with daily ETF momentum scores, monthly top-k rotation, and named signal/breadth variants.
+- implementation_delta: DELTA — next-open is the executable primary fill; same-close is an upper bound. The cached implementation uses 11 sector ETFs with total-return history from 2016; XLC becomes eligible only after its available/listing history.
 - review: KEEP | source OK
-- implementation_results: `src/strategies/s042_sector_momentum`; 11 SPDR sectors on TR bars, PIT via listing date + 252-bar history (XLC joins 2019), top 3 monthly, 5 bps/side, month-end close primary + next_open; dev < 2024-01-01 <= test. `validea` = ex-S048 1M+3M blend top 5 (dev-selected of 4 variants; its dev edge flips sign on test = DECAYED - the baseline stays the reported config).
-
-  | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev+test) |
-  |---|---|---|---|---|---|---|---|---|---|
-  | baseline top3 (close) | +0.85 | +0.10 (p=0.34) | 0.73 | -31% | +0.47 | +0.07 (p=0.29) | 1.25 | -16% | 252+102 |
-  | validea (close) | +0.92 | +0.16 (p=0.16) | 0.83 | -33% | +0.37 | -0.03 | 1.14 | -16% | 425+170 |
-  Reproduce: baseline `python run.py --strategy s042_sector_momentum`; variants `python run.py --strategy s042_sector_momentum --variant rankavg,validea,top5,weekly`
-
-### S043 | ETF Multi-Asset Momentum Rotation (absorbs S068, S074)
+- implementation_results: Rust in `src/family4.rs` / `src/study.rs`, config `configs/s042_sector_momentum.yaml`; Universe: XLB, XLC, XLE, XLF, XLI, XLK, XLP, XLRE, XLU, XLV, XLY (daily bars from 1 sources); each symbol at most one position, book slots 3.; Data: `C:\data\trading\trading_framework\data\cache\etf_tr`; sessions 2016-01-04 .. 2026-10-23; evaluation starts 2016-12-30.. Full grid: 31 settings including baseline, 62 variant/fill rows; primary fill `next_open`. DEV-only selection `top1`; baseline DEV/TEST skill +0.005/+0.057; selected DEV/TEST skill +0.633/-0.254. Selected TEST Sharpe +0.355, PF +1.334, win +50.0%, trades 34. insufficient trade-count evidence; DECAYED: skill sign changes; PF or Sharpe > 2: leakage and timing review required. Variant-search bias is not included; TEST has been inspected.
+  | portfolio | variant | partition | total log | trend log | random-pick baselines (log; p) | skill (log) | skill vs random U / pool (log) | bias (log) | skill % | skill p | Sharpe | PF | max DD | win % | trades |
+  |---|---|---|---:|---:|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | baseline | `baseline` | DEV | +0.760 | +0.755 | U +0.647 (p=+0.270); pool +0.653 (p=+0.275) | +0.005 | U +0.113; pool +0.107 | +0.000 | +0.7% | +0.493 | +0.657 | +1.629 | -31.7% | +61.8% | 249 |
+  | baseline | `baseline` | TEST | +0.456 | +0.399 | U +0.361 (p=+0.217); pool +0.356 (p=+0.201) | +0.057 | U +0.095; pool +0.100 | +0.000 | +12.5% | +0.345 | +1.190 | +2.021 | -14.8% | +56.9% | 102 |
+  | DEV-selected | `top1` | DEV | +1.388 | +0.755 | U +0.615 (p=+0.014); pool +0.594 (p=+0.006) | +0.633 | U +0.773; pool +0.793 | +0.000 | +45.6% | +0.086 | +0.908 | +2.139 | -31.2% | +66.3% | 83 |
+  | DEV-selected | `top1` | TEST | +0.145 | +0.399 | U +0.346 (p=+0.834); pool +0.335 (p=+0.786) | -0.254 | U -0.201; pool -0.190 | +0.000 | n/a | +0.799 | +0.355 | +1.334 | -25.8% | +50.0% | 34 |
+  Reproduce: full matrix `cargo run --release -- --strategy s042_sector_momentum --variant rankavg,blend13,top1,top2,top5,top7,top9,weekly,rankavg_top1,rankavg_top2,rankavg_top5,rankavg_top7,rankavg_top9,rankavg_weekly,blend13_top1,blend13_top2,blend13_top5,blend13_top7,blend13_top9,blend13_weekly,mom12_top1_weekly,mom12_top2_weekly,mom12_top5_weekly,mom12_top7_weekly,mom12_top9_weekly,rankavg_top1_weekly,rankavg_top2_weekly,rankavg_top5_weekly,rankavg_top7_weekly,rankavg_top9_weekly`; DEV-selected winner `cargo run --release -- --strategy s042_sector_momentum --variant top1`.
+### S043 | ETF Multi-Asset Momentum Rotation
 - family: momentum and breakout
 - concept: Rank a fixed multi-asset ETF universe by 12-month return; hold the top funds; rotate to short-term Treasuries when an ETF's 12-month return is negative (absolute momentum overlay).
 - universe: one ETF per asset class (primary): SPY, EFA, EEM, IWM or QQQ (single extra equity), TLT or IEF, LQD or HYG, GLD, GSG/DBC, IYR; SHY as cash floor. The earlier 13-ETF list had five US-equity-beta ETFs (SPY, QQQ, IWM, XLK, XLE) and was mostly equity rotation
@@ -1028,10 +1095,20 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - status: active
 - priority: P2
 - sources: [PortfoliosLab - Momentum & sector rotation strategies](https://portfolioslab.com/strategies/momentum-rotation) (describes sector/industry/factor rotation only; the top-ranked-funds/Treasury-replacement mechanics are supported, the 13-ETF multi-asset universe and Antonacci framing are the catalog's); CXO SACEMS and GEM are the established multi-asset comparators; phuazz breadth-thrust-etf (sleeve B, for the MA-distance signal)
-- notes: Benchmarks: equal-weight of the same ETFs and 60/40; SHY must be total return. Absorbs S068 (percent-above-200MA rotation: price distance above the 200-day MA is highly collinear with 12-month return rank; the source's 13-line sleeve is hand-picked, so pre-register the universe before running) and S074 (SPY/QQQ relative rotation, a two-asset instance: hold QQQ if QQQ 21-day return > SPY 21-day return AND the QQQ/SPY 63-day z-score > 0, else SPY; two heavily overlapping ETFs, evidence nil, no separate golden).
-- parameter_variants: signal {12-month return primary; ma200_distance = close/SMA200 - 1 (ex-S068: weekly, top 7, weighted by signal share, SHY for empty slots)}; universe {asset-class set primary; two-asset SPY/QQQ (ex-S074, weekly, 21-day return + 63-day z-score)}; rebalance {monthly primary; weekly}
+- notes: Benchmarks: equal-weight of the same ETFs and 60/40; SHY must be total return.
+- parameter_variants: tested grid: momentum lookback {63, 126, 189, 252 primary, 315, 378, 504 days}; breadth {top 1/2/3/5 primary/7}. The merged S068 SMA-distance and S074 weekly SPY/QQQ modes remain unimplemented.
 - merged_from: S068, S074
 - data_needs: ETF total-return daily series (DP-ETF)
+- rust_status: IMPLEMENTED
+- implementation_delta: DELTA — next-open is the executable primary fill; same-close is an upper bound. The registered baseline uses the 10-ETF asset-class universe, with ETF total-return history from 2016; the 60/40 comparator and merged S068/S074 modes are not implemented; SPY benchmark outperformance uses close-to-close returns, not fill-timing-matched to next-open execution.
+- implementation_results: Rust in `src/family4.rs` / `src/study.rs`, config `configs/s043_etf_multi_asset_momentum.yaml`; Universe: EEM, EFA, GLD, GSG, IWM, IYR, LQD, SHY, SPY, TLT (daily bars from 1 sources); each symbol at most one position, book slots 5.; Data: `C:\data\trading\trading_framework\data\cache\etf_tr`; sessions 2016-01-04 .. 2026-10-23; evaluation starts 2016-01-04.. Full grid: 31 settings including baseline, 62 variant/fill rows; primary fill `next_open`. DEV-only selection `mom189_top2`; baseline DEV/TEST skill -0.081/+0.075; selected DEV/TEST skill +0.283/+0.127. Selected TEST Sharpe +1.116, PF +2.170, win +63.2%, trades 68. PF or Sharpe > 2: leakage and timing review required. Variant-search bias is not included; TEST has been inspected.
+  | portfolio | variant | partition | total log | trend log | random-pick baselines (log; p) | skill (log) | skill vs random U / pool (log) | bias (log) | skill % | skill p | Sharpe | PF | max DD | win % | trades |
+  |---|---|---|---:|---:|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | baseline | `baseline` | DEV | +0.324 | +0.405 | U +0.373 (p=+0.623); pool +0.380 (p=+0.633) | -0.081 | U -0.049; pool -0.056 | +0.000 | n/a | +0.675 | +0.448 | +1.314 | -21.6% | +57.4% | 376 |
+  | baseline | `baseline` | TEST | +0.422 | +0.347 | U +0.342 (p=+0.189); pool +0.337 (p=+0.159) | +0.075 | U +0.080; pool +0.085 | +0.000 | +17.7% | +0.209 | +1.175 | +2.100 | -12.1% | +62.4% | 170 |
+  | DEV-selected | `mom189_top2` | DEV | +0.713 | +0.430 | U +0.358 (p=+0.072); pool +0.367 (p=+0.090) | +0.283 | U +0.355; pool +0.346 | +0.000 | +39.7% | +0.204 | +0.730 | +1.692 | -21.8% | +56.5% | 170 |
+  | DEV-selected | `mom189_top2` | TEST | +0.474 | +0.347 | U +0.334 (p=+0.160); pool +0.331 (p=+0.146) | +0.127 | U +0.140; pool +0.144 | +0.000 | +26.7% | +0.244 | +1.116 | +2.170 | -22.8% | +63.2% | 68 |
+  Reproduce: full matrix `cargo run --release -- --strategy s043_etf_multi_asset_momentum --variant mom63_top1,mom63_top2,mom63_top3,mom63_top5,mom63_top7,mom126_top1,mom126_top2,mom126_top3,mom126_top5,mom126_top7,mom189_top1,mom189_top2,mom189_top3,mom189_top5,mom189_top7,mom252_top1,mom252_top2,mom252_top3,mom252_top7,mom315_top1,mom315_top2,mom315_top3,mom315_top5,mom315_top7,mom378_top1,mom378_top2,mom378_top3,mom378_top5,mom378_top7,mom504_top5`; DEV-selected winner `cargo run --release -- --strategy s043_etf_multi_asset_momentum --variant mom189_top2`.
 - review: RESOLVED
 
 ### S044 | Efficiente 5 MPT Replication
@@ -1049,8 +1126,18 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - priority: P1
 - sources: Attached paper (user upload) — Institutional Asset Allocation meets the Efficient Frontier (JPM Efficiente 5 replication)] — attached PDF (user upload), no public URL verified
 - notes: Verified against the attached PDF (Jungle Rock Capital, Oct 2025): universe and caps match Table 1; monthly rebalance, 126-day average return and covariance. Published acceptance targets (replication Aug-2008 to Aug-2025, Yahoo data): average excess return 3.49% vs 2.89% actual, vol 6.23%, Sharpe 0.58 (actual 0.50), Sortino 0.79, max drawdown -19.07% (actual -16.56%), average monthly turnover 42.48%, correlation with the real index 0.94, tracking error 1.48%. Table 3 (5% target): weekly rebalance with 6-month lookback Sharpe 0.52, monthly 6-month 0.61, monthly 12-month 0.55; at a 10% target the caps bind and realised vol stays ~8%. Sharpe 0.5-0.6 is the PUBLISHED performance (a Sharpe > 2 gate would reject it). Acceptance on the framework's 2016+ data: constraints satisfied every month, subperiod stats consistent with Table 2, qualitative average-weights-by-year pattern; full numeric replication only in 'replication' mode on 2008-2025 Yahoo data. Monthly turnover of 42% x 5-10 bps is a ~2-5%/yr drag: report net. Use as the first end-to-end golden of the slow-sleeve pipeline; unit tests for the cap constraints and the 1%-step escalation. The '(pypfopt)' remark is from the paper's footnote 3, not a requirement.
-- parameter_variants: mode {replication: Yahoo 2008-2025 matching Tables 2-3; catalog: framework data}; lookback {126-day primary; 6-month/12-month, weekly rebalance (Table 3)}; target vol {5% primary; 10%}
+- parameter_variants: tested grid: lookback {63, 84, 126 primary, 189, 252, 315 days}; target volatility {5% primary, 6%, 7%, 8%, 10%}. Published 2008-2025 replication mode remains blocked by unavailable historical ETF data.
 - data_needs: 13 ETFs with dividends from 2008 for replication (Yahoo/Stooq one-off); DP-ETF for the framework window; BIL (FRED T-bill before 2007)
+- rust_status: IMPLEMENTED
+- implementation_delta: DELTA — next-open is the executable primary fill; same-close is an upper bound. The optimizer exhaustively scans the validated discrete 5%-unit grid (23,816,422 feasible rows), rather than continuous optimization plus rounding. It is long-only, holds BIL as an asset, and does not short BIL. Cached ETF history starts in 2016; Yahoo returned HTTP 429 and Stooq served a verification challenge, so 2008–2025 replication remains unavailable.
+- implementation_results: Rust in `src/family4.rs` / `src/study.rs`, config `configs/s044_efficiente5.yaml`; Universe: BIL, EEM, EFA, EMB, GLD, GSG, HYG, IWM, IYR, LQD, SPY, TIP, TLT (daily bars from 1 sources); each symbol at most one position, book slots 1.; Data: `C:\data\trading\trading_framework\data\cache\etf_tr`; sessions 2016-01-04 .. 2026-10-23; evaluation starts 2016-01-04.. Full grid: 30 settings including baseline, 60 variant/fill rows; primary fill `next_open`. DEV-only selection `lb189_t10`; baseline DEV/TEST skill -0.147/-0.095; selected DEV/TEST skill -0.041/+0.026. Selected TEST Sharpe +1.223, PF +2.216, win +67.8%, trades 245. DECAYED: skill sign changes; PF or Sharpe > 2: leakage and timing review required. Variant-search bias is not included; TEST has been inspected.
+  | portfolio | variant | partition | total log | trend log | random-pick baselines (log; p) | skill (log) | skill vs random U / pool (log) | bias (log) | skill % | skill p | Sharpe | PF | max DD | win % | trades |
+  |---|---|---|---:|---:|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | baseline | `baseline` | DEV | +0.215 | +0.362 | U +0.326 (p=+0.751); pool +0.319 (p=+0.727) | -0.147 | U -0.111; pool -0.105 | +0.000 | n/a | +0.800 | +0.450 | +1.290 | -16.3% | +56.2% | 521 |
+  | baseline | `baseline` | TEST | +0.207 | +0.302 | U +0.296 (p=+0.841); pool +0.283 (p=+0.805) | -0.095 | U -0.089; pool -0.076 | +0.000 | n/a | +0.900 | +1.350 | +1.884 | -4.9% | +67.3% | 196 |
+  | DEV-selected | `lb189_t10` | DEV | +0.335 | +0.376 | U +0.339 (p=+0.513); pool +0.347 (p=+0.537) | -0.041 | U -0.004; pool -0.012 | +0.000 | n/a | +0.599 | +0.563 | +1.361 | -17.9% | +57.8% | 512 |
+  | DEV-selected | `lb189_t10` | TEST | +0.328 | +0.302 | U +0.291 (p=+0.319); pool +0.294 (p=+0.324) | +0.026 | U +0.037; pool +0.035 | +0.000 | +8.0% | +0.343 | +1.223 | +2.216 | -9.1% | +67.8% | 245 |
+  Reproduce: full matrix `cargo run --release -- --strategy s044_efficiente5 --variant target10,lookback252,lb63_t5,lb63_t6,lb63_t7,lb63_t8,lb63_t10,lb84_t5,lb84_t6,lb84_t7,lb84_t8,lb84_t10,lb126_t6,lb126_t7,lb126_t8,lb189_t5,lb189_t6,lb189_t7,lb189_t8,lb189_t10,lb252_t5,lb252_t6,lb252_t7,lb252_t8,lb315_t5,lb315_t6,lb315_t7,lb315_t8,lb315_t10`; DEV-selected winner `cargo run --release -- --strategy s044_efficiente5 --variant lb189_t10`.
 - review: KEEP (pipeline replication test) | source OK (verified against attached PDF)
 
 ### S045 | Multi-Factor Characteristic Blend (US Adaptation; S045a paper design, S045b catalog design)
@@ -1068,8 +1155,18 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - priority: P2
 - sources: Attached paper (user upload) — Multi-Factor Investing in Borsa Istanbul] — attached PDF (user upload), no public URL verified
 - notes: The attached paper's own conclusion: Sharpe 1.19 vs 0.89 for the cap-weighted index but alpha -0.4%/yr (95% CI [-6.3%, +5.5%]) against a vol-matched equal-weight universe; levels are 'in-sample-flattered'; ~57% monthly turnover. The vol-matched equal-weight benchmark is a REQUIRED output column; interpret any result below benchmark + 0.15 Sharpe as 'no selection skill'. S045b deviates from the paper (drops value, replaces the three-state gate with a binary one, drops the buffer and the low-vol tilt, uses top-10 directly); the old 4-indicator cap is no longer a constraint. The Efficiente 5 paper is NOT a source for this entry.
-- parameter_variants: design {S045a paper design primary; S045b catalog simplification}
+- parameter_variants: design {S045a paper design primary; S045b catalog simplification}; universe {top 250/500 primary/750/1,000}; target volatility {10%, 15%, 20% baseline, 25%, 30% for S045a; 10%, 15%, 20% baseline, 25% for S045b}.
 - data_needs: daily_10years (D1) + SPY (DP-ETF)
+- rust_status: IMPLEMENTED
+- implementation_delta: DELTA — next-open is the executable primary fill; same-close is an upper bound. S045a uses four price-only factors (quality fundamentals omitted), 60-day realized-vol targeting capped at 1x, an incumbent buffer, and the 1.00/0.70/0.40 market/vol gate; S045b is also registered. Cached equity history starts in 2016.
+- implementation_results: Rust in `src/family4.rs` / `src/study.rs`, config `configs/s045_characteristic_blend.yaml`; Universe: A, AA, AABA, AAL, AAOI, AAP, AAPL, ABBV, ABCM, ABEV, ABMD, ABNB, ABT, ACB, ACC, ACGL, ACHR, ACIA, ACN, ADBE, ADI, ADM, ADP, ADSK, ADT, AEE, AEHR, AEIS, AEM, AEO, AEP, AER, AES, AET, AFL, AFRM, AG, AGN, AGNC, AGQ, AHT, AI, AIG, AIRC, AIZ, AJG, AKAM, AKRX, AKS, ALAB, ALB, ALC, ALGN, ALK, ALL, ALLE, ALLY, ALNY, ALXN, AMAT, AMBA, AMC, AMCR, AMD, AME, AMG, AMGN, AMKR, AMP, AMRN, AMT, AMTD, AMZN, AN, ANDV, ANET, ANF, ANSS, AON, AOS, APA, APC, APD, APH, APHA, APLD, APLS, APO, APP, APPN, APPS, APTV, AR, ARCH, ARCT, ARE, ARES, ARGX, ARM, ARMK, ARNC, ARRS, ARRY, ARWR, ASAN, ASML, ASST, ASTS, ASX, ATHM, ATHN, ATI, ATO, ATUS, ATVI, AU, AUY, AVAV, AVB, AVGO, AVLR, AVTR, AVY, AWK, AXON, AXP, AXTA, AXTI, AYI, AYX, AZEK, AZN, AZO, B, BA, BABA, BAC, BAH, BALL, BAM, BAP, BAX, BB, BBAI, BBBY, BBD, BBIG, BBL, BBWI, BBY, BCR, BCS, BDX, BE, BEAV, BEKE, BEN, BF.B, BFH, BG, BHC, BHI, BHP, BHVN, BIDU, BIIB, BILI, BILL, BIO, BIOR, BIVV, BJ, BK, BKI, BKNG, BKR, BLD, BLDP, BLDR, BLK, BLNK, BLUE, BMNR, BMRN, BMY, BN, BNGO, BNO, BNTX, BNY, BOIL, BOX, BP, BPL, BPMC, BR, BRCD, BRK.A, BRK.B, BRO, BROS, BSX, BTBT, BTDR, BTG, BTI, BTU, BUD, BULL, BURL, BWA, BWLD, BWXT, BX, BXP, BYND, BZUN, C, CAA, CACI, CAG, CAH, CAN, CAR, CARR, CART, CASY, CAT, CAVA, CAVM, CB, CBI, CBOE, CBRE, CBS, CC, CCEP, CCI, CCJ, CCK, CCL, CDE, CDNS, CDW, CE, CEG, CEI, CELG, CELH, CERN, CF, CFG, CFLT, CG, CGC, CGNX, CHD, CHGG, CHKP, CHPT, CHRD, CHRW, CHTR, CHWY, CI, CIEN, CIFR, CINF, CIT, CL, CLF, CLOV, CLR, CLS, CLSK, CLVS, CLX, CM, CMA, CMCSA, CME, CMG, CMI, CMS, CNC, CNH, CNI, CNK, CNP, CNQ, CNX, COF, COH, COHR, COIN, COL, COMM, CONE, COO, COP, COR, CORZ, COST, COTY, COUP, CP, CPAY, CPB, CPN, CPNG, CPRI, CPRT, CPT, CRCL, CRDO, CREE, CRH, CRI, CRL, CRM, CRON, CROX, CRS, CRSP, CRUS, CRWD, CRWV, CSC, CSCO, CSGP, CSIQ, CSL, CSX, CTAS, CTL, CTLT, CTRA, CTRP, CTSH, CTVA, CTXS, CVE, CVNA, CVS, CVX, CW, CWAN, CWH, CX, CXO, CY, CYBR, CYTK, CZR, D, DAL, DAR, DASH, DATA, DAY, DB, DBX, DD, DDD, DDOG, DE, DECK, DELL, DEN, DEO, DFS, DG, DGX, DHI, DHR, DINO, DIS, DISCA, DISCK, DISH, DJT, DK, DKNG, DKS, DLPH, DLR, DLTR, DNKN, DOC, DOCN, DOCU, DOV, DOW, DPS, DPZ, DQ, DRE, DRI, DT, DTE, DUK, DUOL, DVA, DVMT, DVN, DWDP, DXC, DXCM, EA, EAT, EBAY, ECA, ECHO, ECL, ED, EDIT, EDU, EFX, EG, EGN, EH, EIX, EL, ELAN, ELF, ELLI, ELV, EME, EMN, EMR, ENB, ENDP, ENPH, ENTG, ENVX, EOG, EOSE, EPAM, EPD, EQH, EQIX, EQNR, EQR, EQT, ERI, ERIC, ES, ESRX, ESS, ESTC, ESV, ET, ETFC, ETH, ETHE, ETN, ETP, ETR, ETSY, EVHC, EVRG, EW, EXAS, EXC, EXE, EXEL, EXPD, EXPE, EXR, F, FANG, FAST, FBIN, FCAU, FCEL, FCNCA, FCX, FDC, FDS, FDX, FE, FERG, FEYE, FFIV, FHN, FI, FICO, FIG, FIRY, FIS, FISV, FIT, FITB, FIVE, FIVN, FIX, FL, FLEX, FLG, FLGT, FLNA, FLR, FLS, FLT, FLUT, FLY, FMC, FN, FND, FNF, FNSR, FNV, FORM, FOUR, FOX, FOXA, FRC, FSLR, FSLY, FSR, FTAI, FTCH, FTI, FTNT, FTR, FTV, FUBO, FUTU, FVRR, FWONK, FXE, GAP, GBT, GBTC, GD, GDDY, GDS, GE, GEHC, GEN, GEV, GEVO, GFI, GFS, GG, GGB, GGP, GH, GILD, GIS, GL, GLDM, GLOB, GLW, GM, GME, GNRC, GOOG, GOOGL, GOOS, GOTU, GPC, GPN, GRAB, GRMN, GRWG, GS, GSK, GT, GTLB, GTLS, GTM, GWPH, GWR, GWRE, GWW, GXP, HAIN, HAL, HALO, HAR, HAS, HBAN, HBI, HCA, HCP, HD, HDB, HDS, HES, HFC, HIG, HII, HIMS, HL, HLF, HLN, HLT, HOG, HOLX, HON, HOOD, HP, HPE, HPQ, HR, HRB, HRC, HRL, HRS, HSBC, HSIC, HST, HSY, HTHT, HUBB, HUBS, HUM, HUN, HUT, HWM, HYLN, HZNP, IAC, IAU, IAUM, IBKR, IBM, IBN, ICE, ICLR, IDEX, IDTI, IDXX, IEX, IFF, ILMN, IMGN, IMMU, INCY, INFY, INMD, INO, INSM, INSP, INTC, INTU, INVH, INXN, IONQ, IONS, IOT, IP, IPG, IPGP, IPHI, IQ, IQV, IR, IRBT, IREN, IRM, ISEE, ISRG, IT, ITCI, ITUB, ITW, IVZ, J, JAZZ, JBHT, JBL, JBLU, JCI, JCP, JD, JEC, JHX, JKHY, JKS, JMIA, JNJ, JNPR, JOBY, JOYY, JPM, JUNO, JWN, K, KATE, KDP, KEY, KEYS, KGC, KHC, KIM, KITE, KKR, KL, KLAC, KMB, KMI, KMX, KNX, KO, KODK, KOLD, KORS, KR, KRTX, KSS, KSU, KTOS, KVUE, LAC, LAD, LB, LBRDK, LBTYA, LBTYK, LCID, LDOS, LEA, LEN, LEU, LGND, LH, LHX, LI, LII, LIN, LITE, LKQ, LLL, LLTC, LLY, LM, LMND, LMT, LNC, LNG, LNT, LOGC, LOGM, LOW, LOXO, LPLA, LPT, LPX, LRCX, LSCC, LSI, LSPD, LTHM, LULU, LUMN, LUNR, LUV, LVGO, LVLT, LVS, LW, LYB, LYFT, LYV, M, MA, MAA, MAC, MAN, MAR, MARA, MAS, MASI, MAT, MBLY, MCD, MCHP, MCK, MCO, MDB, MDCO, MDGL, MDLZ, MDSO, MDT, MELI, MENT, MET, META, MGA, MGM, MGNI, MHK, MIDD, MIME, MJN, MKC, MKSI, MKTX, MLCO, MLM, MLNX, MMC, MMM, MNDY, MNK, MNST, MO, MOD, MOH, MOMO, MON, MOS, MP, MPC, MPLX, MPT, MPW, MPWR, MRK, MRNA, MRO, MRSH, MRVL, MS, MSCC, MSCI, MSFT, MSI, MSTR, MT, MTB, MTCH, MTD, MTN, MTSI, MTZ, MU, MULE, MUR, MVIS, MXIM, MXL, MYL, MYOK, NBIS, NBIX, NBL, NBR, NCLH, NDAQ, NEE, NEM, NET, NEWR, NFLX, NI, NIO, NKE, NKLA, NKTR, NLSN, NLY, NNDM, NOC, NOK, NOV, NOW, NRG, NSC, NTAP, NTES, NTLA, NTNX, NTR, NTRA, NTRS, NU, NUAN, NUE, NVAX, NVCR, NVDA, NVMI, NVO, NVR, NVS, NVT, NVTA, NVTS, NWL, NXH, NXPI, NXT, O, OA, OC, OCGN, OCLR, ODFL, OKE, OKLO, OKTA, OLED, OLLI, OMC, ON, ONCE, ONDS, ONON, ONTO, OPEN, OPTU, ORCL, ORLY, OSCR, OSH, OTIS, OVV, OWL, OXY, P, PAA, PAAS, PACB, PACW, PAGS, PANW, PATH, PAYC, PAYX, PBCT, PBF, PBR, PBR.A, PBYI, PCAR, PCG, PCOR, PCTY, PDD, PE, PEG, PEN, PENN, PEP, PF, PFE, PFG, PFPT, PG, PGR, PH, PHM, PHYS, PII, PINS, PKG, PL, PLAN, PLD, PLNT, PLTR, PLUG, PM, PNC, PNR, PNRA, PNW, PODD, POET, POOL, POT, PPG, PPL, PPLI, PR, PRGO, PRMB, PRU, PRXL, PSA, PSLV, PSTG, PSX, PTC, PTEN, PTON, PVH, PWR, PX, PXD, PYPL, Q, QBTS, QCOM, QDEL, QFIN, QGEN, QRVO, QS, QSR, QTS, QUBT, QVCA, QXO, RACE, RAI, RBA, RBLX, RBRK, RCL, RDDT, RDFN, RDS.A, RDS.B, RDW, REG, REGN, RETA, RF, RGEN, RGLD, RGTI, RH, RHI, RHT, RICE, RIG, RIO, RIOT, RIVN, RJF, RKLB, RKT, RL, RMBS, RMD, RNA, RNG, ROIV, ROK, ROKU, ROL, ROP, ROST, RP, RR, RRC, RRX, RS, RSG, RSPP, RTN, RTX, RUN, RVMD, RVTY, RXDX, RXRX, RY, S, SABR, SAGE, SAIA, SAIL, SAM, SAP, SATS, SAVA, SAVE, SBAC, SBE, SBET, SBNY, SBUX, SCCO, SCG, SCHW, SCO, SE, SEDG, SEE, SERV, SFIX, SFM, SGEN, SGI, SGOL, SHAK, SHEL, SHLL, SHOP, SHPG, SHW, SI, SIG, SIGA, SIMO, SINA, SIRI, SITM, SIVB, SIVR, SIX, SJM, SKLZ, SKX, SLB, SLCA, SLG, SLW, SM, SMAR, SMCI, SMR, SMTC, SN, SNA, SNAP, SNDK, SNDL, SNI, SNOW, SNPS, SNV, SNY, SO, SOFI, SOLO, SONY, SOS, SOUN, SPCE, SPCX, SPG, SPGI, SPLK, SPOT, SPR, SPRU, SPY, SQM, SRC, SRCL, SRE, SRNE, SRPT, SSNC, STE, STJ, STLA, STLD, STM, STNE, STOR, STRL, STT, STX, STZ, SU, SUI, SUM, SW, SWAV, SWK, SWKS, SWN, SWTX, SXL, SYF, SYK, SYMC, SYY, T, TAL, TAP, TCO, TCOM, TD, TDG, TDOC, TDY, TE, TEAM, TECD, TECH, TECK, TEL, TEM, TER, TEVA, TFC, TFX, TGT, THC, THO, TIF, TIGR, TJX, TKO, TLN, TLRY, TMDX, TME, TMO, TMUS, TNDM, TNL, TOL, TOST, TPL, TPR, TREX, TRGP, TRI, TRIP, TROW, TRP, TRU, TRV, TS, TSCO, TSEM, TSLA, TSM, TSN, TSO, TSRO, TSS, TT, TTD, TTE, TTMI, TTWO, TW, TWLO, TWST, TWTR, TWX, TXG, TXN, TXRH, TXT, TYL, U, UA, UAA, UAL, UBER, UCO, UDR, UEC, UGI, UGL, UHS, UL, ULTA, UMC, UNG, UNH, UNM, UNP, UPS, UPST, URBN, URI, USAR, USB, USFD, UTHR, UTX, UUUU, V, VAL, VALE, VALE.P, VAR, VEEV, VER, VFC, VG, VIAB, VIAV, VICI, VICR, VIK, VIPS, VISN, VKTX, VLO, VLTO, VMC, VMRK, VMW, VNO, VNTV, VOD, VOYA, VRNA, VRSK, VRSN, VRT, VRTX, VRX, VSH, VST, VTR, VTRS, VUZI, VXRT, VZ, W, WAB, WAL, WAT, WB, WBA, WBC, WBD, WBS, WCC, WCG, WCN, WDAY, WDC, WEC, WELL, WEX, WFC, WFM, WFRD, WFT, WHR, WING, WISH, WIX, WKHS, WLK, WLL, WM, WMB, WMGI, WMT, WNR, WOLF, WORK, WP, WPC, WPM, WPX, WRB, WRK, WSM, WSO, WST, WTW, WU, WUBA, WULF, WWAV, WWD, WWE, WY, WYN, WYNN, XEC, XEL, XL, XLNX, XNET, XOM, XP, XPEV, XPO, XRAY, XRX, XYL, XYZ, Y, YELP, YHOO, YUM, YUMC, Z, ZAYO, ZBH, ZBRA, ZEN, ZETA, ZG, ZIM, ZION, ZM, ZNGA, ZS, ZSL, ZTO, ZTS (daily bars from 2 sources); each symbol at most one position, book slots 10.; Data: `C:\data\trading\trading_framework\data\cache\daily_10years_tr, C:\data\trading\trading_framework\data\cache\etf_tr`; sessions 2016-01-04 .. 2026-10-23; evaluation starts 2016-01-04.. Full grid: 31 settings including baseline, 62 variant/fill rows; primary fill `next_open`. DEV-only selection `a_n750_v30`; baseline DEV/TEST skill -0.183/-0.165; selected DEV/TEST skill -0.133/-0.295. Selected TEST Sharpe +0.528, PF +1.253, win +49.9%, trades 337. no selected-result evidence or high-metric flag. Variant-search bias is not included; TEST has been inspected.
+  | portfolio | variant | partition | total log | trend log | random-pick baselines (log; p) | skill (log) | skill vs random U / pool (log) | bias (log) | skill % | skill p | Sharpe | PF | max DD | win % | trades |
+  |---|---|---|---:|---:|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | baseline | `baseline` | DEV | +0.054 | +0.236 | U +0.095 (p=+0.487); pool +0.089 (p=+0.500) | -0.183 | U -0.042; pool -0.035 | +0.000 | n/a | +0.743 | +0.143 | +1.185 | -15.9% | +53.7% | 350 |
+  | baseline | `baseline` | TEST | +0.287 | +0.452 | U +0.335 (p=+0.543); pool +0.336 (p=+0.569) | -0.165 | U -0.049; pool -0.049 | +0.000 | n/a | +0.731 | +0.970 | +1.424 | -10.3% | +55.6% | 340 |
+  | DEV-selected | `a_n750_v30` | DEV | +0.103 | +0.236 | U +0.102 (p=+0.378); pool +0.100 (p=+0.419) | -0.133 | U +0.001; pool +0.003 | +0.000 | n/a | +0.679 | +0.242 | +1.264 | -13.6% | +54.3% | 350 |
+  | DEV-selected | `a_n750_v30` | TEST | +0.153 | +0.448 | U +0.332 (p=+0.751); pool +0.329 (p=+0.727) | -0.295 | U -0.179; pool -0.176 | +0.000 | n/a | +0.864 | +0.528 | +1.253 | -12.5% | +49.9% | 337 |
+  Reproduce: full matrix `cargo run --release -- --strategy s045_characteristic_blend --variant paper_design,catalog_simplification,a_n250_v10,a_n250_v15,a_n250_v25,a_n250_v30,a_n500_v10,a_n500_v15,a_n500_v25,a_n500_v30,a_n750_v10,a_n750_v15,a_n750_v25,a_n750_v30,a_n1000_v10,a_n1000_v15,a_n1000_v25,a_n1000_v30,b_n250_v10,b_n250_v15,b_n250_v25,b_n500_v10,b_n500_v15,b_n500_v25,b_n750_v10,b_n750_v15,b_n750_v25,b_n1000_v10,b_n1000_v15,b_n1000_v25`; DEV-selected winner `cargo run --release -- --strategy s045_characteristic_blend --variant a_n750_v30`.
 - review: RESOLVED
 
 ### S046 | Industry Rotation via Market-State Similarity
@@ -1087,8 +1184,18 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - priority: P3
 - sources: [Papers With Backtest — Industry Rotation Using Market-State Similarity](https://paperswithbacktest.com/strategies/industry-rotation-using-market-state-similarity)
 - notes: The cited page is Zakamulin's abstract (May 2026): monthly French industry portfolios, quantile predictability concentrated in the tails, a market-state similarity strategy with 'higher Sharpe, lower volatility, substantially smaller drawdowns than the passive equal-weighted industry benchmark'. The '50 closest analogs' and 'top/bottom tercile' parameters are NOT in the abstract (catalog's own). Replicate on French data first, then port to ETFs.
-- parameter_variants: analog count K {50 primary, 25, 100}; legs {long-short primary; long-only}
+- parameter_variants: analog count K {25/50 primary/75/100/150}; forward outcome horizon {36/60 primary/84 months}; legs {long-short primary; long-only}.
 - data_needs: Ken French 49-industry data (external one-off); sector ETF series (DP-ETF)
+- rust_status: IMPLEMENTED
+- implementation_delta: DELTA — implementation is the French 49-industry monthly replication only; the sector-ETF port remains future work. Monthly French returns are used (no daily open-fill series); the state uses 60-month standardized market factors, the configured analog/horizon grid, and next-month industry outcomes; short borrow is 300 bps annualized; the close-aligned monthly backtest is an optimistic upper-bound, not an executable next-open replication.
+- implementation_results: Rust in `src/family4.rs` / `src/study.rs`, config `configs/s046_market_state_industry_rotation.yaml`; Universe: French 49 industry portfolios with monthly returns; Data: French monthly industry/factor CSVs `C:\data\trading\deepthrust\data\cache\ff49\industries\49_Industry_Portfolios.csv` and `C:\data\trading\deepthrust\data\cache\ff49\factors\F-F_Research_Data_Factors.csv`; months 1926-07-31 .. 2026-09-30; evaluation starts 1926-07-31.. Full grid: 30 settings including baseline, 30 variant/fill rows; primary fill `close`. DEV-only selection `k75_f36_lo`; baseline DEV/TEST skill -1.624/-0.313; selected DEV/TEST skill +0.644/-0.279. Selected TEST Sharpe +0.563, PF +1.391, win +58.7%, trades 3567. DECAYED: skill sign changes. Variant-search bias is not included; TEST has been inspected.
+  | portfolio | variant | partition | total log | trend log | random-pick baselines (log; p) | skill (log) | skill vs random U / pool (log) | bias (log) | skill % | skill p | Sharpe | PF | max DD | win % | trades |
+  |---|---|---|---:|---:|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | baseline | `baseline` | DEV | -1.620 | +0.004 | U -3.286 (p=+0.001); pool -3.331 (p=+0.001) | -1.624 | U +1.666; pool +1.711 | +0.000 | n/a | +0.995 | -0.265 | +0.968 | -85.7% | +48.8% | 24835 |
+  | baseline | `baseline` | TEST | -0.313 | -0.000 | U -0.883 (p=+0.015); pool -0.880 (p=+0.019) | -0.313 | U +0.570; pool +0.567 | +0.000 | n/a | +0.831 | -0.188 | +0.979 | -33.7% | +49.7% | 7128 |
+  | DEV-selected | `k75_f36_lo` | DEV | +8.882 | +8.238 | U +7.694 (p=+0.001); pool +7.701 (p=+0.001) | +0.644 | U +1.188; pool +1.181 | +0.000 | +7.3% | +0.022 | +0.749 | +1.615 | -51.5% | +58.2% | 12317 |
+  | DEV-selected | `k75_f36_lo` | TEST | +1.559 | +1.838 | U +1.682 (p=+0.747); pool +1.678 (p=+0.733) | -0.279 | U -0.123; pool -0.119 | +0.000 | n/a | +0.921 | +0.563 | +1.391 | -49.9% | +58.7% | 3567 |
+  Reproduce: full matrix `cargo run --release -- --strategy s046_market_state_industry_rotation --variant analog25,analog100,long_only,k25_f36_ls,k25_f84_ls,k50_f36_ls,k50_f84_ls,k75_f36_ls,k75_f60_ls,k75_f84_ls,k100_f36_ls,k100_f84_ls,k150_f36_ls,k150_f60_ls,k150_f84_ls,k25_f36_lo,k25_f60_lo,k25_f84_lo,k50_f36_lo,k50_f84_lo,k75_f36_lo,k75_f60_lo,k75_f84_lo,k100_f36_lo,k100_f60_lo,k100_f84_lo,k150_f36_lo,k150_f60_lo,k150_f84_lo`; DEV-selected winner `cargo run --release -- --strategy s046_market_state_industry_rotation --variant k75_f36_lo`.
 - review: RESOLVED
 
 ### S047 | Absolute / Dual Momentum (S047a absolute SPY vs cash; S047b Antonacci GEM)
@@ -1106,8 +1213,18 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - priority: P2
 - sources: [Trading Garden — 16 S&P 500 strategies (Absolute Momentum, Antonacci)](https://trading-garden.com/sp500-trading-strategies.html)
 - notes: The earlier rule (SPY -> TLT -> cash) was neither the Trading Garden rule ('long for the whole next month if the 12-month return beats the 12-month cash rate') nor GEM; the TLT fallback adds duration risk (2022) and is now a registered variant of S047a. Trading Garden results (S&P/MES): 1963-today 35 trades, 68.6% win, CAGR 11.5% vs 10.9%; only 15 trades since 2000. Trade count is tiny (G-05): use as the most robust crash filter/overlay for faster strategies. Comparator: Faber 10-month SMA gate (price vs 10-month SMA, total return, monthly).
-- parameter_variants: variant {S047a SPY vs cash primary; S047b GEM}; defensive asset {cash primary; TLT (ex-original S047); AGG}; comparator {10-month SMA gate}
+- parameter_variants: mode {absolute SPY-vs-cash primary; GEM; SMA10 gate}; momentum lookback {63/126/189/252 primary/315/378/504/630/756/1,008 days}; defensive asset {BIL primary; TLT}; SMA gate lookback {126/168/210/252/315 days}.
 - data_needs: SPY, EFA/ACWX, AGG, BIL total-return series + FRED T-bill (DP-ETF, DP-FRED)
+- rust_status: IMPLEMENTED
+- implementation_delta: DELTA — next-open is the executable primary fill; same-close is an upper bound. Absolute, GEM, and SMA-gate modes are registered; ETF TR history starts in 2016 and BIL is used as the cash proxy, with no pre-2007 FRED splice.
+- implementation_results: Rust in `src/family4.rs` / `src/study.rs`, config `configs/s047_absolute_dual_momentum.yaml`; Universe: AGG, BIL, EFA, SPY, TLT (daily bars from 1 sources); each symbol at most one position, book slots 1.; Data: `C:\data\trading\trading_framework\data\cache\etf_tr`; sessions 2016-01-04 .. 2026-10-23; evaluation starts 2016-01-04.. Full grid: 31 settings including baseline, 62 variant/fill rows; primary fill `next_open`. DEV-only selection `gem756`; baseline DEV/TEST skill +0.126/+0.289; selected DEV/TEST skill +0.404/+0.289. Selected TEST Sharpe +1.236, PF +3.577, win +73.5%, trades 34. insufficient trade-count evidence; PF or Sharpe > 2: leakage and timing review required. Variant-search bias is not included; TEST has been inspected.
+  | portfolio | variant | partition | total log | trend log | random-pick baselines (log; p) | skill (log) | skill vs random U / pool (log) | bias (log) | skill % | skill p | Sharpe | PF | max DD | win % | trades |
+  |---|---|---|---:|---:|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | baseline | `baseline` | DEV | +0.462 | +0.336 | U +0.283 (p=+0.248); pool +0.290 (p=+0.270) | +0.126 | U +0.179; pool +0.172 | +0.000 | +27.3% | +0.362 | +0.462 | +1.552 | -33.8% | +72.3% | 83 |
+  | baseline | `baseline` | TEST | +0.501 | +0.212 | U +0.207 (p=+0.005); pool +0.204 (p=+0.003) | +0.289 | U +0.295; pool +0.298 | +0.000 | +57.7% | +0.050 | +1.236 | +3.577 | -18.7% | +73.5% | 34 |
+  | DEV-selected | `gem756` | DEV | +0.646 | +0.242 | U +0.197 (p=+0.033); pool +0.194 (p=+0.033) | +0.404 | U +0.449; pool +0.452 | +0.000 | +62.6% | +0.111 | +0.582 | +1.749 | -33.8% | +66.1% | 59 |
+  | DEV-selected | `gem756` | TEST | +0.501 | +0.212 | U +0.206 (p=+0.009); pool +0.210 (p=+0.009) | +0.289 | U +0.296; pool +0.292 | +0.000 | +57.7% | +0.050 | +1.236 | +3.577 | -18.7% | +73.5% | 34 |
+  Reproduce: full matrix `cargo run --release -- --strategy s047_absolute_dual_momentum --variant gem,absolute_tlt,sma10_gate,abs63_bil,abs63_tlt,abs126_bil,abs126_tlt,abs189_bil,abs189_tlt,abs315_bil,abs315_tlt,abs378_bil,gem63,gem126,gem189,gem315,gem378,gem504,gem630,gem756,gem1008,sma126_bil,sma126_tlt,sma168_bil,sma168_tlt,sma210_tlt,sma252_bil,sma252_tlt,sma315_bil,sma315_tlt`; DEV-selected winner `cargo run --release -- --strategy s047_absolute_dual_momentum --variant gem756`.
 - review: RESOLVED
 
 ### S048 | Validea Short-Term Sector Momentum
@@ -1163,8 +1280,18 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - priority: P3
 - sources: [Kvants — Volume breakout strategy (breakout context)](https://studio.kvants.ai/blog/volume-breakout-strategy)
 - notes: Parameters 63/10/3/2% are all free: run a coarse grid with full trial accounting, not the single (63, 10, 3, 2%) point. A price within 2% of its 10-day SMA after 3 down closes can only exceed the breakout high within 10 sessions if the pullback was shallow. The cited Kvants page has no rules or numbers (decorative citation, see S040). Report with and without earnings-window signals (G-12).
-- parameter_variants: grid {breakout lookback 42/63/126; pullback days 2/3/4; SMA distance 1%/2%/3%} (all registered trials)
+- parameter_variants: grid {breakout lookback 42/63/126; pullback days 2/3/4; SMA distance 1%/2%/3%}; earnings avoidance {off primary; on}. All grid combinations are registered; next-open is primary and same-close is an upper bound.
 - data_needs: daily_10years (D1) + earnings flag (DP-EARN)
+- rust_status: IMPLEMENTED
+- implementation_delta: DELTA — next-open is the executable primary fill; same-close is an upper bound. The full breakout/pullback/distance grid and earnings-avoidance variants are registered. Earnings filtering uses realized SimFin Publish Dates, not PIT scheduled announcements; stock history starts in 2016 and the S&P interval file is a public GitHub aggregation.
+- implementation_results: Rust in `src/family4.rs` / `src/study.rs`, config `configs/s050_first_pullback.yaml`; Universe: A, AA, AABA, AAL, AAOI, AAP, AAPL, ABBV, ABCM, ABEV, ABMD, ABNB, ABT, ACB, ACC, ACGL, ACHR, ACIA, ACN, ADBE, ADI, ADM, ADP, ADSK, ADT, AEE, AEHR, AEIS, AEM, AEO, AEP, AER, AES, AET, AFL, AFRM, AG, AGN, AGNC, AGQ, AHT, AI, AIG, AIRC, AIZ, AJG, AKAM, AKRX, AKS, ALAB, ALB, ALC, ALGN, ALK, ALL, ALLE, ALLY, ALNY, ALXN, AMAT, AMBA, AMC, AMCR, AMD, AME, AMG, AMGN, AMKR, AMP, AMRN, AMT, AMTD, AMZN, AN, ANDV, ANET, ANF, ANSS, AON, AOS, APA, APC, APD, APH, APHA, APLD, APLS, APO, APP, APPN, APPS, APTV, AR, ARCH, ARCT, ARE, ARES, ARGX, ARM, ARMK, ARNC, ARRS, ARRY, ARWR, ASAN, ASML, ASST, ASTS, ASX, ATHM, ATHN, ATI, ATO, ATUS, ATVI, AU, AUY, AVAV, AVB, AVGO, AVLR, AVTR, AVY, AWK, AXON, AXP, AXTA, AXTI, AYI, AYX, AZEK, AZN, AZO, B, BA, BABA, BAC, BAH, BALL, BAM, BAP, BAX, BB, BBAI, BBBY, BBD, BBIG, BBL, BBWI, BBY, BCR, BCS, BDX, BE, BEAV, BEKE, BEN, BF.B, BFH, BG, BHC, BHI, BHP, BHVN, BIDU, BIIB, BILI, BILL, BIO, BIOR, BIVV, BJ, BK, BKI, BKNG, BKR, BLD, BLDP, BLDR, BLK, BLNK, BLUE, BMNR, BMRN, BMY, BN, BNGO, BNO, BNTX, BNY, BOIL, BOX, BP, BPL, BPMC, BR, BRCD, BRK.A, BRK.B, BRO, BROS, BSX, BTBT, BTDR, BTG, BTI, BTU, BUD, BULL, BURL, BWA, BWLD, BWXT, BX, BXP, BYND, BZUN, C, CAA, CACI, CAG, CAH, CAN, CAR, CARR, CART, CASY, CAT, CAVA, CAVM, CB, CBI, CBOE, CBRE, CBS, CC, CCEP, CCI, CCJ, CCK, CCL, CDE, CDNS, CDW, CE, CEG, CEI, CELG, CELH, CERN, CF, CFG, CFLT, CG, CGC, CGNX, CHD, CHGG, CHKP, CHPT, CHRD, CHRW, CHTR, CHWY, CI, CIEN, CIFR, CINF, CIT, CL, CLF, CLOV, CLR, CLS, CLSK, CLVS, CLX, CM, CMA, CMCSA, CME, CMG, CMI, CMS, CNC, CNH, CNI, CNK, CNP, CNQ, CNX, COF, COH, COHR, COIN, COL, COMM, CONE, COO, COP, COR, CORZ, COST, COTY, COUP, CP, CPAY, CPB, CPN, CPNG, CPRI, CPRT, CPT, CRCL, CRDO, CREE, CRH, CRI, CRL, CRM, CRON, CROX, CRS, CRSP, CRUS, CRWD, CRWV, CSC, CSCO, CSGP, CSIQ, CSL, CSX, CTAS, CTL, CTLT, CTRA, CTRP, CTSH, CTVA, CTXS, CVE, CVNA, CVS, CVX, CW, CWAN, CWH, CX, CXO, CY, CYBR, CYTK, CZR, D, DAL, DAR, DASH, DATA, DAY, DB, DBX, DD, DDD, DDOG, DE, DECK, DELL, DEN, DEO, DFS, DG, DGX, DHI, DHR, DINO, DIS, DISCA, DISCK, DISH, DJT, DK, DKNG, DKS, DLPH, DLR, DLTR, DNKN, DOC, DOCN, DOCU, DOV, DOW, DPS, DPZ, DQ, DRE, DRI, DT, DTE, DUK, DUOL, DVA, DVMT, DVN, DWDP, DXC, DXCM, EA, EAT, EBAY, ECA, ECHO, ECL, ED, EDIT, EDU, EFX, EG, EGN, EH, EIX, EL, ELAN, ELF, ELLI, ELV, EME, EMN, EMR, ENB, ENDP, ENPH, ENTG, ENVX, EOG, EOSE, EPAM, EPD, EQH, EQIX, EQNR, EQR, EQT, ERI, ERIC, ES, ESRX, ESS, ESTC, ESV, ET, ETFC, ETH, ETHE, ETN, ETP, ETR, ETSY, EVHC, EVRG, EW, EXAS, EXC, EXE, EXEL, EXPD, EXPE, EXR, F, FANG, FAST, FBIN, FCAU, FCEL, FCNCA, FCX, FDC, FDS, FDX, FE, FERG, FEYE, FFIV, FHN, FI, FICO, FIG, FIRY, FIS, FISV, FIT, FITB, FIVE, FIVN, FIX, FL, FLEX, FLG, FLGT, FLNA, FLR, FLS, FLT, FLUT, FLY, FMC, FN, FND, FNF, FNSR, FNV, FORM, FOUR, FOX, FOXA, FRC, FSLR, FSLY, FSR, FTAI, FTCH, FTI, FTNT, FTR, FTV, FUBO, FUTU, FVRR, FWONK, FXE, GAP, GBT, GBTC, GD, GDDY, GDS, GE, GEHC, GEN, GEV, GEVO, GFI, GFS, GG, GGB, GGP, GH, GILD, GIS, GL, GLDM, GLOB, GLW, GM, GME, GNRC, GOOG, GOOGL, GOOS, GOTU, GPC, GPN, GRAB, GRMN, GRWG, GS, GSK, GT, GTLB, GTLS, GTM, GWPH, GWR, GWRE, GWW, GXP, HAIN, HAL, HALO, HAR, HAS, HBAN, HBI, HCA, HCP, HD, HDB, HDS, HES, HFC, HIG, HII, HIMS, HL, HLF, HLN, HLT, HOG, HOLX, HON, HOOD, HP, HPE, HPQ, HR, HRB, HRC, HRL, HRS, HSBC, HSIC, HST, HSY, HTHT, HUBB, HUBS, HUM, HUN, HUT, HWM, HYLN, HZNP, IAC, IAU, IAUM, IBKR, IBM, IBN, ICE, ICLR, IDEX, IDTI, IDXX, IEX, IFF, ILMN, IMGN, IMMU, INCY, INFY, INMD, INO, INSM, INSP, INTC, INTU, INVH, INXN, IONQ, IONS, IOT, IP, IPG, IPGP, IPHI, IQ, IQV, IR, IRBT, IREN, IRM, ISEE, ISRG, IT, ITCI, ITUB, ITW, IVZ, J, JAZZ, JBHT, JBL, JBLU, JCI, JCP, JD, JEC, JHX, JKHY, JKS, JMIA, JNJ, JNPR, JOBY, JOYY, JPM, JUNO, JWN, K, KATE, KDP, KEY, KEYS, KGC, KHC, KIM, KITE, KKR, KL, KLAC, KMB, KMI, KMX, KNX, KO, KODK, KOLD, KORS, KR, KRTX, KSS, KSU, KTOS, KVUE, LAC, LAD, LB, LBRDK, LBTYA, LBTYK, LCID, LDOS, LEA, LEN, LEU, LGND, LH, LHX, LI, LII, LIN, LITE, LKQ, LLL, LLTC, LLY, LM, LMND, LMT, LNC, LNG, LNT, LOGC, LOGM, LOW, LOXO, LPLA, LPT, LPX, LRCX, LSCC, LSI, LSPD, LTHM, LULU, LUMN, LUNR, LUV, LVGO, LVLT, LVS, LW, LYB, LYFT, LYV, M, MA, MAA, MAC, MAN, MAR, MARA, MAS, MASI, MAT, MBLY, MCD, MCHP, MCK, MCO, MDB, MDCO, MDGL, MDLZ, MDSO, MDT, MELI, MENT, MET, META, MGA, MGM, MGNI, MHK, MIDD, MIME, MJN, MKC, MKSI, MKTX, MLCO, MLM, MLNX, MMC, MMM, MNDY, MNK, MNST, MO, MOD, MOH, MOMO, MON, MOS, MP, MPC, MPLX, MPT, MPW, MPWR, MRK, MRNA, MRO, MRSH, MRVL, MS, MSCC, MSCI, MSFT, MSI, MSTR, MT, MTB, MTCH, MTD, MTN, MTSI, MTZ, MU, MULE, MUR, MVIS, MXIM, MXL, MYL, MYOK, NBIS, NBIX, NBL, NBR, NCLH, NDAQ, NEE, NEM, NET, NEWR, NFLX, NI, NIO, NKE, NKLA, NKTR, NLSN, NLY, NNDM, NOC, NOK, NOV, NOW, NRG, NSC, NTAP, NTES, NTLA, NTNX, NTR, NTRA, NTRS, NU, NUAN, NUE, NVAX, NVCR, NVDA, NVMI, NVO, NVR, NVS, NVT, NVTA, NVTS, NWL, NXH, NXPI, NXT, O, OA, OC, OCGN, OCLR, ODFL, OKE, OKLO, OKTA, OLED, OLLI, OMC, ON, ONCE, ONDS, ONON, ONTO, OPEN, OPTU, ORCL, ORLY, OSCR, OSH, OTIS, OVV, OWL, OXY, P, PAA, PAAS, PACB, PACW, PAGS, PANW, PATH, PAYC, PAYX, PBCT, PBF, PBR, PBR.A, PBYI, PCAR, PCG, PCOR, PCTY, PDD, PE, PEG, PEN, PENN, PEP, PF, PFE, PFG, PFPT, PG, PGR, PH, PHM, PHYS, PII, PINS, PKG, PL, PLAN, PLD, PLNT, PLTR, PLUG, PM, PNC, PNR, PNRA, PNW, PODD, POET, POOL, POT, PPG, PPL, PPLI, PR, PRGO, PRMB, PRU, PRXL, PSA, PSLV, PSTG, PSX, PTC, PTEN, PTON, PVH, PWR, PX, PXD, PYPL, Q, QBTS, QCOM, QDEL, QFIN, QGEN, QRVO, QS, QSR, QTS, QUBT, QVCA, QXO, RACE, RAI, RBA, RBLX, RBRK, RCL, RDDT, RDFN, RDS.A, RDS.B, RDW, REG, REGN, RETA, RF, RGEN, RGLD, RGTI, RH, RHI, RHT, RICE, RIG, RIO, RIOT, RIVN, RJF, RKLB, RKT, RL, RMBS, RMD, RNA, RNG, ROIV, ROK, ROKU, ROL, ROP, ROST, RP, RR, RRC, RRX, RS, RSG, RSPP, RTN, RTX, RUN, RVMD, RVTY, RXDX, RXRX, RY, S, SABR, SAGE, SAIA, SAIL, SAM, SAP, SATS, SAVA, SAVE, SBAC, SBE, SBET, SBNY, SBUX, SCCO, SCG, SCHW, SCO, SE, SEDG, SEE, SERV, SFIX, SFM, SGEN, SGI, SGOL, SHAK, SHEL, SHLL, SHOP, SHPG, SHW, SI, SIG, SIGA, SIMO, SINA, SIRI, SITM, SIVB, SIVR, SIX, SJM, SKLZ, SKX, SLB, SLCA, SLG, SLW, SM, SMAR, SMCI, SMR, SMTC, SN, SNA, SNAP, SNDK, SNDL, SNI, SNOW, SNPS, SNV, SNY, SO, SOFI, SOLO, SONY, SOS, SOUN, SPCE, SPCX, SPG, SPGI, SPLK, SPOT, SPR, SPRU, SQM, SRC, SRCL, SRE, SRNE, SRPT, SSNC, STE, STJ, STLA, STLD, STM, STNE, STOR, STRL, STT, STX, STZ, SU, SUI, SUM, SW, SWAV, SWK, SWKS, SWN, SWTX, SXL, SYF, SYK, SYMC, SYY, T, TAL, TAP, TCO, TCOM, TD, TDG, TDOC, TDY, TE, TEAM, TECD, TECH, TECK, TEL, TEM, TER, TEVA, TFC, TFX, TGT, THC, THO, TIF, TIGR, TJX, TKO, TLN, TLRY, TMDX, TME, TMO, TMUS, TNDM, TNL, TOL, TOST, TPL, TPR, TREX, TRGP, TRI, TRIP, TROW, TRP, TRU, TRV, TS, TSCO, TSEM, TSLA, TSM, TSN, TSO, TSRO, TSS, TT, TTD, TTE, TTMI, TTWO, TW, TWLO, TWST, TWTR, TWX, TXG, TXN, TXRH, TXT, TYL, U, UA, UAA, UAL, UBER, UCO, UDR, UEC, UGI, UGL, UHS, UL, ULTA, UMC, UNG, UNH, UNM, UNP, UPS, UPST, URBN, URI, USAR, USB, USFD, UTHR, UTX, UUUU, V, VAL, VALE, VALE.P, VAR, VEEV, VER, VFC, VG, VIAB, VIAV, VICI, VICR, VIK, VIPS, VISN, VKTX, VLO, VLTO, VMC, VMRK, VMW, VNO, VNTV, VOD, VOYA, VRNA, VRSK, VRSN, VRT, VRTX, VRX, VSH, VST, VTR, VTRS, VUZI, VXRT, VZ, W, WAB, WAL, WAT, WB, WBA, WBC, WBD, WBS, WCC, WCG, WCN, WDAY, WDC, WEC, WELL, WEX, WFC, WFM, WFRD, WFT, WHR, WING, WISH, WIX, WKHS, WLK, WLL, WM, WMB, WMGI, WMT, WNR, WOLF, WORK, WP, WPC, WPM, WPX, WRB, WRK, WSM, WSO, WST, WTW, WU, WUBA, WULF, WWAV, WWD, WWE, WY, WYN, WYNN, XEC, XEL, XL, XLNX, XNET, XOM, XP, XPEV, XPO, XRAY, XRX, XYL, XYZ, Y, YELP, YHOO, YUM, YUMC, Z, ZAYO, ZBH, ZBRA, ZEN, ZETA, ZG, ZIM, ZION, ZM, ZNGA, ZS, ZSL, ZTO, ZTS (daily bars from 1 sources); each symbol at most one position, book slots 1.; Data: `C:\data\trading\trading_framework\data\cache\daily_10years_tr`; sessions 2016-01-04 .. 2026-10-23; evaluation starts 2016-01-04.. Full grid: 30 settings including baseline, 60 variant/fill rows; primary fill `next_open`. DEV-only selection `breakout63_pullback4_dist1`; baseline DEV/TEST skill -1.698/-0.458; selected DEV/TEST skill +0.027/-0.156. Selected TEST Sharpe -0.191, PF +0.719, win +33.3%, trades 45. DECAYED: skill sign changes. Variant-search bias is not included; TEST has been inspected.
+  | portfolio | variant | partition | total log | trend log | random-pick baselines (log; p) | skill (log) | skill vs random U / pool (log) | bias (log) | skill % | skill p | Sharpe | PF | max DD | win % | trades |
+  |---|---|---|---:|---:|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | baseline | `baseline` | DEV | -0.925 | +0.773 | U -0.441 (p=+0.951); pool -0.441 (p=+0.929) | -1.698 | U -0.484; pool -0.484 | +0.000 | n/a | +1.000 | -0.830 | +0.797 | -63.9% | +40.6% | 4848 |
+  | baseline | `baseline` | TEST | -0.180 | +0.278 | U -0.154 (p=+0.565); pool -0.172 (p=+0.526) | -0.458 | U -0.026; pool -0.009 | +0.000 | n/a | +0.975 | -0.411 | +1.082 | -29.1% | +42.9% | 1571 |
+  | DEV-selected | `breakout63_pullback4_dist1` | DEV | -0.066 | -0.093 | U -0.424 (p=+0.103); pool -0.430 (p=+0.119) | +0.027 | U +0.358; pool +0.364 | +0.000 | n/a | +0.458 | -0.061 | +0.959 | -34.8% | +41.7% | 259 |
+  | DEV-selected | `breakout63_pullback4_dist1` | TEST | -0.056 | +0.101 | U -0.022 (p=+0.591); pool -0.027 (p=+0.578) | -0.156 | U -0.034; pool -0.029 | +0.000 | n/a | +0.886 | -0.191 | +0.719 | -21.4% | +33.3% | 45 |
+  Reproduce: full matrix `cargo run --release -- --strategy s050_first_pullback --variant avoid_earnings,breakout42_pullback2_dist1,breakout42_pullback2_dist2,breakout42_pullback2_dist3,breakout42_pullback3_dist1,breakout42_pullback3_dist2,breakout42_pullback3_dist3,breakout42_pullback4_dist1,breakout42_pullback4_dist2,breakout42_pullback4_dist3,breakout63_pullback2_dist1,breakout63_pullback2_dist2,breakout63_pullback2_dist3,breakout63_pullback3_dist1,breakout63_pullback3_dist2,breakout63_pullback3_dist3,breakout63_pullback4_dist1,breakout63_pullback4_dist2,breakout63_pullback4_dist3,breakout126_pullback2_dist1,breakout126_pullback2_dist2,breakout126_pullback2_dist3,breakout126_pullback3_dist1,breakout126_pullback3_dist2,breakout126_pullback3_dist3,breakout126_pullback4_dist1,breakout126_pullback4_dist2,breakout126_pullback4_dist3,breakout126_pullback4_dist2_avoid_earnings`; DEV-selected winner `cargo run --release -- --strategy s050_first_pullback --variant breakout63_pullback4_dist1`.
 - review: RESOLVED
 
 ### S051 | Darvas Box Breakout
@@ -1182,7 +1309,18 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - priority: P3
 - sources: Be The Puck - Darvas box scorecard (mechanical definition above; beat buy-and-hold Sharpe on 44/372; S&P 500 index +4.3%/yr vs +8.9%); the Kagels Turtle page cited earlier contains no Darvas rule and is no longer cited
 - notes: REPLACED: the earlier '55-day range unexceeded for 15+ sessions' mixed two windows and was an arbitrary range breakout (a close cousin of S036), with a stray non-English typo in the notes (fixed). The three-day box is the Be The Puck mechanical definition; Darvas' original rules were discretionary.
+- parameter_variants: PIT universe top-N {100/250/500 primary/750/1,000}; minimum history {126/250 primary/500 sessions}; fill {next-open primary; same-close upper bound}.
 - data_needs: daily_10years (D1)
+- rust_status: IMPLEMENTED
+- implementation_delta: DELTA — next-open is the executable primary fill; same-close is an upper bound. Entries use PIT liquid-stock ranks, and each three-session pivot is confirmed only with data available then. Cached stock history starts in 2016. DEV skill ranks are not fully like-for-like: the 500-session minimum-history variants start evaluation in December 2017, versus December 2016 for the 126/250-session variants.
+- implementation_results: Rust in `src/family4.rs` / `src/study.rs`, config `configs/s051_darvas_box.yaml`; Universe: A, AA, AABA, AAL, AAOI, AAP, AAPL, ABBV, ABCM, ABEV, ABMD, ABNB, ABT, ACB, ACC, ACGL, ACHR, ACIA, ACN, ADBE, ADI, ADM, ADP, ADSK, ADT, AEE, AEHR, AEIS, AEM, AEO, AEP, AER, AES, AET, AFL, AFRM, AG, AGN, AGNC, AGQ, AHT, AI, AIG, AIRC, AIZ, AJG, AKAM, AKRX, AKS, ALAB, ALB, ALC, ALGN, ALK, ALL, ALLE, ALLY, ALNY, ALXN, AMAT, AMBA, AMC, AMCR, AMD, AME, AMG, AMGN, AMKR, AMP, AMRN, AMT, AMTD, AMZN, AN, ANDV, ANET, ANF, ANSS, AON, AOS, APA, APC, APD, APH, APHA, APLD, APLS, APO, APP, APPN, APPS, APTV, AR, ARCH, ARCT, ARE, ARES, ARGX, ARM, ARMK, ARNC, ARRS, ARRY, ARWR, ASAN, ASML, ASST, ASTS, ASX, ATHM, ATHN, ATI, ATO, ATUS, ATVI, AU, AUY, AVAV, AVB, AVGO, AVLR, AVTR, AVY, AWK, AXON, AXP, AXTA, AXTI, AYI, AYX, AZEK, AZN, AZO, B, BA, BABA, BAC, BAH, BALL, BAM, BAP, BAX, BB, BBAI, BBBY, BBD, BBIG, BBL, BBWI, BBY, BCR, BCS, BDX, BE, BEAV, BEKE, BEN, BF.B, BFH, BG, BHC, BHI, BHP, BHVN, BIDU, BIIB, BILI, BILL, BIO, BIOR, BIVV, BJ, BK, BKI, BKNG, BKR, BLD, BLDP, BLDR, BLK, BLNK, BLUE, BMNR, BMRN, BMY, BN, BNGO, BNO, BNTX, BNY, BOIL, BOX, BP, BPL, BPMC, BR, BRCD, BRK.A, BRK.B, BRO, BROS, BSX, BTBT, BTDR, BTG, BTI, BTU, BUD, BULL, BURL, BWA, BWLD, BWXT, BX, BXP, BYND, BZUN, C, CAA, CACI, CAG, CAH, CAN, CAR, CARR, CART, CASY, CAT, CAVA, CAVM, CB, CBI, CBOE, CBRE, CBS, CC, CCEP, CCI, CCJ, CCK, CCL, CDE, CDNS, CDW, CE, CEG, CEI, CELG, CELH, CERN, CF, CFG, CFLT, CG, CGC, CGNX, CHD, CHGG, CHKP, CHPT, CHRD, CHRW, CHTR, CHWY, CI, CIEN, CIFR, CINF, CIT, CL, CLF, CLOV, CLR, CLS, CLSK, CLVS, CLX, CM, CMA, CMCSA, CME, CMG, CMI, CMS, CNC, CNH, CNI, CNK, CNP, CNQ, CNX, COF, COH, COHR, COIN, COL, COMM, CONE, COO, COP, COR, CORZ, COST, COTY, COUP, CP, CPAY, CPB, CPN, CPNG, CPRI, CPRT, CPT, CRCL, CRDO, CREE, CRH, CRI, CRL, CRM, CRON, CROX, CRS, CRSP, CRUS, CRWD, CRWV, CSC, CSCO, CSGP, CSIQ, CSL, CSX, CTAS, CTL, CTLT, CTRA, CTRP, CTSH, CTVA, CTXS, CVE, CVNA, CVS, CVX, CW, CWAN, CWH, CX, CXO, CY, CYBR, CYTK, CZR, D, DAL, DAR, DASH, DATA, DAY, DB, DBX, DD, DDD, DDOG, DE, DECK, DELL, DEN, DEO, DFS, DG, DGX, DHI, DHR, DINO, DIS, DISCA, DISCK, DISH, DJT, DK, DKNG, DKS, DLPH, DLR, DLTR, DNKN, DOC, DOCN, DOCU, DOV, DOW, DPS, DPZ, DQ, DRE, DRI, DT, DTE, DUK, DUOL, DVA, DVMT, DVN, DWDP, DXC, DXCM, EA, EAT, EBAY, ECA, ECHO, ECL, ED, EDIT, EDU, EFX, EG, EGN, EH, EIX, EL, ELAN, ELF, ELLI, ELV, EME, EMN, EMR, ENB, ENDP, ENPH, ENTG, ENVX, EOG, EOSE, EPAM, EPD, EQH, EQIX, EQNR, EQR, EQT, ERI, ERIC, ES, ESRX, ESS, ESTC, ESV, ET, ETFC, ETH, ETHE, ETN, ETP, ETR, ETSY, EVHC, EVRG, EW, EXAS, EXC, EXE, EXEL, EXPD, EXPE, EXR, F, FANG, FAST, FBIN, FCAU, FCEL, FCNCA, FCX, FDC, FDS, FDX, FE, FERG, FEYE, FFIV, FHN, FI, FICO, FIG, FIRY, FIS, FISV, FIT, FITB, FIVE, FIVN, FIX, FL, FLEX, FLG, FLGT, FLNA, FLR, FLS, FLT, FLUT, FLY, FMC, FN, FND, FNF, FNSR, FNV, FORM, FOUR, FOX, FOXA, FRC, FSLR, FSLY, FSR, FTAI, FTCH, FTI, FTNT, FTR, FTV, FUBO, FUTU, FVRR, FWONK, FXE, GAP, GBT, GBTC, GD, GDDY, GDS, GE, GEHC, GEN, GEV, GEVO, GFI, GFS, GG, GGB, GGP, GH, GILD, GIS, GL, GLDM, GLOB, GLW, GM, GME, GNRC, GOOG, GOOGL, GOOS, GOTU, GPC, GPN, GRAB, GRMN, GRWG, GS, GSK, GT, GTLB, GTLS, GTM, GWPH, GWR, GWRE, GWW, GXP, HAIN, HAL, HALO, HAR, HAS, HBAN, HBI, HCA, HCP, HD, HDB, HDS, HES, HFC, HIG, HII, HIMS, HL, HLF, HLN, HLT, HOG, HOLX, HON, HOOD, HP, HPE, HPQ, HR, HRB, HRC, HRL, HRS, HSBC, HSIC, HST, HSY, HTHT, HUBB, HUBS, HUM, HUN, HUT, HWM, HYLN, HZNP, IAC, IAU, IAUM, IBKR, IBM, IBN, ICE, ICLR, IDEX, IDTI, IDXX, IEX, IFF, ILMN, IMGN, IMMU, INCY, INFY, INMD, INO, INSM, INSP, INTC, INTU, INVH, INXN, IONQ, IONS, IOT, IP, IPG, IPGP, IPHI, IQ, IQV, IR, IRBT, IREN, IRM, ISEE, ISRG, IT, ITCI, ITUB, ITW, IVZ, J, JAZZ, JBHT, JBL, JBLU, JCI, JCP, JD, JEC, JHX, JKHY, JKS, JMIA, JNJ, JNPR, JOBY, JOYY, JPM, JUNO, JWN, K, KATE, KDP, KEY, KEYS, KGC, KHC, KIM, KITE, KKR, KL, KLAC, KMB, KMI, KMX, KNX, KO, KODK, KOLD, KORS, KR, KRTX, KSS, KSU, KTOS, KVUE, LAC, LAD, LB, LBRDK, LBTYA, LBTYK, LCID, LDOS, LEA, LEN, LEU, LGND, LH, LHX, LI, LII, LIN, LITE, LKQ, LLL, LLTC, LLY, LM, LMND, LMT, LNC, LNG, LNT, LOGC, LOGM, LOW, LOXO, LPLA, LPT, LPX, LRCX, LSCC, LSI, LSPD, LTHM, LULU, LUMN, LUNR, LUV, LVGO, LVLT, LVS, LW, LYB, LYFT, LYV, M, MA, MAA, MAC, MAN, MAR, MARA, MAS, MASI, MAT, MBLY, MCD, MCHP, MCK, MCO, MDB, MDCO, MDGL, MDLZ, MDSO, MDT, MELI, MENT, MET, META, MGA, MGM, MGNI, MHK, MIDD, MIME, MJN, MKC, MKSI, MKTX, MLCO, MLM, MLNX, MMC, MMM, MNDY, MNK, MNST, MO, MOD, MOH, MOMO, MON, MOS, MP, MPC, MPLX, MPT, MPW, MPWR, MRK, MRNA, MRO, MRSH, MRVL, MS, MSCC, MSCI, MSFT, MSI, MSTR, MT, MTB, MTCH, MTD, MTN, MTSI, MTZ, MU, MULE, MUR, MVIS, MXIM, MXL, MYL, MYOK, NBIS, NBIX, NBL, NBR, NCLH, NDAQ, NEE, NEM, NET, NEWR, NFLX, NI, NIO, NKE, NKLA, NKTR, NLSN, NLY, NNDM, NOC, NOK, NOV, NOW, NRG, NSC, NTAP, NTES, NTLA, NTNX, NTR, NTRA, NTRS, NU, NUAN, NUE, NVAX, NVCR, NVDA, NVMI, NVO, NVR, NVS, NVT, NVTA, NVTS, NWL, NXH, NXPI, NXT, O, OA, OC, OCGN, OCLR, ODFL, OKE, OKLO, OKTA, OLED, OLLI, OMC, ON, ONCE, ONDS, ONON, ONTO, OPEN, OPTU, ORCL, ORLY, OSCR, OSH, OTIS, OVV, OWL, OXY, P, PAA, PAAS, PACB, PACW, PAGS, PANW, PATH, PAYC, PAYX, PBCT, PBF, PBR, PBR.A, PBYI, PCAR, PCG, PCOR, PCTY, PDD, PE, PEG, PEN, PENN, PEP, PF, PFE, PFG, PFPT, PG, PGR, PH, PHM, PHYS, PII, PINS, PKG, PL, PLAN, PLD, PLNT, PLTR, PLUG, PM, PNC, PNR, PNRA, PNW, PODD, POET, POOL, POT, PPG, PPL, PPLI, PR, PRGO, PRMB, PRU, PRXL, PSA, PSLV, PSTG, PSX, PTC, PTEN, PTON, PVH, PWR, PX, PXD, PYPL, Q, QBTS, QCOM, QDEL, QFIN, QGEN, QRVO, QS, QSR, QTS, QUBT, QVCA, QXO, RACE, RAI, RBA, RBLX, RBRK, RCL, RDDT, RDFN, RDS.A, RDS.B, RDW, REG, REGN, RETA, RF, RGEN, RGLD, RGTI, RH, RHI, RHT, RICE, RIG, RIO, RIOT, RIVN, RJF, RKLB, RKT, RL, RMBS, RMD, RNA, RNG, ROIV, ROK, ROKU, ROL, ROP, ROST, RP, RR, RRC, RRX, RS, RSG, RSPP, RTN, RTX, RUN, RVMD, RVTY, RXDX, RXRX, RY, S, SABR, SAGE, SAIA, SAIL, SAM, SAP, SATS, SAVA, SAVE, SBAC, SBE, SBET, SBNY, SBUX, SCCO, SCG, SCHW, SCO, SE, SEDG, SEE, SERV, SFIX, SFM, SGEN, SGI, SGOL, SHAK, SHEL, SHLL, SHOP, SHPG, SHW, SI, SIG, SIGA, SIMO, SINA, SIRI, SITM, SIVB, SIVR, SIX, SJM, SKLZ, SKX, SLB, SLCA, SLG, SLW, SM, SMAR, SMCI, SMR, SMTC, SN, SNA, SNAP, SNDK, SNDL, SNI, SNOW, SNPS, SNV, SNY, SO, SOFI, SOLO, SONY, SOS, SOUN, SPCE, SPCX, SPG, SPGI, SPLK, SPOT, SPR, SPRU, SQM, SRC, SRCL, SRE, SRNE, SRPT, SSNC, STE, STJ, STLA, STLD, STM, STNE, STOR, STRL, STT, STX, STZ, SU, SUI, SUM, SW, SWAV, SWK, SWKS, SWN, SWTX, SXL, SYF, SYK, SYMC, SYY, T, TAL, TAP, TCO, TCOM, TD, TDG, TDOC, TDY, TE, TEAM, TECD, TECH, TECK, TEL, TEM, TER, TEVA, TFC, TFX, TGT, THC, THO, TIF, TIGR, TJX, TKO, TLN, TLRY, TMDX, TME, TMO, TMUS, TNDM, TNL, TOL, TOST, TPL, TPR, TREX, TRGP, TRI, TRIP, TROW, TRP, TRU, TRV, TS, TSCO, TSEM, TSLA, TSM, TSN, TSO, TSRO, TSS, TT, TTD, TTE, TTMI, TTWO, TW, TWLO, TWST, TWTR, TWX, TXG, TXN, TXRH, TXT, TYL, U, UA, UAA, UAL, UBER, UCO, UDR, UEC, UGI, UGL, UHS, UL, ULTA, UMC, UNG, UNH, UNM, UNP, UPS, UPST, URBN, URI, USAR, USB, USFD, UTHR, UTX, UUUU, V, VAL, VALE, VALE.P, VAR, VEEV, VER, VFC, VG, VIAB, VIAV, VICI, VICR, VIK, VIPS, VISN, VKTX, VLO, VLTO, VMC, VMRK, VMW, VNO, VNTV, VOD, VOYA, VRNA, VRSK, VRSN, VRT, VRTX, VRX, VSH, VST, VTR, VTRS, VUZI, VXRT, VZ, W, WAB, WAL, WAT, WB, WBA, WBC, WBD, WBS, WCC, WCG, WCN, WDAY, WDC, WEC, WELL, WEX, WFC, WFM, WFRD, WFT, WHR, WING, WISH, WIX, WKHS, WLK, WLL, WM, WMB, WMGI, WMT, WNR, WOLF, WORK, WP, WPC, WPM, WPX, WRB, WRK, WSM, WSO, WST, WTW, WU, WUBA, WULF, WWAV, WWD, WWE, WY, WYN, WYNN, XEC, XEL, XL, XLNX, XNET, XOM, XP, XPEV, XPO, XRAY, XRX, XYL, XYZ, Y, YELP, YHOO, YUM, YUMC, Z, ZAYO, ZBH, ZBRA, ZEN, ZETA, ZG, ZIM, ZION, ZM, ZNGA, ZS, ZSL, ZTO, ZTS (daily bars from 1 sources); each symbol at most one position, book slots 1.; Data: `C:\data\trading\trading_framework\data\cache\daily_10years_tr`; sessions 2016-01-04 .. 2026-10-23; evaluation starts 2016-12-29.. Full grid: 31 settings including baseline, 32 variant/fill rows; primary fill `next_open`. DEV-only selection `u100_h250_next`; baseline DEV/TEST skill -0.696/-0.083; selected DEV/TEST skill -0.412/-0.174. Selected TEST Sharpe +0.880, PF +1.493, win +40.7%, trades 1549. no selected-result evidence or high-metric flag. Variant-search bias is not included; TEST has been inspected.
+  | portfolio | variant | partition | total log | trend log | random-pick baselines (log; p) | skill (log) | skill vs random U / pool (log) | bias (log) | skill % | skill p | Sharpe | PF | max DD | win % | trades |
+  |---|---|---|---:|---:|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | baseline | `baseline` | DEV | +0.067 | +0.763 | U +0.202 (p=+0.965); pool +0.207 (p=+0.973) | -0.696 | U -0.135; pool -0.140 | +0.000 | n/a | +0.999 | +0.143 | +1.056 | -36.2% | +40.8% | 21083 |
+  | baseline | `baseline` | TEST | +0.319 | +0.402 | U +0.216 (p=+0.028); pool +0.216 (p=+0.031) | -0.083 | U +0.104; pool +0.103 | +0.000 | n/a | +0.732 | +0.846 | +1.240 | -17.5% | +41.9% | 8117 |
+  | DEV-selected | `u100_h250_next` | DEV | +0.407 | +0.820 | U +0.384 (p=+0.442); pool +0.393 (p=+0.469) | -0.412 | U +0.023; pool +0.014 | +0.000 | n/a | +0.974 | +0.405 | +1.187 | -33.4% | +39.3% | 4106 |
+  | DEV-selected | `u100_h250_next` | TEST | +0.422 | +0.596 | U +0.379 (p=+0.333); pool +0.381 (p=+0.339) | -0.174 | U +0.043; pool +0.042 | +0.000 | n/a | +0.850 | +0.880 | +1.493 | -18.6% | +40.7% | 1549 |
+  Reproduce: full matrix `cargo run --release -- --strategy s051_darvas_box --variant u100_h126_close,u100_h126_next,u100_h250_close,u100_h250_next,u100_h500_close,u100_h500_next,u250_h126_close,u250_h126_next,u250_h250_close,u250_h250_next,u250_h500_close,u250_h500_next,u500_h126_close,u500_h126_next,u500_h250_close,u500_h250_next,u500_h500_close,u500_h500_next,u750_h126_close,u750_h126_next,u750_h250_close,u750_h250_next,u750_h500_close,u750_h500_next,u1000_h126_close,u1000_h126_next,u1000_h250_close,u1000_h250_next,u1000_h500_close,u1000_h500_next`; DEV-selected winner `cargo run --release -- --strategy s051_darvas_box --variant u100_h250_next`.
 - review: RESOLVED
 
 ---
@@ -1191,7 +1329,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 *Why this family works: information diffuses slowly. Post-earnings-announcement drift (PEAD) is among the longest-documented anomalies; stocks that beat estimates keep drifting up for weeks. The earnings announcement premium (NBER w13090): stocks announcing earnings in a month outperform non-announcers in that month — a calendar-holdable premium. LLM-based sentiment (arXiv 2412.19245) demonstrates daily news sentiment L/S portfolios; Kiszczuk's SSRN paper (attached; a single title page, abstract only) is an explainability study with no trading rule.*
 
-### S052 | Earnings Announcement Premium (Monthly; absorbs S086 weekly version)
+### S052 | Earnings Announcement Premium (Monthly)
 - family: earnings (calendar-driven)
 - concept: Frazzini-Lamont (NBER w13090): stocks expected to announce earnings in month t outperform stocks not announcing; the strategy buys every expected announcer at the last close of month t-1 and shorts non-announcers.
 - universe: US stocks with exactly 4 announcements in the prior 12 months (expected dates from SimFin Publish Date, 2009+; ~2/3 of stocks announce in any month)
@@ -1205,7 +1343,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - status: active
 - priority: P2
 - sources: [NBER w13090 — The Earnings Announcement Premium and Trading Volume](https://www.nber.org/system/files/working_papers/w13090/w13090.pdf)
-- notes: NBER w13090 (Frazzini & Lamont) verified: 'exactly four earnings announcements' restriction, long expected announcers / short non-announcers, value-weighted monthly, 61 bps/month long-short, Sharpe 0.94 vs 0.70 for momentum; stocks with high past announcement-period volume earn the highest premium. The sample ends in the early 2000s; the premium after publication is untested in the cited paper, so report subperiods. This is an earnings-calendar strategy only: no LLM or news input. Absorbs S086 (weekly tilt: in weeks 3-4 of each fiscal quarter, buy the equal-weight basket of stocks expected to announce that week from prior-year timing, +/-1 week of jitter; the earlier version had two conflicting exit rules, now one).
+- notes: NBER w13090 (Frazzini & Lamont) verified: 'exactly four earnings announcements' restriction, long expected announcers / short non-announcers, value-weighted monthly, 61 bps/month long-short, Sharpe 0.94 vs 0.70 for momentum; stocks with high past announcement-period volume earn the highest premium. The sample ends in the early 2000s; the premium after publication is untested in the cited paper, so report subperiods. This is an earnings-calendar strategy only: no LLM or news input.
 - parameter_variants: cadence {monthly primary; weekly ex-S086 (weeks 3-4 of Jan/Apr/Jul/Oct)}; weighting {equal paper, value research}; sort {volume concentration primary; none}; leg {long announcers - SPY hedge primary; long-short}
 - merged_from: S086
 - data_needs: SimFin Publish Date 2009+ (DP-EARN); daily_10years (D1)
@@ -1600,7 +1738,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S075 | Stock-vs-Sector Residual Reversal
 - family: pairs and spreads
-- ohlcv_status: NOT_DAILY, DEFER
+- ohlcv_status: DAILY, DELTA
 - concept: For each stock compute its residual 5-day return versus its industry peers (stock return minus beta x peer return); extreme negative residuals revert because nonfundamental, sector-wide or sentiment-driven selling is misattributed to the name. NY Fed SR 513: only the within-industry residual component of reversal is significant and a strategy built on it earns ~3x the risk-adjusted return of the standard sort.
 - universe: liquid_top_N US stocks with PIT industry/sector mapping (SimFin industries or SIC) and equal-weight peer returns (sector ETF where available)
 - direction: long
@@ -1611,12 +1749,14 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - frequency: daily opportunities across the universe
 - provenance: adapted
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P1
 - sources: [NY Fed Staff Report 513 - Decomposing Short-Term Return Reversal (within-industry residual)](https://www.newyorkfed.org/medialibrary/media/research/staff_reports/sr513.html); the Springer ETF-pairs paper cited earlier is about ETF pairs, not stock residuals, and is no longer cited
 - notes: Best-supported reversal construct. Long-only is a slice of a market-neutral idea, so the beta of a bottom-decile residual basket is not zero: the null is the vol-matched equal-weight universe. Report raw reversal (S027) next to it as the control and exclude/report earnings-window signals (+/-3 sessions, G-12). The market-neutral flavour of the reversal family.
 - parameter_variants: exit {5-session time stop primary; residual > 0 with max 10 sessions}; SMA200 filter {on primary, off}; skip {0 days, 1 day}; peers {SimFin industry equal-weight primary; sector ETF}
 - data_needs: daily_10years (D1) + SimFin industry map + earnings flag (DP-EARN)
 - review: KEEP | source PARTIAL (cited paper was wrong; NY Fed SR 513 now cited)
+- rust_implementation: Registered as `s075_residual_reversal` with 30 named variants and daily OHLCV signal/trade tests. Peer groups use the available current SimFin snapshot, not point-in-time historical industry membership; this is a known limitation. No Rust real-data performance results have been run.
 - implementation_results: `src/strategies/s075_residual_reversal`; SimFin sector-level (12 groups, matching the paper's 11 SIGC industries) equal-weight leave-one-out peers (no sector ETFs in the cache; `peer_level: industry` reproduces the original 74-industry version), liquid top 500 universe, long-only, research scale, 15 bps/side; dev < 2024-01-01 <= test. `big10` = `min_abs_resid: 0.10` (only residual <= -10% entries; dev-selected winner of 15 variants; dev selection haircut ~0.34 log; test skill not significant).
 
   | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev+test) | avg positions |
@@ -1687,7 +1827,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 *Why this family works: predictable flows cluster on the calendar — month-end pension/payroll contributions, pre-holiday risk reduction, pre-FOMC positioning. These flows create repeatable return patterns at known dates, which is ideal for daily-bar backtesting (no signal estimation, only dates).*
 
-### S079 | Turn-of-the-Month Effect (window grid; absorbs S083)
+### S079 | Turn-of-the-Month Effect (window grid)
 - family: calendar
 - concept: All excess US equity market return over 1987-2005 (and 1897-2005) concentrated in the 4-day turn-of-the-month window (last trading day + first three); the other 16 days earned nothing on average (SSRN 917884).
 - universe: SPY, IWM and RSP (the effect is documented on equal-weight/CRSP indexes); sector ETFs to raise trade count
@@ -1701,7 +1841,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - status: active
 - priority: P1
 - sources: [SSRN 917884 — Equity Returns at the Turn of the Month](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=917884)
-- notes: FIXED off-by-one: McConnell & Xu (SSRN 917884, FAJ 2008): returns over the interval beginning the last trading day of the month and ending three days later are significantly higher (all excess market return in 1987-2005 and 1897-2005; no higher standard deviation; present in 31 of 35 countries). Buying the close of the LAST trading day and selling the close of day 3 earns only three daily returns; the four-day window needs entry at the close of the second-to-last day (as Be The Puck). Erosion: Trading Garden S&P 500 (MES): 1963-today 765 trades, 58% win, CAGR 11.2% vs 10.9% buy-and-hold, but since 2000 only 321 trades with CAGR 3.0%; Be The Puck beat buy-and-hold Sharpe on 63/372. Time in market is ~19%, so judge per unit of exposure against a random-window placebo; report a subperiod table. Absorbs S083 (month-end rebalancing drift: open of the second-to-last trading day to close of the first trading day, 3 sessions; the 'pension rebalancing pushes the index up' story is state-dependent, so report the sign by prior-month return).
+- notes: FIXED off-by-one: McConnell & Xu (SSRN 917884, FAJ 2008): returns over the interval beginning the last trading day of the month and ending three days later are significantly higher (all excess market return in 1987-2005 and 1897-2005; no higher standard deviation; present in 31 of 35 countries). Buying the close of the LAST trading day and selling the close of day 3 earns only three daily returns; the four-day window needs entry at the close of the second-to-last day (as Be The Puck). Erosion: Trading Garden S&P 500 (MES): 1963-today 765 trades, 58% win, CAGR 11.2% vs 10.9% buy-and-hold, but since 2000 only 321 trades with CAGR 3.0%; Be The Puck beat buy-and-hold Sharpe on 63/372. Time in market is ~19%, so judge per unit of exposure against a random-window placebo; report a subperiod table.
 - parameter_variants: window {entry close of day -2, exit close of day +3 primary; entry day -2 or -1, exit day +2..+5 grid; ex-S083: entry OPEN of day -2, exit close of day +1}; split by prior-month return sign; placebo {random 4-day windows}
 - merged_from: S083
 - data_needs: SPY, IWM, RSP total-return daily series (DP-ETF) + trading calendar (DP-CAL)

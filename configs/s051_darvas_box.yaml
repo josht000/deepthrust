@@ -1,0 +1,51 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-01-01"
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+cost_bps_per_side: 15.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+
+variants:
+  u100_h126_close: {universe_top_n: 100, min_history: 126, fills: close}
+  u100_h126_next: {universe_top_n: 100, min_history: 126, fills: next_open}
+  u100_h250_close: {universe_top_n: 100, min_history: 250, fills: close}
+  u100_h250_next: {universe_top_n: 100, min_history: 250, fills: next_open}
+  u100_h500_close: {universe_top_n: 100, min_history: 500, fills: close}
+  u100_h500_next: {universe_top_n: 100, min_history: 500, fills: next_open}
+  u250_h126_close: {universe_top_n: 250, min_history: 126, fills: close}
+  u250_h126_next: {universe_top_n: 250, min_history: 126, fills: next_open}
+  u250_h250_close: {universe_top_n: 250, min_history: 250, fills: close}
+  u250_h250_next: {universe_top_n: 250, min_history: 250, fills: next_open}
+  u250_h500_close: {universe_top_n: 250, min_history: 500, fills: close}
+  u250_h500_next: {universe_top_n: 250, min_history: 500, fills: next_open}
+  u500_h126_close: {universe_top_n: 500, min_history: 126, fills: close}
+  u500_h126_next: {universe_top_n: 500, min_history: 126, fills: next_open}
+  u500_h250_close: {universe_top_n: 500, min_history: 250, fills: close}
+  u500_h250_next: {universe_top_n: 500, min_history: 250, fills: next_open}
+  u500_h500_close: {universe_top_n: 500, min_history: 500, fills: close}
+  u500_h500_next: {universe_top_n: 500, min_history: 500, fills: next_open}
+  u750_h126_close: {universe_top_n: 750, min_history: 126, fills: close}
+  u750_h126_next: {universe_top_n: 750, min_history: 126, fills: next_open}
+  u750_h250_close: {universe_top_n: 750, min_history: 250, fills: close}
+  u750_h250_next: {universe_top_n: 750, min_history: 250, fills: next_open}
+  u750_h500_close: {universe_top_n: 750, min_history: 500, fills: close}
+  u750_h500_next: {universe_top_n: 750, min_history: 500, fills: next_open}
+  u1000_h126_close: {universe_top_n: 1000, min_history: 126, fills: close}
+  u1000_h126_next: {universe_top_n: 1000, min_history: 126, fills: next_open}
+  u1000_h250_close: {universe_top_n: 1000, min_history: 250, fills: close}
+  u1000_h250_next: {universe_top_n: 1000, min_history: 250, fills: next_open}
+  u1000_h500_close: {universe_top_n: 1000, min_history: 500, fills: close}
+  u1000_h500_next: {universe_top_n: 1000, min_history: 500, fills: next_open}

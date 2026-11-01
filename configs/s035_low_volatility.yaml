@@ -1,0 +1,73 @@
+# S035 low-volatility stock portfolio; stock and SPY TR bars from the .env data cache.
+data_suffix: .parquet
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+simfin_dir: ..\trading_framework\data\simfin
+benchmark: SPY
+etf_symbols: SPY
+start_date: "2016-01-04"
+min_history: 252
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+vol_window: 252
+beta_window: 252
+beta_min_obs: 200
+strategy_mode: low_vol
+sector_neutral: false
+decile: 0.10
+min_breadth: 1
+rebalance: monthly
+delisting_return: -0.30
+cost_bps_per_side: 15.0
+cost_ladder_multipliers: [0.5, 1.0, 2.0, 3.0]
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 50
+
+sources:
+  - name: stocks
+    data_dir: ..\trading_framework\data\cache\daily_10years_tr
+    data_suffix: .parquet
+    symbols: "*"
+  - name: benchmark
+    data_dir: ..\trading_framework\data\cache\etf_tr
+    data_suffix: .parquet
+    symbols: SPY
+    cost_bps_per_side: 0.0
+
+variants:
+  vol60: {vol_window: 60}
+  vol126: {vol_window: 126}
+  vol504: {vol_window: 504}
+  universe100: {universe_top_n: 100, book_slots: 10}
+  universe250: {universe_top_n: 250, book_slots: 25}
+  universe1000: {universe_top_n: 1000, book_slots: 100}
+  decile05: {decile: 0.05, book_slots: 25}
+  decile15: {decile: 0.15, book_slots: 75}
+  sector_neutral: {sector_neutral: true}
+  low_beta: {strategy_mode: low_beta}
+  low_beta_sector: {strategy_mode: low_beta, sector_neutral: true}
+  cost5: {cost_bps_per_side: 5.0}
+  cost25: {cost_bps_per_side: 25.0}
+  vol60_n100: {vol_window: 60, universe_top_n: 100, book_slots: 10}
+  vol60_n1000: {vol_window: 60, universe_top_n: 1000, book_slots: 100}
+  vol126_n100: {vol_window: 126, universe_top_n: 100, book_slots: 10}
+  vol126_n1000: {vol_window: 126, universe_top_n: 1000, book_slots: 100}
+  vol504_n100: {vol_window: 504, universe_top_n: 100, book_slots: 10}
+  vol504_n1000: {vol_window: 504, universe_top_n: 1000, book_slots: 100}
+  n100_decile05: {universe_top_n: 100, decile: 0.05, book_slots: 5}
+  n100_decile15: {universe_top_n: 100, decile: 0.15, book_slots: 15}
+  n1000_decile05: {universe_top_n: 1000, decile: 0.05, book_slots: 50}
+  n1000_decile15: {universe_top_n: 1000, decile: 0.15, book_slots: 150}
+  vol60_sector: {vol_window: 60, sector_neutral: true}
+  vol126_sector: {vol_window: 126, sector_neutral: true}
+  vol504_sector: {vol_window: 504, sector_neutral: true}
+  low_beta_n100: {strategy_mode: low_beta, universe_top_n: 100, book_slots: 10}
+  low_beta_n1000: {strategy_mode: low_beta, universe_top_n: 1000, book_slots: 100}
+  low_beta_cost5: {strategy_mode: low_beta, cost_bps_per_side: 5.0}
+  low_beta_cost25: {strategy_mode: low_beta, cost_bps_per_side: 25.0}
+  low_beta_vol60: {strategy_mode: low_beta, vol_window: 60}

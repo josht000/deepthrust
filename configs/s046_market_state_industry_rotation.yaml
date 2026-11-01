@@ -1,0 +1,52 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY
+benchmark: ""
+industry_data_file: C:\data\trading\deepthrust\data\cache\ff49\industries\49_Industry_Portfolios.csv
+market_factor_file: C:\data\trading\deepthrust\data\cache\ff49\factors\F-F_Research_Data_Factors.csv
+start_date: "1926-07-01"
+min_history: 60
+formation_window: 60
+analog_count: 50
+strategy_mode: long_short
+rebalance: monthly
+cost_bps_per_side: 5.0
+borrow_bps_annual: 300.0
+periods_per_year: 12
+fills: close
+partition_split_date: "2008-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 1
+
+variants:
+  analog25: {analog_count: 25}
+  analog100: {analog_count: 100}
+  long_only: {strategy_mode: long_only}
+  k25_f36_ls: {analog_count: 25, formation_window: 36, min_history: 36}
+  k25_f84_ls: {analog_count: 25, formation_window: 84, min_history: 84}
+  k50_f36_ls: {analog_count: 50, formation_window: 36, min_history: 36}
+  k50_f84_ls: {analog_count: 50, formation_window: 84, min_history: 84}
+  k75_f36_ls: {analog_count: 75, formation_window: 36, min_history: 36}
+  k75_f60_ls: {analog_count: 75, formation_window: 60, min_history: 60}
+  k75_f84_ls: {analog_count: 75, formation_window: 84, min_history: 84}
+  k100_f36_ls: {analog_count: 100, formation_window: 36, min_history: 36}
+  k100_f84_ls: {analog_count: 100, formation_window: 84, min_history: 84}
+  k150_f36_ls: {analog_count: 150, formation_window: 36, min_history: 36}
+  k150_f60_ls: {analog_count: 150, formation_window: 60, min_history: 60}
+  k150_f84_ls: {analog_count: 150, formation_window: 84, min_history: 84}
+  k25_f36_lo: {analog_count: 25, formation_window: 36, min_history: 36, strategy_mode: long_only}
+  k25_f60_lo: {analog_count: 25, formation_window: 60, min_history: 60, strategy_mode: long_only}
+  k25_f84_lo: {analog_count: 25, formation_window: 84, min_history: 84, strategy_mode: long_only}
+  k50_f36_lo: {analog_count: 50, formation_window: 36, min_history: 36, strategy_mode: long_only}
+  k50_f84_lo: {analog_count: 50, formation_window: 84, min_history: 84, strategy_mode: long_only}
+  k75_f36_lo: {analog_count: 75, formation_window: 36, min_history: 36, strategy_mode: long_only}
+  k75_f60_lo: {analog_count: 75, formation_window: 60, min_history: 60, strategy_mode: long_only}
+  k75_f84_lo: {analog_count: 75, formation_window: 84, min_history: 84, strategy_mode: long_only}
+  k100_f36_lo: {analog_count: 100, formation_window: 36, min_history: 36, strategy_mode: long_only}
+  k100_f60_lo: {analog_count: 100, formation_window: 60, min_history: 60, strategy_mode: long_only}
+  k100_f84_lo: {analog_count: 100, formation_window: 84, min_history: 84, strategy_mode: long_only}
+  k150_f36_lo: {analog_count: 150, formation_window: 36, min_history: 36, strategy_mode: long_only}
+  k150_f60_lo: {analog_count: 150, formation_window: 60, min_history: 60, strategy_mode: long_only}
+  k150_f84_lo: {analog_count: 150, formation_window: 84, min_history: 84, strategy_mode: long_only}

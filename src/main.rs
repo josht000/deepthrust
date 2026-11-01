@@ -177,7 +177,29 @@ fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Resul
         "gap_volume_mode": cfg.gap_volume_mode,
         "gap_stop_mode": cfg.gap_stop_mode,
         "gap_reward_risk": cfg.gap_reward_risk,
-        "gap_max_hold": cfg.gap_max_hold
+        "gap_max_hold": cfg.gap_max_hold,
+        "selection_mode": cfg.selection_mode,
+        "ratio_floor": cfg.ratio_floor,
+        "holding_months": cfg.holding_months,
+        "formation_skip_months": cfg.formation_skip_months,
+        "strategy_mode": cfg.strategy_mode,
+        "sector_neutral": cfg.sector_neutral,
+        "vol_window": cfg.vol_window,
+        "beta_window": cfg.beta_window,
+        "beta_min_obs": cfg.beta_min_obs,
+        "universe_top_n": cfg.universe_top_n,
+        "decile": cfg.decile,
+        "benchmark": cfg.benchmark,
+        "rank_cache_dir": cfg.rank_cache_dir,
+        "simfin_dir": cfg.simfin_dir,
+        "s023_eps_file": cfg.s023_eps_file,
+        "earnings_dates_file": cfg.earnings_dates_file,
+        "corporate_actions_file": cfg.corporate_actions_file,
+        "s024_min_yield": cfg.s024_min_yield,
+        "min_history": cfg.min_history,
+        "rank_window": cfg.rank_window,
+        "rank_min_observations": cfg.rank_min_observations,
+        "min_price": cfg.min_price
     });
     for fill in cfg.fills_list() {
         let dev = study
@@ -215,7 +237,10 @@ fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Resul
         if previous.as_ref().map_or(true, |previous| {
             previous["dev"] != record["dev"] || previous["test"] != record["test"]
         }) {
-            writeln!(registry, "{record}")
+            let mut registry_line = record.to_string();
+            registry_line.push('\n');
+            registry
+                .write_all(registry_line.as_bytes())
                 .map_err(|e| format!("{}: {e}", registry_path.display()))?;
         }
         let row = format!(

@@ -25,12 +25,40 @@ pub const S019_NAME: &str = "s019_gap_and_go";
 pub const S019_TITLE: &str = "S019 Gap-and-Go Continuation";
 pub const S021_NAME: &str = "s021_index_overnight";
 pub const S021_TITLE: &str = "S021 Index Overnight Premium";
+pub const S032_NAME: &str = "s032_52w_high_proximity";
+pub const S032_TITLE: &str = "S032 52-Week-High Proximity Portfolio";
 pub const S033_NAME: &str = "s033_52w_breakout";
 pub const S033_TITLE: &str = "S033 52-Week-High Breakout";
+pub const S035_NAME: &str = "s035_low_volatility";
+pub const S035_TITLE: &str = "S035 Low-Volatility Anomaly Portfolio";
+pub const S040_NAME: &str = "s040_volume_breakout";
+pub const S040_TITLE: &str = "S040 Volume-Confirmed Breakout";
+pub const S043_NAME: &str = "s043_etf_multi_asset_momentum";
+pub const S043_TITLE: &str = "S043 ETF Multi-Asset Momentum Rotation";
+pub const S044_NAME: &str = "s044_efficiente5";
+pub const S044_TITLE: &str = "S044 Efficiente 5 MPT Replication";
+pub const S045_NAME: &str = "s045_characteristic_blend";
+pub const S045_TITLE: &str = "S045 Multi-Factor Characteristic Blend";
+pub const S046_NAME: &str = "s046_market_state_industry_rotation";
+pub const S046_TITLE: &str = "S046 Industry Rotation via Market-State Similarity";
+pub const S047_NAME: &str = "s047_absolute_dual_momentum";
+pub const S047_TITLE: &str = "S047 Absolute / Dual Momentum";
+pub const S050_NAME: &str = "s050_first_pullback";
+pub const S050_TITLE: &str = "S050 First Pullback After Breakout";
 pub const S041_NAME: &str = "s041_mom_12_1";
 pub const S041_TITLE: &str = "S041 12-1 Cross-Sectional Momentum";
 pub const S042_NAME: &str = "s042_sector_momentum";
 pub const S042_TITLE: &str = "S042 Sector Momentum Rotation";
+pub const S051_NAME: &str = "s051_darvas_box";
+pub const S051_TITLE: &str = "S051 Darvas Box Breakout";
+pub const S075_NAME: &str = "s075_residual_reversal";
+pub const S075_TITLE: &str = "S075 Stock-vs-Sector Residual Reversal";
+pub const S017_NAME: &str = "s017_night_trading";
+pub const S017_TITLE: &str = "S017 Night Trading Overnight-Bias Stock Selection";
+pub const S023_NAME: &str = crate::family2::S023_NAME;
+pub const S023_TITLE: &str = crate::family2::S023_TITLE;
+pub const S024_NAME: &str = crate::family2::S024_NAME;
+pub const S024_TITLE: &str = crate::family2::S024_TITLE;
 pub const S105_NAME: &str = "s105_overnight_carry";
 pub const S105_TITLE: &str = "S105 Volatility-Targeted Overnight Carry";
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
@@ -163,6 +191,26 @@ impl StrategyDefinition for SectorMomentumStrategyDefinition {
 
 struct BreakoutStrategyDefinition;
 
+struct HighProximityStrategyDefinition;
+
+struct LowVolatilityStrategyDefinition;
+
+struct VolumeBreakoutStrategyDefinition;
+
+struct DarvasBoxStrategyDefinition;
+
+struct FirstPullbackStrategyDefinition;
+
+struct MultiAssetMomentumStrategyDefinition;
+
+struct EfficienteFiveStrategyDefinition;
+
+struct CharacteristicBlendStrategyDefinition;
+
+struct MarketStateIndustryStrategyDefinition;
+
+struct DualMomentumStrategyDefinition;
+
 impl StrategyDefinition for BreakoutStrategyDefinition {
     fn name(&self) -> &'static str {
         S033_NAME
@@ -184,6 +232,246 @@ impl StrategyDefinition for BreakoutStrategyDefinition {
         fill: &str,
     ) -> Result<Vec<Trade>, String> {
         signals::s033_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for HighProximityStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S032_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S032_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        signals::compute_s032_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        signals::s032_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for LowVolatilityStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S035_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S035_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        signals::compute_s035_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        signals::s035_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for VolumeBreakoutStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S040_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S040_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family4::compute_s040_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::s040_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for DarvasBoxStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S051_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S051_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family4::compute_s051_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::s051_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for FirstPullbackStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S050_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S050_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family4::compute_s050_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::s050_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for MultiAssetMomentumStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S043_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S043_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family4::compute_s043_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for EfficienteFiveStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S044_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S044_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family4::compute_s044_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for CharacteristicBlendStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S045_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S045_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family4::compute_s045_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for MarketStateIndustryStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S046_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S046_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family4::compute_s046_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for DualMomentumStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S047_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S047_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family4::compute_s047_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
     }
 }
 
@@ -210,6 +498,113 @@ impl StrategyDefinition for CrossSectionalMomentumStrategyDefinition {
         fill: &str,
     ) -> Result<Vec<Trade>, String> {
         signals::s041_trades(panel, sig, cfg, fill)
+    }
+}
+
+struct ResidualReversalStrategyDefinition;
+
+impl StrategyDefinition for ResidualReversalStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S075_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S075_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        signals::compute_s075_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        signals::s075_trades(panel, sig, cfg, fill)
+    }
+}
+
+struct NightTradingStrategyDefinition;
+
+impl StrategyDefinition for NightTradingStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S017_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S017_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        let path = Path::new(&cfg.corporate_actions_file);
+        let actions = data::read_corporate_actions(path)?;
+        signals::compute_s017_signals(panel, cfg, &actions)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        signals::s017_trades(panel, sig, cfg, fill)
+    }
+}
+
+struct PostEarningsDriftStrategyDefinition;
+
+impl StrategyDefinition for PostEarningsDriftStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S023_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S023_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family2::compute_s023_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family2::s023_trades(panel, cfg, sig, fill)
+    }
+}
+
+struct ExDividendCaptureStrategyDefinition;
+
+impl StrategyDefinition for ExDividendCaptureStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S024_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S024_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        let actions = data::read_corporate_actions(Path::new(&cfg.corporate_actions_file))?;
+        crate::family2::compute_s024_signals(panel, cfg, &actions)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family2::s024_trades(panel, cfg, sig, fill)
     }
 }
 
@@ -262,17 +657,45 @@ static S105_STRATEGY: OvernightStrategyDefinition = OvernightStrategyDefinition 
 };
 static S042_STRATEGY: SectorMomentumStrategyDefinition = SectorMomentumStrategyDefinition;
 static S033_STRATEGY: BreakoutStrategyDefinition = BreakoutStrategyDefinition;
+static S032_STRATEGY: HighProximityStrategyDefinition = HighProximityStrategyDefinition;
+static S035_STRATEGY: LowVolatilityStrategyDefinition = LowVolatilityStrategyDefinition;
+static S040_STRATEGY: VolumeBreakoutStrategyDefinition = VolumeBreakoutStrategyDefinition;
+static S050_STRATEGY: FirstPullbackStrategyDefinition = FirstPullbackStrategyDefinition;
+static S043_STRATEGY: MultiAssetMomentumStrategyDefinition = MultiAssetMomentumStrategyDefinition;
+static S044_STRATEGY: EfficienteFiveStrategyDefinition = EfficienteFiveStrategyDefinition;
+static S045_STRATEGY: CharacteristicBlendStrategyDefinition = CharacteristicBlendStrategyDefinition;
+static S046_STRATEGY: MarketStateIndustryStrategyDefinition = MarketStateIndustryStrategyDefinition;
+static S047_STRATEGY: DualMomentumStrategyDefinition = DualMomentumStrategyDefinition;
 static S041_STRATEGY: CrossSectionalMomentumStrategyDefinition =
     CrossSectionalMomentumStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 9] = [
+static S075_STRATEGY: ResidualReversalStrategyDefinition = ResidualReversalStrategyDefinition;
+static S017_STRATEGY: NightTradingStrategyDefinition = NightTradingStrategyDefinition;
+static S023_STRATEGY: PostEarningsDriftStrategyDefinition = PostEarningsDriftStrategyDefinition;
+static S024_STRATEGY: ExDividendCaptureStrategyDefinition = ExDividendCaptureStrategyDefinition;
+static S051_STRATEGY: DarvasBoxStrategyDefinition = DarvasBoxStrategyDefinition;
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 23] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
     &S019_STRATEGY,
     &S021_STRATEGY,
+    &S032_STRATEGY,
     &S033_STRATEGY,
+    &S035_STRATEGY,
+    &S040_STRATEGY,
+    &S043_STRATEGY,
+    &S044_STRATEGY,
+    &S045_STRATEGY,
+    &S046_STRATEGY,
     &S041_STRATEGY,
     &S042_STRATEGY,
+    &S050_STRATEGY,
+    &S051_STRATEGY,
+    &S047_STRATEGY,
+    &S075_STRATEGY,
+    &S017_STRATEGY,
+    &S023_STRATEGY,
+    &S024_STRATEGY,
     &S105_STRATEGY,
 ];
 
@@ -397,13 +820,38 @@ impl<'a> Study<'a> {
     pub fn load_all(&self) -> Result<(Panel, Option<(String, data::Bars)>), String> {
         let cfg = self.cfg;
         let start = data::parse_date(&cfg.start_date)?;
+        if cfg.strategy == S046_NAME {
+            let panel = crate::family4::load_french_industry_panel(
+                &cfg.industry_data_file,
+                &cfg.start_date,
+            )?;
+            return Ok((panel, None));
+        }
         let sources = cfg.source_list();
+        let event_symbols = match cfg.strategy.as_str() {
+            S023_NAME => Some(crate::family2::s023_symbols(&cfg.earnings_dates_file)?),
+            S024_NAME => Some(crate::family2::s024_symbols(Path::new(
+                &cfg.corporate_actions_file,
+            ))?),
+            _ => None,
+        };
         let mut symbol_bars = Vec::new();
         for source in &sources {
             if cfg.strategy == S033_NAME && !cfg.include_stocks && source.name == "stocks" {
                 continue;
             }
-            for symbol in crate::config::split_csv(&source.symbols) {
+            let source_symbols = crate::config::split_csv(&source.symbols);
+            let selected_symbols = if cfg.strategy == S040_NAME {
+                crate::family4::sp500_symbols(&cfg.sp500_membership_file, &source_symbols)?
+            } else if let Some(event_symbols) = &event_symbols {
+                source_symbols
+                    .into_iter()
+                    .filter(|symbol| event_symbols.contains(&symbol.to_ascii_uppercase()))
+                    .collect()
+            } else {
+                source_symbols
+            };
+            for symbol in selected_symbols {
                 let bars =
                     data::load_symbol(&source.data_dir, &source.data_suffix, &symbol, start)?;
                 if let Some(w) = data::start_gap_warning(&symbol, &bars, start) {
@@ -512,7 +960,38 @@ impl<'a> Study<'a> {
             ("test".into(), (0..n_rows).map(|t| t >= split_row).collect()),
         ];
         let mut b_day = vec![0.0; n_rows];
-        if let Some(returns) = &sig.benchmark_returns {
+        let family4_universe = matches!(
+            cfg.strategy.as_str(),
+            S040_NAME
+                | S041_NAME
+                | S042_NAME
+                | S043_NAME
+                | S044_NAME
+                | S045_NAME
+                | S047_NAME
+                | S050_NAME
+                | S051_NAME
+        );
+        if family4_universe {
+            for t in 1..n_rows {
+                let (mut sum, mut count) = (0.0, 0usize);
+                for j in 0..panel.symbols.len() {
+                    let previous = panel.close[j][t - 1];
+                    let current = panel.close[j][t];
+                    if sig.tradable[j][t - 1]
+                        && previous.is_finite()
+                        && previous > 0.0
+                        && current.is_finite()
+                    {
+                        sum += current / previous - 1.0;
+                        count += 1;
+                    }
+                }
+                if count > 0 {
+                    b_day[t] = sum / count as f64;
+                }
+            }
+        } else if let Some(returns) = &sig.benchmark_returns {
             if returns.len() != n_rows {
                 return Err(format!(
                     "{} benchmark return length {} does not match panel rows {n_rows}",
@@ -639,6 +1118,7 @@ impl<'a> Study<'a> {
             n_rows: s.panel.dates.len(),
             b_day: s.b_day.clone(),
             slots: self.cfg.book_slots,
+            periods_per_year: self.cfg.periods_per_year,
         }
     }
 
@@ -715,6 +1195,14 @@ impl<'a> Study<'a> {
                 }
             }
             self.write(&format!("trades_{fill}.csv"), out)?;
+        }
+        if self.cfg.strategy == S024_NAME {
+            let actions =
+                data::read_corporate_actions(Path::new(&self.cfg.corporate_actions_file))?;
+            self.write(
+                "s024_exday_diagnostics.csv",
+                crate::family2::s024_event_diagnostics(&s.panel, &actions)?,
+            )?;
         }
         Ok(())
     }
@@ -1049,7 +1537,9 @@ impl<'a> Study<'a> {
         }
         let mut base = vec![];
         for (label, arr) in baseline_series {
-            for (period, total, sharpe, cagr, dd) in partition::baseline_stats(&arr, &s.masks) {
+            for (period, total, sharpe, cagr, dd) in
+                partition::baseline_stats(&arr, &s.masks, cfg.periods_per_year)
+            {
                 base.push((label.clone(), period, total, sharpe, cagr, dd));
             }
         }
@@ -1216,21 +1706,39 @@ impl<'a> Study<'a> {
             ));
             md.push(String::new());
         }
+        let data_sources = if cfg.strategy == S046_NAME {
+            format!(
+                "French monthly industry/factor CSVs `{}` and `{}`",
+                cfg.industry_data_file, cfg.market_factor_file
+            )
+        } else {
+            format!(
+                "`{}`",
+                cfg.source_list()
+                    .iter()
+                    .map(|source| source.data_dir.as_str())
+                    .collect::<BTreeSet<_>>()
+                    .into_iter()
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            )
+        };
+        let period_label = if cfg.strategy == S046_NAME {
+            "months"
+        } else {
+            "sessions"
+        };
         md.push(format!(
-            "- Data: `{}`; sessions {} .. {}; evaluation starts {}.",
-            cfg.source_list()
-                .iter()
-                .map(|source| source.data_dir.as_str())
-                .collect::<BTreeSet<_>>()
-                .into_iter()
-                .collect::<Vec<_>>()
-                .join(", "),
+            "- Data: {}; {} {} .. {}; evaluation starts {}.",
+            data_sources,
+            period_label,
             dates[0],
             dates[dates.len() - 1],
             dates[s.first_row]
         ));
-        md.push(format!("- Split: dev < {} <= test (locked; parameters are the catalog baseline or registered variants).", cfg.partition_split_date));
-        md.push("- Trend = exposure-weighted equal-weight tradable-universe return; skill = total - trend - bias; units are log returns.".into());
+        md.push(format!("- Split: dev < {} <= test (catalog baseline or registered variants). An inspected test period is not a fresh holdout.", cfg.partition_split_date));
+        md.push("- Trend = net-exposure-weighted benchmark return; skill = total - trend - bias; units are log returns. For Family 4, the benchmark is the equal-weight tradable universe (prior-session membership), or French industry mean for S046. Weighted exposure uses the position held into each period; same-period entry and exit counts as exposure. This is a close-to-close approximation for next-open fills.".into());
+        md.push("- Bias accounts for fill-model correlation only; it does not adjust for the full variant search. DEV rankings are exploratory and TEST has already been inspected.".into());
         md.extend(self.intro());
         md.push(String::new());
         for f in flags {
@@ -1333,6 +1841,44 @@ impl<'a> Study<'a> {
 
     fn intro(&self) -> Vec<String> {
         let (c, s) = (self.cfg, self.state());
+        if c.strategy == S023_NAME {
+            return vec![
+                format!(
+                    "- Universe: {} symbols with EDGAR 8-K Item 2.02 events and matching point-in-time SimFin quarterly EPS.",
+                    s.panel.symbols.len()
+                ),
+                "- Rule: long positive SUE above the trailing 90th percentile (prior 756 calendar days, minimum 20 events), for BMO/AMC reports with a reaction gap below 3 x ATR(20); short-miss leg is deferred.".into(),
+                format!(
+                    "- Fill: open of the reaction session to the following session close (`open_to_next_close`); {} bps/side.",
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: the shared equal-weight, SMA200, and random-timing comparisons are generic; event/placebo dates matched by weekday and volatility are not implemented.".into(),
+                "- Limitations: no local SimFin quarterly EPS input is configured, so no real-data backtest is available; synthetic tests only.".into(),
+            ];
+        }
+        if c.strategy == S024_NAME {
+            return vec![
+                format!(
+                    "- Universe: {} candidate symbols from raw daily bars; point-in-time liquidity rank top {}, using {}-session ranks, minimum price ${:.2}, and {} prior bars.",
+                    s.panel.symbols.len(),
+                    c.universe_top_n,
+                    c.rank_window,
+                    c.min_price,
+                    c.min_history
+                ),
+                format!(
+                    "- Rule: buy the close before ex-date when trailing 365-day cash-dividend yield is at least {:.2}%; credit the cash dividend once.",
+                    100.0 * c.s024_min_yield
+                ),
+                format!(
+                    "- Exits: {}; `ex_open`=ex-date open, `ex_close`=ex-date close, `next_close`=following-session close; {} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: the shared equal-weight, SMA200, and random-timing comparisons are generic; event/placebo dates matched by weekday and volatility are not implemented.".into(),
+                "- Limitations: daily open/close prices proxy fills; this is not a point-in-time S&P 500 universe and includes ETFs; taxes and the qualified-dividend holding rule are not modeled.".into(),
+            ];
+        }
         if c.strategy == S021_NAME {
             return vec![
                 format!(
@@ -1395,6 +1941,86 @@ impl<'a> Study<'a> {
                 "- Limitations: the configured large-cap stock sample is not a point-in-time universe; close fills do not include auction slippage.".into(),
             ];
         }
+        let family4 = match c.strategy.as_str() {
+            "s040_volume_breakout" => Some((
+                "Buy confirmed rolling-high breakouts with ATR-distance and volume filters; exit by stop, target, or time.",
+                "Daily stock bars start in 2016; S&P constituent intervals come from a public GitHub aggregation, not an official S&P source.",
+            )),
+            "s041_mom_12_1" => Some((
+                "Rank stocks on trailing total return while skipping the configured recent window; hold the long-only cross-sectional winners and rebalance monthly.",
+                "The PIT liquidity-rank cache is used, but industry labels are the latest SimFin snapshot rather than historical PIT assignments; the optional short leg and S104 overlays are not implemented.",
+            )),
+            "s042_sector_momentum" => Some((
+                "Rank sector ETFs by the configured momentum signal and rebalance the selected top-k basket.",
+                "Sector total-return bars start in 2016; XLC is eligible only after its available/listing history.",
+            )),
+            "s043_etf_multi_asset_momentum" => Some((
+                "Rank the fixed multi-asset ETF universe by trailing total return; hold the top-k positive-return assets and substitute the defensive ETF for nonpositive slots.",
+                "ETF total-return bars start in 2016; SPY benchmark returns are close-to-close, not fill-timing-matched to next-open execution; merged S068/S074 modes and the 60/40 comparator are not implemented.",
+            )),
+            "s044_efficiente5" => Some((
+                "At each rebalance, maximize trailing portfolio return on the constrained discrete weight grid with covariance and target-volatility constraints.",
+                "ETF bars start in 2016; the published 2008-2025 replication remains unavailable after Yahoo HTTP 429 and a Stooq verification challenge.",
+            )),
+            "s045_characteristic_blend" => Some((
+                "Rank the configured price-characteristic design monthly, then apply its volatility-target and market-regime rules.",
+                "Fundamental quality data are omitted; cached equity history starts in 2016.",
+            )),
+            "s046_market_state_industry_rotation" => Some((
+                "At each month-end, match the current market state to historical analog months and rank French 49 industries by mean next-month returns following the nearest analogs.",
+                "Only close-aligned monthly French-industry data are available; same-close entry is an upper-bound proxy, not an executable next-open fill. The sector-ETF port remains future work.",
+            )),
+            "s047_absolute_dual_momentum" => Some((
+                "Run the configured absolute-momentum, GEM dual-momentum, or SMA-gate mode with its defensive-asset rule.",
+                "ETF total-return history starts in 2016; BIL is the cash proxy and no pre-2007 FRED splice is available.",
+            )),
+            "s050_first_pullback" => Some((
+                "After a rolling-high breakout, enter the first configured pullback near its short moving average; exit on breakout confirmation, the moving-average rule, or time.",
+                "Earnings avoidance uses SimFin Publish Date as a realized-event proxy, not a PIT scheduled-announcement calendar; stock bars start in 2016.",
+            )),
+            "s051_darvas_box" => Some((
+                "Buy a close above a confirmed three-session Darvas box top; confirm pivots only after the required sessions.",
+                "The PIT liquidity-rank cache defines the stock universe; available stock history starts in 2016.",
+            )),
+            _ => None,
+        };
+        if let Some((description, limitations)) = family4 {
+            let universe = if c.strategy == S046_NAME {
+                "- Universe: French 49 industry portfolios with monthly returns.".to_string()
+            } else {
+                format!(
+                    "- Universe: {} symbols across {} configured data source(s).",
+                    s.panel.symbols.len(),
+                    c.source_list().len()
+                )
+            };
+            let fill_description = if c.strategy == "s046_market_state_industry_rotation" {
+                "- Fill: monthly French-industry returns are close-aligned portfolio outcomes; same-close entry is an upper-bound proxy, not an executable next-open fill. Short borrow is charged at the configured annual rate.".to_string()
+            } else {
+                let fills = c.fills_list();
+                let has_next_open = fills.iter().any(|fill| fill == "next_open");
+                let has_close = fills.iter().any(|fill| fill == "close");
+                let execution = match (has_next_open, has_close) {
+                    (true, true) => {
+                        "`next_open` is primary; `close` is the same-close upper bound."
+                    }
+                    (true, false) => "`next_open` is the executable fill.",
+                    (false, true) => "`close` is a same-close upper-bound fill.",
+                    (false, false) => "the configured fill model is shown in the result tables.",
+                };
+                format!(
+                    "- Fill: {execution} Costs are {:.1} bps/side.",
+                    c.cost_bps_per_side
+                )
+            };
+            return vec![
+                universe,
+                format!("- Rule: {description}"),
+                fill_description,
+                "- Baselines: equal-weight universe, SMA200 timing, dev-vol-matched, and exposure-matched random timing; metrics are net of configured costs.".into(),
+                format!("- Limitations: {limitations}"),
+            ];
+        }
         let rule = if c.strategy == S006_NAME {
             let stop = if c.disaster_stop_atr == 0.0 {
                 "No stop is applied in this run.".to_string()
@@ -1426,7 +2052,29 @@ impl<'a> Study<'a> {
 
     pub fn caption(&self) -> String {
         let (c, s) = (self.cfg, self.state());
-        let strategy = if c.strategy == S021_NAME {
+        let strategy = if matches!(
+            c.strategy.as_str(),
+            S040_NAME
+                | S041_NAME
+                | S042_NAME
+                | S043_NAME
+                | S044_NAME
+                | S045_NAME
+                | S046_NAME
+                | S047_NAME
+                | S050_NAME
+                | S051_NAME
+        ) {
+            title_for(&c.strategy).to_string()
+        } else if c.strategy == S023_NAME {
+            "long SUE>trailing P90, gap<3xATR20, open-to-next-close".to_string()
+        } else if c.strategy == S024_NAME {
+            format!(
+                "ex-dividend yield>={:.2}%, top-{} liquidity",
+                100.0 * c.s024_min_yield,
+                c.universe_top_n
+            )
+        } else if c.strategy == S021_NAME {
             format!(
                 "overnight {} filter={}",
                 s.panel.symbols.join(","),
@@ -1493,7 +2141,7 @@ impl<'a> Study<'a> {
             fills.push(FillIn {
                 name: name.clone(),
                 r_day: r.r_day.clone(),
-                f_day: r.f_day.clone(),
+                trend_exposure: r.trend_exposure.clone(),
                 count: r.count.clone(),
                 random_pool: r.random_mean_log.clone(),
                 trades: trades
@@ -1604,6 +2252,7 @@ impl<'a> Study<'a> {
                     entry_turnover: trade.entry_turnover,
                     exit_turnover: trade.exit_turnover,
                     weighted: trade.weighted,
+                    borrow_cost_per_bar: trade.borrow_cost_per_bar,
                 })
                 .collect();
             let (strategy_r, _) = partition::account_series_with_costs(
@@ -1646,8 +2295,8 @@ impl<'a> Study<'a> {
             let test_buy_hold = overview_total(&buy_hold_r, split, end);
             let dev_excess = dev_total - dev_buy_hold;
             let test_excess = test_total - test_buy_hold;
-            let dev_sharpe = overview_sharpe(&strategy_r, start, split);
-            let test_sharpe = overview_sharpe(&strategy_r, split, end);
+            let dev_sharpe = overview_sharpe(&strategy_r, start, split, self.cfg.periods_per_year);
+            let test_sharpe = overview_sharpe(&strategy_r, split, end, self.cfg.periods_per_year);
             let dev_max_dd = overview_max_drawdown(&strategy_r, start, split);
             let test_max_dd = overview_max_drawdown(&strategy_r, split, end);
             let mut flags = Vec::new();
@@ -1737,7 +2386,7 @@ fn overview_total(returns: &[f64], start: usize, end: usize) -> f64 {
         .sum()
 }
 
-fn overview_sharpe(returns: &[f64], start: usize, end: usize) -> f64 {
+fn overview_sharpe(returns: &[f64], start: usize, end: usize, periods_per_year: usize) -> f64 {
     let values: Vec<f64> = returns
         .iter()
         .skip(start)
@@ -1747,7 +2396,7 @@ fn overview_sharpe(returns: &[f64], start: usize, end: usize) -> f64 {
     let mean = stats::mean(&values);
     let sd = stats::std(&values);
     if sd > 0.0 {
-        mean / sd * 252.0f64.sqrt()
+        mean / sd * (periods_per_year as f64).sqrt()
     } else {
         f64::NAN
     }

@@ -1,6 +1,11 @@
 data_dir:  C:\data\trading\trading_framework\data\cache\daily_10years_tr
 data_suffix: .parquet
 symbols: "*"
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+simfin_dir: C:\data\trading\trading_framework\data\simfin
 min_history: 250
 rank_window: 60
 rank_min_observations: 40
@@ -15,7 +20,7 @@ min_breadth: 1
 industry_neutral: false
 delisting_return: -0.30
 cost_bps_per_side: 15.0
-fills: close,next_open
+fills: next_open,close
 partition_split_date: "2024-01-01"
 n_draws: 1000
 n_boot: 5000
@@ -53,3 +58,5 @@ variants:
   top200: {breadth_mode: top, breadth: 200, book_slots: 200}
   decile5: {decile: 0.05, book_slots: 25}
   decile15: {decile: 0.15, book_slots: 75}
+  indneutral: {industry_neutral: true}
+  top10_ind: {breadth_mode: top, breadth: 10, book_slots: 10, industry_neutral: true}

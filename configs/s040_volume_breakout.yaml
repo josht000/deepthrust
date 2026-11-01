@@ -1,0 +1,55 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+sp500_membership_file: C:\data\trading\deepthrust\data\cache\pit\sp500_ticker_start_end.csv
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2008-01-01"
+min_history: 252
+entry_window: 20
+atr_len: 14
+breakout_distance_atr: 0.1
+gap_guard_atr: 1.0
+gap_volume_window: 20
+gap_volume_multiple: 1.5
+gap_volume_mode: high
+gap_reward_risk: 2.0
+gap_max_hold: 8
+cost_bps_per_side: 15.0
+fills: next_open
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+
+variants:
+  quiet_breakout: {gap_volume_mode: quiet, gap_volume_multiple: 1.0}
+  limit_close: {fills: close}
+  w10_d005_v125: {entry_window: 10, breakout_distance_atr: 0.05, gap_volume_multiple: 1.25}
+  w10_d005_v150: {entry_window: 10, breakout_distance_atr: 0.05, gap_volume_multiple: 1.5}
+  w10_d005_v200: {entry_window: 10, breakout_distance_atr: 0.05, gap_volume_multiple: 2.0}
+  w10_d010_v125: {entry_window: 10, breakout_distance_atr: 0.10, gap_volume_multiple: 1.25}
+  w10_d010_v150: {entry_window: 10, breakout_distance_atr: 0.10, gap_volume_multiple: 1.5}
+  w10_d010_v200: {entry_window: 10, breakout_distance_atr: 0.10, gap_volume_multiple: 2.0}
+  w10_d020_v125: {entry_window: 10, breakout_distance_atr: 0.20, gap_volume_multiple: 1.25}
+  w10_d020_v150: {entry_window: 10, breakout_distance_atr: 0.20, gap_volume_multiple: 1.5}
+  w10_d020_v200: {entry_window: 10, breakout_distance_atr: 0.20, gap_volume_multiple: 2.0}
+  w20_d005_v125: {entry_window: 20, breakout_distance_atr: 0.05, gap_volume_multiple: 1.25}
+  w20_d005_v150: {entry_window: 20, breakout_distance_atr: 0.05, gap_volume_multiple: 1.5}
+  w20_d005_v200: {entry_window: 20, breakout_distance_atr: 0.05, gap_volume_multiple: 2.0}
+  w20_d010_v125: {entry_window: 20, breakout_distance_atr: 0.10, gap_volume_multiple: 1.25}
+  w20_d010_v200: {entry_window: 20, breakout_distance_atr: 0.10, gap_volume_multiple: 2.0}
+  w20_d020_v125: {entry_window: 20, breakout_distance_atr: 0.20, gap_volume_multiple: 1.25}
+  w20_d020_v150: {entry_window: 20, breakout_distance_atr: 0.20, gap_volume_multiple: 1.5}
+  w20_d020_v200: {entry_window: 20, breakout_distance_atr: 0.20, gap_volume_multiple: 2.0}
+  w40_d005_v125: {entry_window: 40, breakout_distance_atr: 0.05, gap_volume_multiple: 1.25}
+  w40_d005_v150: {entry_window: 40, breakout_distance_atr: 0.05, gap_volume_multiple: 1.5}
+  w40_d005_v200: {entry_window: 40, breakout_distance_atr: 0.05, gap_volume_multiple: 2.0}
+  w40_d010_v125: {entry_window: 40, breakout_distance_atr: 0.10, gap_volume_multiple: 1.25}
+  w40_d010_v150: {entry_window: 40, breakout_distance_atr: 0.10, gap_volume_multiple: 1.5}
+  w40_d010_v200: {entry_window: 40, breakout_distance_atr: 0.10, gap_volume_multiple: 2.0}
+  w40_d020_v125: {entry_window: 40, breakout_distance_atr: 0.20, gap_volume_multiple: 1.25}
+  w40_d020_v150: {entry_window: 40, breakout_distance_atr: 0.20, gap_volume_multiple: 1.5}
+  w40_d020_v200: {entry_window: 40, breakout_distance_atr: 0.20, gap_volume_multiple: 2.0}
+  w30_d010_v150: {entry_window: 30, breakout_distance_atr: 0.10, gap_volume_multiple: 1.5}

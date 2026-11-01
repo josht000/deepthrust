@@ -1,0 +1,64 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_raw
+data_suffix: .parquet
+symbols: "*"
+exclude_symbols: >-
+  cash_dividends, QQQ, IWM, DIA, RSP, IVV, VOO, TQQQ, SQQQ,
+  XLB, XLC, XLE, XLF, XLI, XLK, XLP, XLRE, XLU, XLV, XLY,
+  TLT, IEF, SHY, BIL, AGG, LQD, HYG, GDX, GDXJ, EFA, ACWX,
+  EEM, EWJ, XHB, GLD, SLV, USO, CPER, GSG, EMB, IYR, TIP, UUP,
+  DBC, VNQ
+corporate_actions_file: ..\trading_framework\data\cache\daily_10years_raw\cash_dividends.parquet
+benchmark: SPY
+start_date: "2016-01-04"
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+formation_cadence: annual
+formation_window: 252
+min_t_stat: 2.0
+fdr_q: 0.05
+top_fraction: 0.20
+extra_filter: none
+holding_mode: overnight_only
+delisting_return: -0.30
+cost_bps_per_side: 15.0
+fills: close_to_open
+partition_split_date: "2024-01-01"
+n_draws: 250
+n_boot: 5000
+seed: 20261031
+book_slots: 1
+
+variants:
+  quarterly: {formation_cadence: quarterly}
+  monthly_s034: {formation_cadence: monthly}
+  full_day: {holding_mode: full_day}
+  overnight_intraday: {holding_mode: overnight_intraday}
+  negative_intraday: {extra_filter: negative_intraday}
+  top10: {top_fraction: 0.10}
+  top30: {top_fraction: 0.30}
+  top40: {top_fraction: 0.40}
+  fdr01: {fdr_q: 0.01}
+  fdr10: {fdr_q: 0.10}
+  t15: {min_t_stat: 1.5}
+  t25: {min_t_stat: 2.5}
+  t30: {min_t_stat: 3.0}
+  window126: {formation_window: 126}
+  window189: {formation_window: 189}
+  window315: {formation_window: 315}
+  quarterly_top10: {formation_cadence: quarterly, top_fraction: 0.10}
+  quarterly_top30: {formation_cadence: quarterly, top_fraction: 0.30}
+  monthly_top10: {formation_cadence: monthly, top_fraction: 0.10}
+  monthly_top30: {formation_cadence: monthly, top_fraction: 0.30}
+  fdr01_top10: {fdr_q: 0.01, top_fraction: 0.10}
+  fdr10_top30: {fdr_q: 0.10, top_fraction: 0.30}
+  t25_fdr01: {min_t_stat: 2.5, fdr_q: 0.01}
+  t15_fdr10: {min_t_stat: 1.5, fdr_q: 0.10}
+  full_day_top10: {holding_mode: full_day, top_fraction: 0.10}
+  full_day_top30: {holding_mode: full_day, top_fraction: 0.30}
+  spread_top10: {holding_mode: overnight_intraday, top_fraction: 0.10}
+  spread_top30: {holding_mode: overnight_intraday, top_fraction: 0.30}
+  negative_top10: {extra_filter: negative_intraday, top_fraction: 0.10}
+  negative_quarterly: {extra_filter: negative_intraday, formation_cadence: quarterly}

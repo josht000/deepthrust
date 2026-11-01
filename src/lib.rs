@@ -4,6 +4,8 @@ pub mod config;
 pub mod dashboard;
 pub mod data;
 pub mod engine;
+pub mod family2;
+pub mod family4;
 pub mod partition;
 pub mod report;
 pub mod signals;

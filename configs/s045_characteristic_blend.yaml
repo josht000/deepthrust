@@ -1,0 +1,63 @@
+sources:
+  - name: stocks
+    data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+    data_suffix: .parquet
+    symbols: "*"
+    cost_bps_per_side: 15.0
+  - name: etfs
+    data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+    data_suffix: .parquet
+    symbols: SPY
+    cost_bps_per_side: 5.0
+etf_symbols: SPY
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+benchmark: SPY
+start_date: "2016-01-01"
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+factor_design: S045a
+rebalance: monthly
+target_vol: 0.20
+max_leverage: 1.0
+cost_bps_per_side: 15.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 10
+
+variants:
+  paper_design: {factor_design: S045a}
+  catalog_simplification: {factor_design: S045b}
+  a_n250_v10: {factor_design: S045a, universe_top_n: 250, target_vol: 0.10}
+  a_n250_v15: {factor_design: S045a, universe_top_n: 250, target_vol: 0.15}
+  a_n250_v25: {factor_design: S045a, universe_top_n: 250, target_vol: 0.25}
+  a_n250_v30: {factor_design: S045a, universe_top_n: 250, target_vol: 0.30}
+  a_n500_v10: {factor_design: S045a, universe_top_n: 500, target_vol: 0.10}
+  a_n500_v15: {factor_design: S045a, universe_top_n: 500, target_vol: 0.15}
+  a_n500_v25: {factor_design: S045a, universe_top_n: 500, target_vol: 0.25}
+  a_n500_v30: {factor_design: S045a, universe_top_n: 500, target_vol: 0.30}
+  a_n750_v10: {factor_design: S045a, universe_top_n: 750, target_vol: 0.10}
+  a_n750_v15: {factor_design: S045a, universe_top_n: 750, target_vol: 0.15}
+  a_n750_v25: {factor_design: S045a, universe_top_n: 750, target_vol: 0.25}
+  a_n750_v30: {factor_design: S045a, universe_top_n: 750, target_vol: 0.30}
+  a_n1000_v10: {factor_design: S045a, universe_top_n: 1000, target_vol: 0.10}
+  a_n1000_v15: {factor_design: S045a, universe_top_n: 1000, target_vol: 0.15}
+  a_n1000_v25: {factor_design: S045a, universe_top_n: 1000, target_vol: 0.25}
+  a_n1000_v30: {factor_design: S045a, universe_top_n: 1000, target_vol: 0.30}
+  b_n250_v10: {factor_design: S045b, universe_top_n: 250, target_vol: 0.10}
+  b_n250_v15: {factor_design: S045b, universe_top_n: 250, target_vol: 0.15}
+  b_n250_v25: {factor_design: S045b, universe_top_n: 250, target_vol: 0.25}
+  b_n500_v10: {factor_design: S045b, universe_top_n: 500, target_vol: 0.10}
+  b_n500_v15: {factor_design: S045b, universe_top_n: 500, target_vol: 0.15}
+  b_n500_v25: {factor_design: S045b, universe_top_n: 500, target_vol: 0.25}
+  b_n750_v10: {factor_design: S045b, universe_top_n: 750, target_vol: 0.10}
+  b_n750_v15: {factor_design: S045b, universe_top_n: 750, target_vol: 0.15}
+  b_n750_v25: {factor_design: S045b, universe_top_n: 750, target_vol: 0.25}
+  b_n1000_v10: {factor_design: S045b, universe_top_n: 1000, target_vol: 0.10}
+  b_n1000_v15: {factor_design: S045b, universe_top_n: 1000, target_vol: 0.15}
+  b_n1000_v25: {factor_design: S045b, universe_top_n: 1000, target_vol: 0.25}

@@ -42,7 +42,7 @@ pub struct TradeIn {
 pub struct FillIn {
     pub name: String,
     pub r_day: Vec<f64>,
-    pub f_day: Vec<f64>,
+    pub trend_exposure: Vec<f64>,
     pub count: Vec<f64>,
     /// Mean daily log return of the random-pick pool baseline.
     pub random_pool: Vec<f64>,
@@ -71,6 +71,10 @@ pub fn cumsum(v: impl Iterator<Item = f64>) -> Vec<f64> {
         acc
     })
     .collect()
+}
+
+fn cumsum_from(v: impl Iterator<Item = f64>, first: usize) -> Vec<f64> {
+    cumsum(v.enumerate().map(|(i, x)| if i < first { 0.0 } else { x }))
 }
 
 fn e<E: std::fmt::Display>(x: E) -> String {
@@ -229,7 +233,7 @@ fn panel_a(area: &Area, c: &ChartInput, w: i32) -> Result<(), String> {
     // (label, values, color, dash (size, spacing), line width)
     let mut series: Vec<(String, Vec<f64>, RGBColor, Option<(i32, i32)>, u32)> = vec![];
     for (i, f) in c.fills.iter().enumerate() {
-        let strat = cumsum(f.r_day.iter().map(|r| r.ln_1p()));
+        let strat = cumsum_from(f.r_day.iter().map(|r| r.ln_1p()), lo);
         series.push((
             format!("strategy [{}] net of costs (end {:+.2})", f.name, strat[hi]),
             strat,
@@ -237,7 +241,7 @@ fn panel_a(area: &Area, c: &ChartInput, w: i32) -> Result<(), String> {
             None,
             2,
         ));
-        let rnd = cumsum(f.random_pool.iter().copied());
+        let rnd = cumsum_from(f.random_pool.iter().copied(), lo);
         series.push((
             format!("random-pick pool mean [{}] (end {:+.2})", f.name, rnd[hi]),
             rnd,
@@ -247,7 +251,13 @@ fn panel_a(area: &Area, c: &ChartInput, w: i32) -> Result<(), String> {
         ));
     }
     if let Some(r) = c.fills.last() {
-        let trend = cumsum(r.f_day.iter().zip(c.b_day).map(|(f, b)| f * b.ln_1p()));
+        let trend = cumsum_from(
+            r.trend_exposure
+                .iter()
+                .zip(c.b_day)
+                .map(|(f, b)| f * b.ln_1p()),
+            lo,
+        );
         series.push((
             format!(
                 "trend = exposure-weighted equal-weight liquid universe [{}] (end {:+.2})",
@@ -260,7 +270,7 @@ fn panel_a(area: &Area, c: &ChartInput, w: i32) -> Result<(), String> {
         ));
     }
     for (i, (name, rets)) in c.benchmarks.iter().enumerate() {
-        let path = cumsum(rets.iter().map(|r| r.max(-0.999999).ln_1p()));
+        let path = cumsum_from(rets.iter().map(|r| r.max(-0.999999).ln_1p()), lo);
         series.push((
             format!("benchmark {name} (end {:+.2})", path[hi]),
             path,
@@ -924,6 +934,13 @@ mod tests {
         let c = cumsum([0.5, 0.1, 0.1].into_iter());
         assert_eq!(c[0], 0.5);
         assert!((c[2] - 0.7).abs() < 1e-12);
+    }
+
+    #[test]
+    fn chart_cumsum_excludes_warmup_but_includes_first_evaluation_return() {
+        let c = cumsum_from([0.5, 0.2, 0.1, 0.3].into_iter(), 2);
+        assert_eq!(&c[..3], &[0.0, 0.0, 0.1]);
+        assert!((c[3] - 0.4).abs() < 1e-12);
     }
 
     #[test]
