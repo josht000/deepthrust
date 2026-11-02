@@ -35,6 +35,7 @@ pub struct Panel {
 pub struct CorporateAction {
     pub symbol: String,
     pub date: NaiveDate,
+    pub payment_date: Option<NaiveDate>,
     pub action_type: String,
     pub rate: Option<f64>,
     pub old_rate: Option<f64>,
@@ -115,6 +116,14 @@ pub fn read_corporate_actions(path: &Path) -> Result<Vec<CorporateAction>, Strin
         actions.push(CorporateAction {
             symbol,
             date,
+            payment_date: get("payable_date")
+                .filter(|field| !matches!(field, Field::Null))
+                .map(|field| {
+                    let value = parquet_string(field, "payable_date", path, row_number)?;
+                    parse_date(value.get(..10).unwrap_or(&value))
+                        .map_err(|error| format!("{} row {row_number}: {error}", path.display()))
+                })
+                .transpose()?,
             action_type,
             rate: optional_parquet_number(get("rate"), "rate", path, row_number)?,
             old_rate: optional_parquet_number(get("old_rate"), "old_rate", path, row_number)?,

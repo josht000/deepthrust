@@ -22,11 +22,32 @@ pub struct OpenQuote {
     pub price: f64,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Order {
     pub symbol: String,
     pub shares: i64,
     pub decided_at: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub enum ReplayEvent {
+    OrderSubmitted {
+        order: Order,
+    },
+    OrderCancelled {
+        order: Order,
+        cancelled_at: DateTime<Utc>,
+    },
+    OrderAdjusted {
+        previous: Order,
+        adjusted: Order,
+        adjusted_at: DateTime<Utc>,
+    },
+    Filled {
+        order: Order,
+        fill: Fill,
+        filled_at: DateTime<Utc>,
+    },
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -42,6 +63,7 @@ pub struct Execution {
 pub struct PortfolioReplay {
     pub ledger: Ledger,
     pending: Vec<Order>,
+    events: Vec<ReplayEvent>,
     last_event: Option<DateTime<Utc>>,
     used_capacity: BTreeMap<(String, DateTime<Utc>, DateTime<Utc>), (u64, u64, u64)>,
 }
@@ -51,6 +73,7 @@ impl PortfolioReplay {
         Ok(Self {
             ledger: Ledger::new(initial_cash)?,
             pending: Vec::new(),
+            events: Vec::new(),
             last_event: None,
             used_capacity: BTreeMap::new(),
         })
@@ -60,6 +83,10 @@ impl PortfolioReplay {
         &self.pending
     }
 
+    pub fn events(&self) -> &[ReplayEvent] {
+        &self.events
+    }
+
     pub fn submit(&mut self, order: Order) -> Result<(), String> {
         if order.symbol.is_empty() || order.shares == 0 || order.shares == i64::MIN {
             return Err("order requires a symbol and nonzero representable shares".into());
@@ -67,6 +94,9 @@ impl PortfolioReplay {
         if self.last_event.is_some_and(|last| order.decided_at < last) {
             return Err("order decision precedes the last processed event".into());
         }
+        self.events.push(ReplayEvent::OrderSubmitted {
+            order: order.clone(),
+        });
         self.pending.push(order);
         Ok(())
     }
@@ -79,11 +109,75 @@ impl PortfolioReplay {
         if self.last_event.is_some_and(|last| at < last) {
             return Err("cancellation precedes the last processed event".into());
         }
-        let before = self.pending.len();
-        self.pending
-            .retain(|order| order.symbol != symbol || order.decided_at > at);
+        let mut remaining = Vec::with_capacity(self.pending.len());
+        let mut cancelled = Vec::new();
+        for order in std::mem::take(&mut self.pending) {
+            if order.symbol == symbol && order.decided_at <= at {
+                cancelled.push(order);
+            } else {
+                remaining.push(order);
+            }
+        }
+        let count = cancelled.len();
+        self.pending = remaining;
+        self.events.extend(
+            cancelled
+                .into_iter()
+                .map(|order| ReplayEvent::OrderCancelled {
+                    order,
+                    cancelled_at: at,
+                }),
+        );
         self.last_event = Some(at);
-        Ok(before - self.pending.len())
+        Ok(count)
+    }
+
+    pub fn adjust_pending_split(
+        &mut self,
+        symbol: &str,
+        old_shares: u32,
+        new_shares: u32,
+        at: DateTime<Utc>,
+    ) -> Result<usize, String> {
+        if symbol.is_empty() || old_shares == 0 || new_shares == 0 {
+            return Err("split adjustment requires a symbol and positive ratio".into());
+        }
+        if self.last_event.is_some_and(|last| at < last) {
+            return Err("split adjustment precedes the last processed event".into());
+        }
+        let mut next = self.clone();
+        let mut adjusted_count = 0;
+        let mut remaining = Vec::with_capacity(next.pending.len());
+        for mut order in std::mem::take(&mut next.pending) {
+            if order.symbol != symbol {
+                remaining.push(order);
+                continue;
+            }
+            let previous = order.clone();
+            let scaled =
+                (i128::from(order.shares) * i128::from(new_shares)) / i128::from(old_shares);
+            let scaled =
+                i64::try_from(scaled).map_err(|_| "split-adjusted order overflows shares")?;
+            if scaled == 0 {
+                next.events.push(ReplayEvent::OrderCancelled {
+                    order: previous,
+                    cancelled_at: at,
+                });
+            } else {
+                order.shares = scaled;
+                next.events.push(ReplayEvent::OrderAdjusted {
+                    previous,
+                    adjusted: order.clone(),
+                    adjusted_at: at,
+                });
+                remaining.push(order);
+            }
+            adjusted_count += 1;
+        }
+        next.pending = remaining;
+        next.last_event = Some(at);
+        *self = next;
+        Ok(adjusted_count)
     }
 
     /// Process one quote atomically; unfilled shares remain pending.
@@ -142,6 +236,11 @@ impl PortfolioReplay {
                 execution,
                 marks,
             )?;
+            next.events.push(ReplayEvent::Filled {
+                order: clipped,
+                fill: fill.clone(),
+                filled_at: quote.timestamp,
+            });
             available -= fill.shares.unsigned_abs();
             let unfilled = order.shares - fill.shares;
             if unfilled != 0 {
@@ -619,6 +718,91 @@ mod tests {
         assert_eq!(replay.pending().len(), 2);
         assert!(replay.cancel_pending("B", time(30)).is_err());
         assert_eq!(replay.pending().len(), 2);
+    }
+
+    #[test]
+    fn split_adjusts_pending_quantities_and_cancels_zero_share_orders() {
+        let mut replay = PortfolioReplay::new(1_000.0).unwrap();
+        replay
+            .submit(Order {
+                symbol: "A".into(),
+                shares: 30,
+                decided_at: time(30),
+            })
+            .unwrap();
+        replay
+            .submit(Order {
+                symbol: "B".into(),
+                shares: 1,
+                decided_at: time(30),
+            })
+            .unwrap();
+        assert_eq!(replay.adjust_pending_split("A", 1, 4, time(31)).unwrap(), 1);
+        assert_eq!(replay.pending()[0].shares, 120);
+        assert_eq!(replay.adjust_pending_split("B", 3, 1, time(32)).unwrap(), 1);
+        assert_eq!(replay.pending().len(), 1);
+        assert!(matches!(
+            replay.events().last(),
+            Some(ReplayEvent::OrderCancelled { order, cancelled_at })
+                if order.symbol == "B" && *cancelled_at == time(32)
+        ));
+    }
+
+    #[test]
+    fn replay_records_submissions_partial_fills_and_cancellations() {
+        let mut replay = PortfolioReplay::new(10_000.0).unwrap();
+        replay
+            .submit(Order {
+                symbol: "A".into(),
+                shares: 15,
+                decided_at: time(30),
+            })
+            .unwrap();
+        let bar = CompletedBar {
+            symbol: "A".into(),
+            start: time(30),
+            end: time(31),
+            close: 100.0,
+            volume: 100,
+        };
+        let quote = OpenQuote {
+            symbol: "A".into(),
+            timestamp: time(32),
+            price: 100.0,
+        };
+        let config = Execution {
+            max_participation: 0.1,
+            max_liquidity_age_seconds: 60,
+            slippage_bps: 0.0,
+            commission_per_share: 0.0,
+            short_located: false,
+        };
+        replay
+            .process_quote(&bar, &quote, config, &BTreeMap::new())
+            .unwrap();
+        assert_eq!(replay.pending()[0].shares, 5);
+        assert!(matches!(
+            replay.events(),
+            [
+                ReplayEvent::OrderSubmitted { order },
+                ReplayEvent::Filled {
+                    order: filled_order,
+                    fill,
+                    filled_at
+                }
+            ] if order.shares == 15
+                && filled_order.shares == 10
+                && fill.shares == 10
+                && *filled_at == quote.timestamp
+        ));
+        assert_eq!(replay.cancel_pending("A", time(33)).unwrap(), 1);
+        assert!(matches!(
+            replay.events().last(),
+            Some(ReplayEvent::OrderCancelled {
+                order,
+                cancelled_at
+            }) if order.shares == 5 && *cancelled_at == time(33)
+        ));
     }
 
     #[test]

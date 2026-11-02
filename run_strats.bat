@@ -2,8 +2,26 @@
 @echo off
 setlocal
 
+rem Usage: run_strats.bat [--debug] [--cash] [--cash-only]
+rem   --debug     Pass debug output through to each standard strategy run.
+rem   --cash      Run the S041 cash screen after the standard strategy matrix.
+rem   --cash-only Run only the S041 cash screen.
+
 set "DEBUG_ARGS="
+set "RUN_CASH="
+set "CASH_ONLY="
+
+:parse_args
+if "%~1"=="" goto args_parsed
 if /I "%~1"=="--debug" set "DEBUG_ARGS=--debug"
+if /I "%~1"=="--cash" set "RUN_CASH=1"
+if /I "%~1"=="--cash-only" set "RUN_CASH=1"
+if /I "%~1"=="--cash-only" set "CASH_ONLY=1"
+shift
+goto parse_args
+
+:args_parsed
+if defined CASH_ONLY goto cash_only
 
 cargo build --release
 if errorlevel 1 exit /b %errorlevel%
@@ -67,3 +85,18 @@ if errorlevel 1 exit /b %errorlevel%
 
 target\release\deepthrust.exe --strategy s105_overnight_carry --variant cap2x,daily_resize,target5,target15,window10,window40,cap05,cap15,target25,target75,target20,target25pct,window5,window15,window30,window60,band10,band40,cap05_target5,cap2_target5,cap2_target15,window10_target5,window10_target15,window40_target5,window40_target15,daily_cap2,daily_target5,daily_target15,band10_target5,band40_target15 %DEBUG_ARGS%
 if errorlevel 1 exit /b %errorlevel%
+
+"C:\data\envs\trading_framework\Scripts\python.exe" tools\update_all_trade_metrics.py
+if errorlevel 1 exit /b %errorlevel%
+
+if not defined RUN_CASH goto :eof
+goto run_cash
+
+:cash_only
+cargo build --release --bin s041_cash_study
+if errorlevel 1 exit /b %errorlevel%
+
+:run_cash
+target\release\s041_cash_study.exe --variant size25,size50,size75,long_short50,short_only10,participation005,participation025,participation100,slip5,slip10,slip25,borrow30,borrow300,borrow1000,commission005,commission01,delist0,delist50,top10,top20,top30,top50,decile5,decile15,mom126,mom189,mom315,skip0,skip10,skip42,mom126_skip10,mom189_skip42,dca3,dca5,stop5,stop10,pyramid10,pyramid20,dca3_stop5,dca3_pyramid10,top20_size50,decile5_size50,long_short_mom189 --random-draws 1
+if errorlevel 1 exit /b %errorlevel%
+goto :eof

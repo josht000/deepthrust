@@ -10,6 +10,8 @@ pub mod partition;
 pub mod report;
 #[path = "strategies/s041_mom_12_1/cash_ledger.rs"]
 pub mod s041_cash_ledger;
+#[path = "strategies/s041_mom_12_1/cash_study.rs"]
+pub mod s041_cash_study;
 #[path = "strategies/s041_mom_12_1/replay.rs"]
 pub mod s041_replay;
 pub mod signals;

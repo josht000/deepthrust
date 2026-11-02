@@ -1,0 +1,105 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+exclude_symbols: cash_dividends,UTX
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-01-04"
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+mom_window: 252
+skip_window: 21
+breadth_mode: decile
+decile: 0.10
+breadth: 10
+min_breadth: 1
+industry_neutral: false
+delisting_return: -0.30
+cost_bps_per_side: 0.0
+fills: next_open
+partition_split_date: "2024-01-01"
+n_draws: 100
+n_boot: 1000
+seed: 20261101
+book_slots: 10
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+
+raw_data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_raw
+raw_data_suffix: .parquet
+raw_price_basis: raw_unadjusted
+corporate_actions_file: C:\data\trading\trading_framework\data\cache\daily_10years_raw\cash_dividends.parquet
+cash_initial_cash: 10000.0
+cash_long_fraction: 1.0
+cash_short_fraction: 0.0
+cash_short_count: 0
+cash_max_participation: 0.01
+cash_max_liquidity_age_seconds: 691200
+cash_max_pending_sessions: 5
+cash_max_stale_mark_sessions: 3
+cash_dca_installments: 1
+cash_stop_loss_fraction: 0.0
+cash_pyramid_profit_fraction: 0.0
+cash_pyramid_add_fraction: 0.25
+cash_slippage_bps: 0.0
+cash_commission_per_share: 0.0
+cash_annual_borrow_rate: 0.0
+cash_delisting_return: -0.30
+
+cash_spinoffs:
+  - date: "2020-04-03"
+    source_symbol: RTX
+    source_url: https://www.prnewswire.com/news-releases/united-technologies-board-of-directors-approves-separation-of-carrier-and-otis-and-declares-spin-off-distribution-of-carrier-and-otis-shares-301021893.html
+    distributions:
+      - symbol: CARR
+        shares_per_source_share: 1.0
+      - symbol: OTIS
+        shares_per_source_share: 0.5
+
+variants:
+  size25: {cash_long_fraction: 0.25}
+  size50: {cash_long_fraction: 0.50}
+  size75: {cash_long_fraction: 0.75}
+  long_short50: {cash_long_fraction: 0.50, cash_short_fraction: 0.50, cash_short_count: 10}
+  short_only10: {cash_long_fraction: 0.0, cash_short_fraction: 1.0, cash_short_count: 10}
+  participation005: {cash_max_participation: 0.005}
+  participation025: {cash_max_participation: 0.025}
+  participation100: {cash_max_participation: 1.0}
+  slip5: {cash_slippage_bps: 5.0}
+  slip10: {cash_slippage_bps: 10.0}
+  slip25: {cash_slippage_bps: 25.0}
+  borrow30: {cash_annual_borrow_rate: 0.003}
+  borrow300: {cash_annual_borrow_rate: 0.03}
+  borrow1000: {cash_annual_borrow_rate: 0.10}
+  commission005: {cash_commission_per_share: 0.005}
+  commission01: {cash_commission_per_share: 0.01}
+  delist0: {cash_delisting_return: 0.0}
+  delist50: {cash_delisting_return: -0.50}
+  top10: {breadth_mode: top, breadth: 10, book_slots: 10}
+  top20: {breadth_mode: top, breadth: 20, book_slots: 20}
+  top30: {breadth_mode: top, breadth: 30, book_slots: 30}
+  top50: {breadth_mode: top, breadth: 50, book_slots: 50}
+  decile5: {decile: 0.05, book_slots: 5}
+  decile15: {decile: 0.15, book_slots: 15}
+  mom126: {mom_window: 126, skip_window: 21}
+  mom189: {mom_window: 189, skip_window: 21}
+  mom315: {mom_window: 315, skip_window: 21}
+  skip0: {skip_window: 0}
+  skip10: {skip_window: 10}
+  skip42: {skip_window: 42}
+  mom126_skip10: {mom_window: 126, skip_window: 10}
+  mom189_skip42: {mom_window: 189, skip_window: 42}
+  dca3: {cash_dca_installments: 3}
+  dca5: {cash_dca_installments: 5}
+  stop5: {cash_stop_loss_fraction: 0.05}
+  stop10: {cash_stop_loss_fraction: 0.10}
+  pyramid10: {cash_pyramid_profit_fraction: 0.10, cash_pyramid_add_fraction: 0.25}
+  pyramid20: {cash_pyramid_profit_fraction: 0.20, cash_pyramid_add_fraction: 0.50}
+  dca3_stop5: {cash_dca_installments: 3, cash_stop_loss_fraction: 0.05}
+  dca3_pyramid10: {cash_dca_installments: 3, cash_pyramid_profit_fraction: 0.10, cash_pyramid_add_fraction: 0.25}
+  top20_size50: {breadth_mode: top, breadth: 20, book_slots: 20, cash_long_fraction: 0.50}
+  decile5_size50: {decile: 0.05, book_slots: 5, cash_long_fraction: 0.50}
+  long_short_mom189: {mom_window: 189, skip_window: 21, cash_long_fraction: 0.50, cash_short_fraction: 0.50, cash_short_count: 10}

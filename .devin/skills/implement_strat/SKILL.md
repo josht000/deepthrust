@@ -60,6 +60,7 @@ alongside other agents: minimal diffs, no refactors, no long comments.
 - Catalog validation rules still apply: minimum evidence (>=100 dev / >=30 test
   trades else say `insufficient evidence`), cost ladder, class gates, DECAYED flag
   when test skill sign differs from dev.
+- Full-matrix refresh: Run run_strats.bat to execute all standard strategy matrices; after they succeed, it rebuilds results/all_trade_metrics.csv from the saved DEV/TEST partition CSVs. Use run_strats.bat --cash to also run the S041 cash screen. Do not use --cash-only when refreshing the aggregate—it skips the standard matrix and metrics refresh. If strategies were run individually or the batch was interrupted, wait until all runs finish, then run C:\data\envs\trading_framework\Scripts\python.exe tools\update_all_trade_metrics.py. An interrupted run’s aggregate only reflects the partition files saved so far.
 
 ## After it runs: update the source doc
 1. In the doc's Table of Contents append ` — IMPLEMENTED` to the entry line
@@ -69,6 +70,7 @@ alongside other agents: minimal diffs, no refactors, no long comments.
    max DD, trades dev, trades test), and ALWAYS a `Reproduce:` line with the exact command(s).
    Keep it as terse as the S075 entry.
 4. Update the results/all_trade_metrics.csv with the following header: study,variant,win_pct,mean_ret_pct,pf,sharpe,max_dd_pct,fill,period,days,trades,total_log,trend,trend_beta,beta,beta_t,avg_fraction_invested,avg_positions,turnover_annual,bias,cagr_pct,avg_hold,random_pick_universe,random_p_universe,skill_vs_universe,random_pick_pool,random_p_pool,skill_vs_pool,skill,skill_pct,skill_pct_random,skill_lo,skill_hi,skill_p
+5. Do not include extranious information in the report such as "This is a daily-open execution scenario, not verified intraday execution." We know that because it's a backtest. Do not include common knowledge or assumptions that are already understood from the context. Use common language. 
 
 ## Hard rules
 - Minimal changes only. No refactors, no drive-by cleanups, no long notes or

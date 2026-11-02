@@ -31,6 +31,15 @@ pub struct Valuation {
     pub net_exposure: f64,
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpinOffReceipt {
+    pub symbol: String,
+    pub shares: i64,
+    pub cash_in_lieu: f64,
+    pub realized_pnl: f64,
+    pub value_weight: f64,
+}
+
 impl Ledger {
     pub fn new(initial_cash: f64) -> Result<Self, String> {
         if !initial_cash.is_finite() || initial_cash <= 0.0 {
@@ -262,6 +271,162 @@ impl Ledger {
         Ok(cash_in_lieu)
     }
 
+    pub fn apply_spinoff(
+        &mut self,
+        source_symbol: &str,
+        components: &[(String, f64, f64)],
+    ) -> Result<Vec<SpinOffReceipt>, String> {
+        if source_symbol.is_empty() || components.is_empty() {
+            return Err("spin-off requires a source symbol and distributed assets".into());
+        }
+        let source = self
+            .positions
+            .get(source_symbol)
+            .cloned()
+            .ok_or_else(|| format!("no held position for spin-off source {source_symbol}"))?;
+        if components
+            .iter()
+            .filter(|(symbol, _, _)| symbol == source_symbol)
+            .count()
+            != 1
+        {
+            return Err(format!(
+                "spin-off for {source_symbol} must include the continuing source asset exactly once"
+            ));
+        }
+        for (index, (symbol, ratio, price)) in components.iter().enumerate() {
+            if symbol.is_empty()
+                || !ratio.is_finite()
+                || *ratio <= 0.0
+                || components[..index]
+                    .iter()
+                    .any(|(previous, _, _)| previous == symbol)
+            {
+                return Err(
+                    "spin-off component symbols and share ratios must be unique and positive"
+                        .into(),
+                );
+            }
+            validate_price(*price)?;
+        }
+        let total_value_per_source_share = components
+            .iter()
+            .map(|(_, ratio, price)| ratio * price)
+            .sum::<f64>();
+        if !total_value_per_source_share.is_finite() || total_value_per_source_share <= 0.0 {
+            return Err("spin-off distribution value must be positive and finite".into());
+        }
+
+        let mut next = self.clone();
+        next.positions.remove(source_symbol);
+        let mut receipts = Vec::with_capacity(components.len());
+        for (symbol, ratio, price) in components {
+            let exact_shares = source.shares as f64 * ratio;
+            if !exact_shares.is_finite()
+                || exact_shares <= i64::MIN as f64
+                || exact_shares >= i64::MAX as f64
+            {
+                return Err(format!("spin-off share count overflow for {symbol}"));
+            }
+            let shares = exact_shares.trunc() as i64;
+            let fractional_shares = exact_shares - shares as f64;
+            let cash_in_lieu = fractional_shares * price;
+            let average_price = source.average_price * price / total_value_per_source_share;
+            if !average_price.is_finite() || average_price <= 0.0 {
+                return Err(format!(
+                    "invalid allocated basis for spin-off asset {symbol}"
+                ));
+            }
+            let mut realized_pnl = fractional_shares * (price - average_price);
+            if shares != 0 {
+                if let Some(previous) = next.positions.remove(symbol) {
+                    let combined_shares = previous
+                        .shares
+                        .checked_add(shares)
+                        .ok_or("spin-off share count overflow")?;
+                    if previous.shares.signum() == shares.signum() {
+                        let combined_basis = (previous.average_price
+                            * previous.shares.unsigned_abs() as f64
+                            + average_price * shares.unsigned_abs() as f64)
+                            / combined_shares.unsigned_abs() as f64;
+                        next.positions.insert(
+                            symbol.clone(),
+                            Position {
+                                shares: combined_shares,
+                                average_price: combined_basis,
+                            },
+                        );
+                    } else {
+                        let closed = previous.shares.unsigned_abs().min(shares.unsigned_abs());
+                        realized_pnl += closed as f64
+                            * (price - previous.average_price)
+                            * previous.shares.signum() as f64;
+                        if combined_shares != 0 {
+                            let basis = if combined_shares.signum() == previous.shares.signum() {
+                                previous.average_price
+                            } else {
+                                average_price
+                            };
+                            next.positions.insert(
+                                symbol.clone(),
+                                Position {
+                                    shares: combined_shares,
+                                    average_price: basis,
+                                },
+                            );
+                        }
+                    }
+                } else {
+                    next.positions.insert(
+                        symbol.clone(),
+                        Position {
+                            shares,
+                            average_price,
+                        },
+                    );
+                }
+            }
+            next.cash += cash_in_lieu;
+            if !next.cash.is_finite() || !realized_pnl.is_finite() {
+                return Err("spin-off settlement produced a nonfinite account".into());
+            }
+            receipts.push(SpinOffReceipt {
+                symbol: symbol.clone(),
+                shares,
+                cash_in_lieu,
+                realized_pnl,
+                value_weight: ratio * price / total_value_per_source_share,
+            });
+        }
+        *self = next;
+        Ok(receipts)
+    }
+
+    pub fn settle_delisting(
+        &mut self,
+        symbol: &str,
+        last_mark: f64,
+        delisting_return: f64,
+    ) -> Result<f64, String> {
+        validate_price(last_mark)?;
+        if !delisting_return.is_finite() || delisting_return <= -1.0 {
+            return Err("delisting return must be finite and greater than -100%".into());
+        }
+        let position = self
+            .positions
+            .get(symbol)
+            .ok_or_else(|| format!("no held position to settle for {symbol}"))?;
+        let settlement_price = last_mark * (1.0 + delisting_return);
+        validate_price(settlement_price)?;
+        let cash_delta = position.shares as f64 * settlement_price;
+        if !(self.cash + cash_delta).is_finite() {
+            return Err("delisting settlement would make cash nonfinite".into());
+        }
+        self.cash += cash_delta;
+        self.positions.remove(symbol);
+        Ok(cash_delta)
+    }
+
     pub fn charge_borrow(
         &mut self,
         marks: &BTreeMap<String, f64>,
@@ -362,6 +527,38 @@ mod tests {
     }
 
     #[test]
+    fn spinoff_preserves_whole_share_account_value_and_settles_fractional_shares() {
+        let mut book = Ledger::new(1_000.0).unwrap();
+        book.execute("RTX", 3, 86.01, 0.0, 0.0, 3, false, &marks("RTX", 86.01))
+            .unwrap();
+        let before = book.value(&marks("RTX", 86.01)).unwrap().equity;
+        let receipts = book
+            .apply_spinoff(
+                "RTX",
+                &[
+                    ("RTX".into(), 1.0, 51.16),
+                    ("CARR".into(), 1.0, 13.75),
+                    ("OTIS".into(), 0.5, 43.75),
+                ],
+            )
+            .unwrap();
+        let mut market = BTreeMap::new();
+        market.insert("RTX".into(), 51.16);
+        market.insert("CARR".into(), 13.75);
+        market.insert("OTIS".into(), 43.75);
+        let after = book.value(&market).unwrap().equity;
+        assert_eq!(book.positions()["RTX"].shares, 3);
+        assert_eq!(book.positions()["CARR"].shares, 3);
+        assert_eq!(book.positions()["OTIS"].shares, 1);
+        assert!((receipts[2].cash_in_lieu - 21.875).abs() < 1e-10);
+        assert!((after - before - 2.325).abs() < 1e-8);
+        let allocated_basis = book.positions()["RTX"].average_price * 3.0
+            + book.positions()["CARR"].average_price * 3.0
+            + book.positions()["OTIS"].average_price * 1.5;
+        assert!((allocated_basis - 258.03).abs() < 1e-8);
+    }
+
+    #[test]
     fn slippage_and_commission_are_not_free() {
         let mut book = Ledger::new(10_000.0).unwrap();
         let fill = book
@@ -399,6 +596,33 @@ mod tests {
         assert_eq!(book.settle_dividend("div1").unwrap(), 10.0);
         assert_eq!(book.cash(), 1_000.0);
         assert!(book.settle_dividend("div1").is_err());
+    }
+
+    #[test]
+    fn delisting_settlement_closes_long_and_short_positions_at_assumed_return() {
+        let mut book = Ledger::new(1_000.0).unwrap();
+        book.execute("LONG", 2, 100.0, 0.0, 0.0, 2, false, &marks("LONG", 100.0))
+            .unwrap();
+        assert!((book.settle_delisting("LONG", 90.0, -0.30).unwrap() - 126.0).abs() < 1e-10);
+        assert!(!book.positions().contains_key("LONG"));
+        assert_eq!(book.cash(), 926.0);
+
+        let mut short = Ledger::new(1_000.0).unwrap();
+        short
+            .execute(
+                "SHORT",
+                -2,
+                100.0,
+                0.0,
+                0.0,
+                2,
+                true,
+                &marks("SHORT", 100.0),
+            )
+            .unwrap();
+        assert!((short.settle_delisting("SHORT", 90.0, -0.30).unwrap() + 126.0).abs() < 1e-10);
+        assert!(!short.positions().contains_key("SHORT"));
+        assert_eq!(short.cash(), 1074.0);
     }
 
     #[test]

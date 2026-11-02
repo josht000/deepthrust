@@ -871,6 +871,7 @@ mod tests {
         let action = CorporateAction {
             symbol: "XYZ".into(),
             date: panel.dates[1],
+            payment_date: None,
             action_type: "cash_dividend".into(),
             rate: Some(0.50),
             old_rate: None,

@@ -114,6 +114,7 @@ fn rolling_median(x: &[f64], w: usize) -> Vec<f64> {
     out
 }
 
+#[derive(Clone)]
 pub struct Signals {
     pub rsi: Mat,
     pub indicator_name: String,
@@ -3254,6 +3255,7 @@ mod tests {
         let actions = [crate::data::CorporateAction {
             symbol: "A".into(),
             date: dates[100],
+            payment_date: None,
             action_type: "cash_dividend".into(),
             rate: Some(0.10),
             old_rate: None,

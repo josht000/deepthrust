@@ -23,6 +23,9 @@ cargo run --release -- --strategy s001_rsi2_connors --variant rsi5,gate21 --symb
 
 # run the full configured matrix for all registered strategies
 run_strats.bat
+run_strats.bat --cash                 # also run the S041 cash-study variant screen
+run_strats.bat --cash-only            # run only the S041 cash-study screen
+run_strats.bat --cash --debug         # flags can be combined in either order
 cargo run --release -- --check-data          # validate inputs + write a manifest only
 cargo test                                   # unit tests + offline end-to-end smoke test (synthetic bars)
 ```
@@ -31,6 +34,11 @@ CLI flags mirror `run.py`: `--strategy --config --stages --test --rebuild --prof
 (plus `--symbols`). Daily input data is read from the configured split-adjusted Parquet files and is never rewritten.
 Input-gap and benchmark-fallback warnings, plus the per-symbol trade-count console table, are quiet by default.
 Pass `--debug` to print them; `run_strats.bat --debug` forwards the option to every strategy run.
+`run_strats.bat --cash` additionally runs the 44-configuration S041 cash screen with one
+deterministic random-pick draw per configuration; `--cash-only` builds and runs just that screen,
+skipping all other strategies. This is a screening run, not robust placebo evaluation.
+After the standard strategy matrix completes, `run_strats.bat` rebuilds
+`results/all_trade_metrics.csv` from the saved partition DEV/TEST CSVs.
 Each strategy may use the legacy single-source keys (`data_dir`, `data_suffix`, `symbols`) or a `sources:` list
 with named Parquet directories, symbol lists, and per-source costs. Sources are aligned by date; duplicate symbols
 across sources are rejected. A benchmark can be loaded independently of the traded universe with
@@ -70,19 +78,50 @@ exactly, the Family 4 catalog uses the last configured candidate, matching the s
 
 ## S041 execution research
 
-The current S041 portfolio study is a research-scale, daily-bar simulation; it is not a
-whole-share $10,000 cash-account or minute-bar execution simulation. Its published TEST
-period has already been inspected. In particular, short borrow availability, spreads,
-market impact, capacity, and broker-specific execution are not established by these results.
+The existing S041 portfolio study is a research-scale daily-bar simulation; its published
+TEST period has already been inspected. A separate `s041_cash_study` runner evaluates a
+configurable whole-share cash-account scenario from $10,000 using adjusted total-return bars
+for signals and separately configured raw daily bars for fills and marks. It writes daily
+portfolio, completed-trade, order-event, corporate-action, missing-quote, manifest, report,
+lifecycle-event, cost-ladder, DEV-selection, and plot outputs under `results/s041_cash/`.
+Run the baseline with `cargo run --release --bin s041_cash_study -- --random-draws 100`;
+run baseline plus named overlays with, for example,
+`cargo run --release --bin s041_cash_study -- --variant size25,size50,dca3,stop5,pyramid10 --random-draws 1`.
+Use `--check-data` to validate input coverage without running the replay. A comma-separated
+variant call includes baseline automatically and writes a DEV-only candidate-selection summary.
 
-Rust primitives in `src\strategies\s041_mom_12_1\cash_ledger.rs` and `replay.rs` provide
-whole-share accounting, no-leverage order checks, explicit short locates and borrow costs,
-cash distributions and split adjustments, close-based allocation, installment schedules,
-stop/add signals, and a pending-order replay with shared, age-limited previously observed
-volume. Dividends can be accrued on entitlement and settled separately. They are not yet
-connected to the study runner, a full historical order replay, or portfolio reports; they do
-not make the current S041 results cash-account results. The assumed bar-open price and
-participation limit are scenarios, not verified execution or borrow availability.
+The runner models next-open fills using only the preceding completed session's volume,
+whole-share no-leverage accounting, configurable participation/costs, dividend entitlement
+and payment, split adjustments, scheduled DCA installments, stop exits, one-time winner adds,
+and deterministic random-pick baselines. Its 44-configuration baseline-inclusive registry
+includes sizing, momentum/breadth, participation, trading costs, delisting-return sensitivity,
+and lifecycle overlays. It writes every attempted configuration to `variants_comparison.csv`
+and appends trial records; `selection.md` uses positive DEV skill plus the stricter of 25% or
+SPY DEV drawdown for eligibility, then equal-weight DEV percentile ranks for skill, Sharpe,
+profit factor, and drawdown. It selects from the latest saved result per named configuration,
+so an interrupted grid can resume without rerunning completed variants; blocked configurations
+are excluded. TEST never ranks candidates.
+
+The corrected one-draw screen completed all 44 named configurations with none blocked;
+`mom315` now completes after correcting the UTX/RTX spin-off history. DEV-only selection still
+names `size25`, but the single random-pick draw is preliminary and TEST has already been
+inspected. This is not a validated winner or a fresh holdout; see
+`results/s041_cash/selection.md` and the selected variant report.
+
+After the configured
+number of consecutive missing raw closes, it settles a held position using an explicit
+assumed delisting return (default -30%); this is a sensitivity assumption, not historical
+delisting proceeds. Missing raw symbols are not substituted with adjusted prices. Daily-bar
+opens, participation, and synthetic event timestamps are scenarios, not verified intraday
+execution. Short availability is assumed when enabled; borrow availability, spreads, market
+impact, capacity, and broker-specific execution remain unestablished. The runner is not a
+brokerage-certified cash account, and the short scenarios use assumed locate/collateral
+availability. Current results remain diagnostic until raw-data coverage, incomplete corporate
+actions, the cost sensitivity search, and robust placebo evaluation are resolved; TEST is not
+a fresh holdout. The current local universe has 1,399 signal symbols, 1,221 raw files, 178
+missing raw files, and 192 held dividend entitlements without a payable date. Split-adjusted
+files exist for those 178 names, but are deliberately not used as executable prices. The
+missing symbols and per-date quote gaps are listed in the study outputs.
 
 The S041 decile now uses the eligible universe on each rebalance date, not the median
 eligible count across the full sample. Results produced before this correction are not
