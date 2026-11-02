@@ -8,6 +8,10 @@ pub mod family2;
 pub mod family4;
 pub mod partition;
 pub mod report;
+#[path = "strategies/s041_mom_12_1/cash_ledger.rs"]
+pub mod s041_cash_ledger;
+#[path = "strategies/s041_mom_12_1/replay.rs"]
+pub mod s041_replay;
 pub mod signals;
 pub mod stats;
 pub mod study;

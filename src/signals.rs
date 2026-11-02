@@ -852,6 +852,16 @@ fn rebalance_trades(
     fill: &str,
     breadth: usize,
 ) -> Result<Vec<crate::engine::Trade>, String> {
+    rebalance_trades_with_breadth(panel, sig, cfg, fill, |_, _| breadth)
+}
+
+fn rebalance_trades_with_breadth(
+    panel: &Panel,
+    sig: &Signals,
+    cfg: &Config,
+    fill: &str,
+    breadth: impl Fn(usize, usize) -> usize,
+) -> Result<Vec<crate::engine::Trade>, String> {
     if !matches!(fill, "close" | "next_open") {
         return Err(format!("{} does not support fill {fill:?}", cfg.strategy));
     }
@@ -893,7 +903,7 @@ fn rebalance_trades(
                 .total_cmp(&sig.rsi[a][signal_day])
                 .then_with(|| panel.symbols[a].cmp(&panel.symbols[b]))
         });
-        picks.truncate(breadth);
+        picks.truncate(breadth(signal_day, picks.len()));
         for symbol in picks {
             let close = &panel.close[symbol];
             let open = &panel.open[symbol];
@@ -1813,37 +1823,26 @@ pub fn s041_trades(
             cfg.rebalance
         ));
     }
-    let breadth = if cfg.breadth_mode == "top" {
-        cfg.breadth
-    } else {
+    if cfg.breadth_mode == "top" && cfg.breadth == 0 {
+        return Err("S041 breadth must be greater than zero".into());
+    }
+    if cfg.breadth_mode == "decile" {
         if !cfg.decile.is_finite() || !(0.0..=1.0).contains(&cfg.decile) || cfg.decile == 0.0 {
             return Err("S041 decile must be in (0, 1]".into());
         }
-        let mut eligible: Vec<_> = (0..panel.dates.len())
-            .map(|day| {
-                (0..panel.symbols.len())
-                    .filter(|&symbol| sig.tradable[symbol][day] && sig.rsi[symbol][day].is_finite())
-                    .count()
-            })
-            .filter(|count| *count > 0)
-            .collect();
-        eligible.sort_unstable();
-        let median = if eligible.is_empty() {
-            0.0
-        } else {
-            let mid = eligible.len() / 2;
-            if eligible.len() % 2 == 0 {
-                (eligible[mid - 1] + eligible[mid]) as f64 / 2.0
-            } else {
-                eligible[mid] as f64
-            }
-        };
-        cfg.min_breadth.max((median * cfg.decile) as usize)
-    };
-    if breadth == 0 {
-        return Err("S041 breadth must be greater than zero".into());
+        if cfg.min_breadth == 0 {
+            return Err("S041 minimum breadth must be greater than zero".into());
+        }
+    } else if cfg.breadth_mode != "top" {
+        return Err(format!("unknown S041 breadth_mode {:?}", cfg.breadth_mode));
     }
-    let trades = rebalance_trades(panel, sig, cfg, fill, breadth)?;
+    let trades = rebalance_trades_with_breadth(panel, sig, cfg, fill, |_, eligible| {
+        if cfg.breadth_mode == "top" {
+            cfg.breadth
+        } else {
+            cfg.min_breadth.max((eligible as f64 * cfg.decile) as usize)
+        }
+    })?;
     Ok(weight_rebalance_trades(trades, cfg.book_slots))
 }
 
@@ -3090,6 +3089,54 @@ mod tests {
         assert!(trades
             .iter()
             .all(|trade| trade.weighted && trade.weight == 1.0));
+    }
+
+    #[test]
+    fn s041_decile_breadth_uses_only_the_current_eligible_universe() {
+        let n = 120;
+        let mut cfg = test_config();
+        cfg.min_history = 1;
+        cfg.rank_window = 2;
+        cfg.rank_min_observations = 1;
+        cfg.min_price = 0.0;
+        cfg.universe_top_n = 10;
+        cfg.mom_window = 3;
+        cfg.skip_window = 1;
+        cfg.breadth_mode = "decile".into();
+        cfg.decile = 0.5;
+        cfg.min_breadth = 1;
+        cfg.book_slots = 1;
+        cfg.rebalance = "monthly".into();
+        let prices: Vec<_> = (0..n).map(|day| 10.0 + day as f64).collect();
+        let panel = Panel {
+            dates: (0..n)
+                .map(|day| {
+                    crate::data::parse_date("2024-01-01").unwrap()
+                        + chrono::Duration::days(day as i64)
+                })
+                .collect(),
+            symbols: (0..10).map(|i| format!("S{i}")).collect(),
+            open: vec![prices.clone(); 10],
+            high: vec![prices.clone(); 10],
+            low: vec![prices.clone(); 10],
+            close: vec![prices; 10],
+            volume: vec![vec![1000.0; n]; 10],
+        };
+        let mut sig = compute_s041_signals(&panel, &cfg).unwrap();
+        for symbol in 2..10 {
+            for day in 0..60 {
+                sig.tradable[symbol][day] = false;
+            }
+        }
+        let trades = s041_trades(&panel, &sig, &cfg, "close").unwrap();
+        assert_eq!(
+            trades.iter().filter(|trade| trade.signal_idx == 30).count(),
+            1
+        );
+        assert_eq!(
+            trades.iter().filter(|trade| trade.signal_idx == 90).count(),
+            5
+        );
     }
 
     #[test]

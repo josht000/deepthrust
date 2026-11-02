@@ -67,3 +67,62 @@ Monthly studies set `periods_per_year: 12` for annualized Sharpe, CAGR, and turn
 currently adjusts for fill-model correlation, not for the full variant search; DEV rankings are
 exploratory, and an already inspected TEST period is not a fresh holdout. When DEV skill ties
 exactly, the Family 4 catalog uses the last configured candidate, matching the symbols overview.
+
+## S041 execution research
+
+The current S041 portfolio study is a research-scale, daily-bar simulation; it is not a
+whole-share $10,000 cash-account or minute-bar execution simulation. Its published TEST
+period has already been inspected. In particular, short borrow availability, spreads,
+market impact, capacity, and broker-specific execution are not established by these results.
+
+Rust primitives in `src\strategies\s041_mom_12_1\cash_ledger.rs` and `replay.rs` provide
+whole-share accounting, no-leverage order checks, explicit short locates and borrow costs,
+cash distributions and split adjustments, close-based allocation, installment schedules,
+stop/add signals, and a pending-order replay with shared, age-limited previously observed
+volume. Dividends can be accrued on entitlement and settled separately. They are not yet
+connected to the study runner, a full historical order replay, or portfolio reports; they do
+not make the current S041 results cash-account results. The assumed bar-open price and
+participation limit are scenarios, not verified execution or borrow availability.
+
+The S041 decile now uses the eligible universe on each rebalance date, not the median
+eligible count across the full sample. Results produced before this correction are not
+comparable for decile variants. The corrected 33-configuration research grid has no
+positive-DEV-skill candidate meeting the stricter of a 25% or SPY DEV drawdown limit.
+`tools\s041_dev_screen.py` ranks eligible candidates by equal-weight DEV percentile
+ranks for skill, Sharpe, profit factor, and drawdown; it never uses TEST to select.
+`tools\s041_frequency.py` reports gross modeled entries, completed legs, and rebalance
+dates separately for DEV and TEST. These tools do not add whole-share account realism.
+
+For the optional intraday data environment, install the pinned packages with the
+configured Windows interpreter. For example:
+
+```powershell
+& 'C:\data\envs\trading_framework\Scripts\python.exe' -m pip install -r requirements-data.txt
+& 'C:\data\envs\trading_framework\Scripts\python.exe' tools\fetch_s041_minutes.py --symbols SPY AAPL --start 2026-10-05 --end 2026-10-12 --interval 1m --out-dir data\cache\s041_minute\example
+```
+
+The downloader saves unadjusted one- or two-minute snapshots and a manifest with retrieval
+time, coverage endpoints, and file hashes. It does not establish historical publication
+times, revision history, consolidated-exchange coverage, or the absence of missing bars;
+these snapshots are not a verified point-in-time archive. Yahoo's data usage terms and
+short historical retention apply. `tools\s041_open_diagnostic.py` compares modeled
+rebalance legs with the observed 09:30 and 09:32 bar opens, rejecting missing opening
+bars or mismatched hashes. It does not simulate fills, whole shares, cash, netted orders,
+or portfolio performance.
+
+An alternative data-only Alpaca IEX snapshot can be obtained with an authorized account:
+
+```powershell
+& 'C:\data\envs\trading_framework\Scripts\python.exe' tools\fetch_s041_alpaca_minutes.py --trades results\s041_mom_12_1\mom126_skip10__trades_next_open.csv --start 2023-12-29 --end 2024-01-20 --env-file C:\path\to\alpaca.env --out-dir data\cache\s041_minute\example_iex
+```
+
+The env file supplies `ALPACA_API_KEY` and `ALPACA_API_SECRET`. This uses the market-data
+endpoint only and downloads symbols from overlapping historical trade records; that candidate
+list is not a point-in-time trading signal or coverage for other variants. IEX is one exchange,
+not a consolidated feed, and retrospective snapshots do not establish revision-time history.
+For example, 72 of 74 downloaded symbols have fewer than 390 regular-session bars on
+2024-01-02. Missing bars cannot be treated as fills.
+
+Follow up S041 execution research with S042 sector momentum, S043 multi-asset momentum,
+and a tradable ETF implementation of S046 industry rotation. The S046 monthly French
+industry study is not an executable ETF backtest.
