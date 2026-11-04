@@ -79,7 +79,16 @@ fn main() -> ExitCode {
         Cmd::Behavior => run_behavior(&store),
         Cmd::Funnel { limit } => run_funnel(&store, limit),
         Cmd::FinalTest { rehearse, limit } => run_final_test(&store, rehearse, limit),
-        Cmd::Dash => todo("dash"),
+        Cmd::Dash => match deepthrust::pal::dash::run_dash(std::path::Path::new(".")) {
+            Ok(p) => {
+                println!("dash: wrote {}", p.display());
+                ExitCode::SUCCESS
+            }
+            Err(e) => {
+                eprintln!("dash: {e}");
+                ExitCode::FAILURE
+            }
+        },
     }
 }
 

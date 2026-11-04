@@ -930,6 +930,10 @@ pub fn write_outputs(out: &FunnelOut, dir: &Path) -> Result<(), String> {
         let setup = v["setup"].as_str().unwrap_or("").to_string();
         let chart = v["chart"].as_str().unwrap_or("").to_string();
         groups
+            .entry(("all".into(), "all".into()))
+            .or_default()
+            .push(r);
+        groups
             .entry(("setup".into(), setup.clone()))
             .or_default()
             .push(r);

@@ -4,6 +4,7 @@
 pub mod atr;
 pub mod audit;
 pub mod behavior;
+pub mod dash;
 pub mod detect;
 pub mod detctx;
 pub mod engine;
