@@ -10,7 +10,7 @@ use std::path::Path;
 use crate::pal::rng::MASTER_SEED;
 use crate::pal::types::ChartId;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, serde::Deserialize)]
 pub enum Setup {
     LevelBounce,
     Breakout,
@@ -94,7 +94,7 @@ impl Setup {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, serde::Deserialize)]
 pub enum EntryKind {
     /// limit at the level (0-slippage touch fill)
     LimitAtLevel,
@@ -123,7 +123,7 @@ impl EntryKind {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, serde::Deserialize)]
 pub enum StopKind {
     /// hard stop 0.1 ATR beyond the setup's reference level
     BeyondLevel,
@@ -141,7 +141,7 @@ impl StopKind {
     pub const ALL: [StopKind; 2] = [StopKind::BeyondLevel, StopKind::BeyondSwing];
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, serde::Deserialize)]
 pub enum TargetKind {
     R1,
     R2,
@@ -166,14 +166,14 @@ impl TargetKind {
     ];
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, serde::Deserialize)]
 pub enum DirSel {
     Both,
     Long,
     Short,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, serde::Deserialize)]
 pub enum LevelShape {
     Line,
     Box,
@@ -181,7 +181,7 @@ pub enum LevelShape {
 
 /// Optional filters (spec: no filter or exactly one for the common set;
 /// the human set allows up to two).
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, serde::Deserialize)]
 pub struct Filters {
     pub trend_agree: bool,
     pub ny_only: bool,
@@ -202,7 +202,7 @@ impl Filters {
 }
 
 /// One fully specified strategy version (a point in the dial space).
-#[derive(Clone, Debug, Serialize, PartialEq)]
+#[derive(Clone, Debug, Serialize, serde::Deserialize, PartialEq)]
 pub struct Version {
     pub name: String,
     pub setup: String,

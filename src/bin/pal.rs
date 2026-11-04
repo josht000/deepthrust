@@ -43,8 +43,17 @@ enum Cmd {
         #[arg(long)]
         limit: Option<usize>,
     },
-    /// The sealed final test (requires PAL_STEP + PAL_UNLOCK_SEALED=1).
-    FinalTest,
+    /// The sealed final test (requires PAL_STEP=final-test +
+    /// PAL_UNLOCK_SEALED=1). --rehearse runs the same code on the last
+    /// discovery month, price-shifted, seal closed.
+    FinalTest {
+        /// rehearsal on shifted discovery data (no unlock needed)
+        #[arg(long)]
+        rehearse: bool,
+        /// cap the number of versions (smoke runs)
+        #[arg(long)]
+        limit: Option<usize>,
+    },
     /// Build the presenter dashboard with provenance checks.
     Dash,
 }
@@ -69,7 +78,7 @@ fn main() -> ExitCode {
         Cmd::EngineCheck => run_engine_check(&store),
         Cmd::Behavior => run_behavior(&store),
         Cmd::Funnel { limit } => run_funnel(&store, limit),
-        Cmd::FinalTest => todo("final-test"),
+        Cmd::FinalTest { rehearse, limit } => run_final_test(&store, rehearse, limit),
         Cmd::Dash => todo("dash"),
     }
 }
@@ -116,6 +125,134 @@ fn run_funnel(store: &Store, limit: Option<usize>) -> ExitCode {
         }
         Err(e) => {
             eprintln!("funnel write: {e}");
+            ExitCode::FAILURE
+        }
+    }
+}
+
+fn run_final_test(store: &Store, rehearse: bool, limit: Option<usize>) -> ExitCode {
+    use deepthrust::pal::enginecheck::news_set;
+    use deepthrust::pal::finaltest;
+    let funnel_dir = store.results_dir().join("funnel");
+    let out_dir = finaltest::output_dir(store, rehearse);
+
+    // 1. hash preflight on the saved funnel selections
+    let versions = match finaltest::verify_and_load(&funnel_dir) {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("final-test preflight: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
+    let funnel_rows = match finaltest::load_funnel_rows(&funnel_dir) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("final-test preflight: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
+    println!(
+        "final-test: {} kept versions; {} candidates",
+        versions.len(),
+        funnel_rows.iter().filter(|r| r.candidate).count()
+    );
+
+    // 2. run-once rule
+    if !rehearse && finaltest::dir_has_results(&out_dir) {
+        eprintln!(
+            "final-test: {} already has results — refusing to rerun",
+            out_dir.display()
+        );
+        return ExitCode::FAILURE;
+    }
+
+    // 3. unlock (rehearse skips it — the seal stays closed)
+    let unlock = if rehearse {
+        None
+    } else {
+        match finaltest::require_final_unlock() {
+            Ok(u) => Some(u),
+            Err(e) => {
+                eprintln!("final-test: {e}");
+                return ExitCode::FAILURE;
+            }
+        }
+    };
+
+    // 4. windows per market
+    let news = news_set(&store.read_news().unwrap_or_default());
+    let mut ctxs = Vec::new();
+    let mut dates = Vec::new();
+    for m in Market::ALL {
+        let sessions = if rehearse {
+            finaltest::rehearsal_sessions(store, m)
+        } else {
+            match finaltest::read_window(store, m, unlock.as_ref().unwrap()) {
+                Ok(s) if !s.is_empty() => s,
+                Ok(_) => {
+                    eprintln!("final-test: no {} sessions — run ingest first", m.symbol());
+                    return ExitCode::FAILURE;
+                }
+                Err(e) => {
+                    eprintln!("final-test read: {e}");
+                    return ExitCode::FAILURE;
+                }
+            }
+        };
+        let rolls = deepthrust::pal::audit::load_rolls(&store.rolls_file(m))
+            .unwrap_or_default();
+        let (ctx, ds) = finaltest::final_ctx(&sessions, &rolls);
+        println!(
+            "final-test: {} {} sessions, {} in window",
+            m.symbol(),
+            ctx.session_dates.len(),
+            ds.len()
+        );
+        ctxs.push(ctx);
+        dates.push(ds);
+    }
+    // Market::ALL = [Es, Nq]
+    let mut es = ctxs.remove(0);
+    let mut nq = ctxs.remove(0);
+    let es_dates = dates.remove(0);
+    let nq_dates = dates.remove(0);
+
+    let out = finaltest::run_final(
+        &mut nq,
+        &mut es,
+        &nq_dates,
+        &es_dates,
+        &versions,
+        &funnel_rows,
+        &news,
+        limit,
+    );
+    match finaltest::write_final_outputs(&out, &funnel_rows, &versions, &out_dir) {
+        Ok(()) => {
+            println!(
+                "final-test{}: wrote {} ({} versions, nq held {} es held {})",
+                if rehearse { " rehearsal" } else { "" },
+                out_dir.display(),
+                out.rows.len(),
+                out.rows.iter().filter(|r| r.held_nq).count(),
+                out.rows.iter().filter(|r| r.held_es).count(),
+            );
+            // provenance: snapshot the sealed manifest + access log
+            if !rehearse {
+                for src in [
+                    store.sealed_dir().join("manifest.sha256"),
+                    store.sealed_dir().join("access_log.jsonl"),
+                ] {
+                    if src.exists() {
+                        let dst = out_dir.join(src.file_name().unwrap());
+                        let _ = std::fs::copy(&src, &dst);
+                    }
+                }
+            }
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("final-test write: {e}");
             ExitCode::FAILURE
         }
     }
