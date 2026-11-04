@@ -77,6 +77,44 @@ pub fn last_of_kind(swings: &[Swing], kind: SwingKind, at: usize, k: usize) -> V
     v
 }
 
+/// Swings split by kind and sorted by confirmation index, for
+/// O(log n) "last k confirmed" queries on the per-event hot path.
+/// (`confirmed = idx + strength` is monotone, so the combined list
+/// sorted by idx splits into same-order per-kind lists.)
+#[derive(Clone, Debug)]
+pub struct SwingIndex {
+    pub highs: Vec<Swing>,
+    pub lows: Vec<Swing>,
+}
+
+impl SwingIndex {
+    pub fn new(swings: &[Swing]) -> SwingIndex {
+        let mut highs: Vec<Swing> = swings
+            .iter()
+            .filter(|s| s.kind == SwingKind::High)
+            .cloned()
+            .collect();
+        let mut lows: Vec<Swing> = swings
+            .iter()
+            .filter(|s| s.kind == SwingKind::Low)
+            .cloned()
+            .collect();
+        highs.sort_by_key(|s| s.confirmed);
+        lows.sort_by_key(|s| s.confirmed);
+        SwingIndex { highs, lows }
+    }
+
+    /// last `k` confirmed swings of `kind` usable at `at`, oldest first.
+    pub fn last_of(&self, kind: SwingKind, at: usize, k: usize) -> &[Swing] {
+        let v = match kind {
+            SwingKind::High => &self.highs,
+            SwingKind::Low => &self.lows,
+        };
+        let end = v.partition_point(|s| s.confirmed <= at);
+        &v[end.saturating_sub(k)..end]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

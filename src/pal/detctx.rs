@@ -7,7 +7,7 @@
 use std::collections::HashMap;
 
 use crate::pal::atr::atr_series;
-use crate::pal::detect::swings::{self, Swing};
+use crate::pal::detect::swings::{self, Swing, SwingIndex};
 use crate::pal::engine::BarCtx;
 use crate::pal::resample::build_chart;
 use crate::pal::sessions::minute_index;
@@ -30,6 +30,8 @@ pub struct DetCtx {
     pub charts: HashMap<ChartId, ChartSeries>,
     /// per-(chart, strength) swing list, lazily filled
     pub swings: HashMap<(ChartId, usize), Vec<Swing>>,
+    /// per-(chart, strength) binary-searchable swing index
+    pub swing_idx: HashMap<(ChartId, usize), SwingIndex>,
     /// per-chart ATR series (usable at bar i from bars[0..i])
     pub atr: HashMap<ChartId, Vec<Option<f64>>>,
 }
@@ -174,6 +176,7 @@ impl DetCtx {
             session_start,
             charts,
             swings: HashMap::new(),
+            swing_idx: HashMap::new(),
             atr: HashMap::new(),
         }
     }
@@ -183,6 +186,15 @@ impl DetCtx {
         self.swings
             .entry((chart, strength))
             .or_insert_with(|| swings::swings(&self.charts[&chart].bars, strength))
+    }
+
+    /// Binary-searchable swing index for (chart, strength), built once.
+    pub fn swing_index(&mut self, chart: ChartId, strength: usize) -> &SwingIndex {
+        if !self.swing_idx.contains_key(&(chart, strength)) {
+            let si = SwingIndex::new(self.swings(chart, strength));
+            self.swing_idx.insert((chart, strength), si);
+        }
+        &self.swing_idx[&(chart, strength)]
     }
 
     /// ATR series for a chart (usable at bar i from bars[..i]).

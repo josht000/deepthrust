@@ -706,6 +706,7 @@ impl<'a> Behavior<'a> {
         self.ctx.swings(chart, BEHAVIOR_SWING);
         self.ctx.atr(chart);
         let sw = self.ctx.swings[&(chart, BEHAVIOR_SWING)].clone();
+        let sidx = crate::pal::detect::swings::SwingIndex::new(&sw);
         let atr = self.ctx.atr[&chart].clone();
         let cs = &self.ctx.charts[&chart];
         let bars = &cs.bars;
@@ -713,7 +714,7 @@ impl<'a> Behavior<'a> {
         let mut rng = Rng::fork(&format!("behavior/trendline/{chart:?}/{dir_long}"));
         let mut out = Vec::new();
         for i in 3..bars.len() {
-            let Some(tl) = trend_line(&sw, kind, i - 1, 2) else { continue };
+            let Some(tl) = trend_line(&sidx, kind, i - 1, 2) else { continue };
             let price = tl.price_at(i - 1);
             let touched = bars[i].low <= price && price <= bars[i].high;
             if !touched {

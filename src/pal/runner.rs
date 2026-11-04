@@ -28,6 +28,23 @@ pub struct RunResult {
     pub n_signals: usize,
     /// events filtered out (for diagnostics)
     pub n_filtered: usize,
+    /// per-filled-trade info for matched-random twins (funnel stage 4)
+    pub twins: Vec<TwinInfo>,
+}
+
+/// What a matched-random twin needs to reproduce a trade's risk shape
+/// at a random same-30-min entry (spec prompt 3, stage 4).
+#[derive(Clone, Copy, Debug)]
+pub struct TwinInfo {
+    pub dir: Direction,
+    /// real entry bar (for the minute-of-day bucket and holding time)
+    pub entry_bar: usize,
+    pub exit_bar: usize,
+    /// |entry_px - stop| / setup-chart ATR at signal
+    pub stop_atr: f64,
+    /// target distance / stop distance (NaN = no target)
+    pub target_r: f64,
+    pub size: f64,
 }
 
 fn trigger_minutes(chart: ChartId) -> u32 {
@@ -75,6 +92,7 @@ pub fn run_version(
     let costs = CostModel::for_market(market);
 
     let mut trades = Vec::new();
+    let mut twins = Vec::new();
     let mut daily = BTreeMap::new();
     let mut n_signals = 0usize;
     let mut n_filtered = 0usize;
@@ -183,6 +201,32 @@ pub fn run_version(
         if let Some(d) = day {
             *daily.entry(d).or_insert(0.0) += t.pnl_usd;
         }
+        // matched-random twin descriptor: risk shape in ATR/R terms
+        let stop_dist = (t.entry_px - spec.stop).abs();
+        let stop_atr = if ev.atr.is_finite() && ev.atr > 0.0 {
+            stop_dist / ev.atr
+        } else {
+            f64::NAN
+        };
+        let target_r = match spec.target {
+            Target::RMult(r) => r,
+            Target::Fixed(p) => {
+                if stop_dist > 0.0 {
+                    (p - t.entry_px).abs() / stop_dist
+                } else {
+                    f64::NAN
+                }
+            }
+            Target::None => f64::NAN,
+        };
+        twins.push(TwinInfo {
+            dir: t.dir,
+            entry_bar: t.entry_bar,
+            exit_bar: t.exit_bar,
+            stop_atr,
+            target_r,
+            size: v.size,
+        });
         trades.push(t);
     }
     RunResult {
@@ -190,6 +234,7 @@ pub fn run_version(
         daily_pnl: daily,
         n_signals,
         n_filtered,
+        twins,
     }
 }
 

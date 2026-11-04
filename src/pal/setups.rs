@@ -10,8 +10,8 @@ use crate::pal::detect::candles::{candle_at, CandleKind};
 use crate::pal::detect::fvg::{fvgs, GapKind};
 use crate::pal::detect::levels::{levels, LevelKind};
 use crate::pal::detect::structure::{structure_breaks, BreakDir, BreakKind};
-use crate::pal::detect::swings::{last_of_kind, SwingKind};
-use crate::pal::detect::trend::{trend_at, Trend};
+use crate::pal::detect::swings::{SwingIndex, SwingKind};
+use crate::pal::detect::trend::{trend_idx, Trend};
 use crate::pal::detect::trendlines::trend_line;
 use crate::pal::detect::zones::{zones, ZoneKind};
 use crate::pal::detctx::DetCtx;
@@ -100,15 +100,15 @@ fn candle_flags(tbars: &[ChartBar], ti: usize, dir: Direction) -> u16 {
 }
 
 fn last_swing(ctx: &mut DetCtx, chart: ChartId, strength: usize, kind: SwingKind, u: usize) -> f64 {
-    let sw = ctx.swings(chart, strength);
-    last_of_kind(sw, kind, u.saturating_sub(1), 1)
-        .first()
+    ctx.swing_index(chart, strength)
+        .last_of(kind, u.saturating_sub(1), 1)
+        .last()
         .map(|s| s.price)
         .unwrap_or(f64::NAN)
 }
 
 fn base_event(
-    ctx: &DetCtx,
+    ctx: &mut DetCtx,
     cfg: &DetectCfg,
     pos: usize,
     session: i32,
@@ -120,11 +120,10 @@ fn base_event(
         .get(&cfg.chart)
         .and_then(|a| a.get(u.saturating_sub(1)).copied().flatten())
         .unwrap_or(f64::NAN);
-    let trend = ctx
-        .swings
-        .get(&(cfg.chart, cfg.swing_strength))
-        .map(|sw| trend_at(sw, u.saturating_sub(1)))
-        .unwrap_or(Trend::None);
+    let trend = trend_idx(
+        ctx.swing_index(cfg.chart, cfg.swing_strength),
+        u.saturating_sub(1),
+    );
     Event {
         pos,
         dir: Direction::Long,
@@ -138,6 +137,32 @@ fn base_event(
         minute,
         trend,
         meta: 0,
+    }
+}
+
+/// Sorted price index for "which structures overlap this bar's range"
+/// queries — turns the trigger x structure loops into range lookups.
+struct MidIndex {
+    keys: Vec<(f64, usize)>,
+}
+
+impl MidIndex {
+    fn new(n: usize, key: impl Fn(usize) -> f64) -> MidIndex {
+        let mut keys: Vec<(f64, usize)> = (0..n).map(|i| (key(i), i)).collect();
+        keys.sort_by(|a, b| a.0.partial_cmp(&b.0).unwrap_or(std::cmp::Ordering::Equal));
+        MidIndex { keys }
+    }
+    /// indices with key in [lo, hi]
+    fn range(&self, lo: f64, hi: f64) -> Vec<usize> {
+        let a = self.keys.partition_point(|&(p, _)| p < lo);
+        let b = self.keys.partition_point(|&(p, _)| p <= hi);
+        self.keys[a..b].iter().map(|&(_, i)| i).collect()
+    }
+    /// indices with key in (lo, hi]
+    fn range_gt(&self, lo: f64, hi: f64) -> Vec<usize> {
+        let a = self.keys.partition_point(|&(p, _)| p <= lo);
+        let b = self.keys.partition_point(|&(p, _)| p <= hi);
+        self.keys[a..b].iter().map(|&(_, i)| i).collect()
     }
 }
 
@@ -184,10 +209,19 @@ fn detect_level_bounce(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
         lvls.extend(levels(sbars, &sw, k, cfg.level_tol_atr, &atr, cfg.touches));
     }
     let tbars = ctx.charts[&cfg.trigger].bars.clone();
+    let pad = lvls
+        .iter()
+        .map(|lv| lv.line - lv.lo)
+        .chain(lvls.iter().map(|lv| lv.hi - lv.line))
+        .fold(0.0f64, f64::max);
+    let index = MidIndex::new(lvls.len(), |i| lvls[i].line);
     let mut out = Vec::new();
     for (ti, pos, session, minute, u) in each_trigger(ctx, cfg) {
         let tb = &tbars[ti];
-        for lv in &lvls {
+        let mut cands = index.range(tb.low - pad, tb.high + pad);
+        cands.sort_unstable();
+        for li in cands {
+            let lv = &lvls[li];
             if lv.born > u.saturating_sub(1) {
                 continue;
             }
@@ -243,10 +277,13 @@ fn detect_breakout(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     // beyond the box
     let tbars = ctx.charts[&cfg.trigger].bars.clone();
     let trig = each_trigger(ctx, cfg);
+    let us: Vec<usize> = trig.iter().map(|t| t.4).collect();
     let mut out = Vec::new();
     for lv in &lvls {
+        // first trigger index whose usable chart count exceeds born
+        let start = us.partition_point(|&uu| uu <= lv.born);
         let mut broken = false;
-        for &(ti, pos, session, minute, u) in &trig {
+        for &(ti, pos, session, minute, u) in &trig[start..] {
             if broken || lv.born > u.saturating_sub(1) {
                 continue;
             }
@@ -294,11 +331,13 @@ fn detect_flip(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     }
     let tbars = ctx.charts[&cfg.trigger].bars.clone();
     let trig = each_trigger(ctx, cfg);
+    let us: Vec<usize> = trig.iter().map(|t| t.4).collect();
     let mut out = Vec::new();
     for lv in &lvls {
         // first break beyond, then first retest touch from the flip side
+        let start = us.partition_point(|&uu| uu <= lv.born);
         let mut broke_at: Option<usize> = None;
-        for &(ti, pos, session, minute, u) in &trig {
+        for &(ti, pos, session, minute, u) in &trig[start..] {
             if lv.born > u.saturating_sub(1) {
                 continue;
             }
@@ -355,19 +394,20 @@ fn detect_pullback(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     ctx.swings(cfg.chart, cfg.swing_strength);
     ctx.atr(cfg.chart);
     let sw = ctx.swings[&(cfg.chart, cfg.swing_strength)].clone();
+    let sidx = SwingIndex::new(&sw);
     let tbars = ctx.charts[&cfg.trigger].bars.clone();
     let mut out = Vec::new();
     for (ti, pos, session, minute, u) in each_trigger(ctx, cfg) {
         if u < 3 {
             continue;
         }
-        let trend = trend_at(&sw, u - 1);
+        let trend = trend_idx(&sidx, u - 1);
         let Some(dir) = dir_of_trend(trend) else { continue };
         // pullback touches the last confirmed opposite-side swing:
         // uptrend -> prior swing high as new support
         let (kind2, ref_swing) = match dir {
-            Direction::Long => (SwingKind::High, last_of_kind(&sw, SwingKind::High, u - 1, 1)),
-            Direction::Short => (SwingKind::Low, last_of_kind(&sw, SwingKind::Low, u - 1, 1)),
+            Direction::Long => (SwingKind::High, sidx.last_of(SwingKind::High, u - 1, 1)),
+            Direction::Short => (SwingKind::Low, sidx.last_of(SwingKind::Low, u - 1, 1)),
         };
         let Some(anchor) = ref_swing.first() else { continue };
         let _ = kind2;
@@ -387,15 +427,15 @@ fn detect_pullback(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
         ev.kinds = kind::TOUCH | if inside { kind::CLOSEBACK } else { 0 };
         ev.kinds |= candle_flags(&tbars, ti, dir);
         ev.swing_ref = match dir {
-            Direction::Long => last_of_kind(&sw, SwingKind::Low, u - 1, 1).first().map(|s| s.price),
-            Direction::Short => last_of_kind(&sw, SwingKind::High, u - 1, 1).first().map(|s| s.price),
+            Direction::Long => sidx.last_of(SwingKind::Low, u - 1, 1).first().map(|s| s.price),
+            Direction::Short => sidx.last_of(SwingKind::High, u - 1, 1).first().map(|s| s.price),
         }
         .unwrap_or(f64::NAN);
         ev.next_swing = match dir {
-            Direction::Long => last_of_kind(&sw, SwingKind::High, u - 1, 2)
+            Direction::Long => sidx.last_of(SwingKind::High, u - 1, 2)
                 .first()
                 .map(|s| s.price),
-            Direction::Short => last_of_kind(&sw, SwingKind::Low, u - 1, 2)
+            Direction::Short => sidx.last_of(SwingKind::Low, u - 1, 2)
                 .first()
                 .map(|s| s.price),
         }
@@ -409,6 +449,7 @@ fn detect_trendline(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     ctx.swings(cfg.chart, cfg.swing_strength);
     ctx.atr(cfg.chart);
     let sw = ctx.swings[&(cfg.chart, cfg.swing_strength)].clone();
+    let sidx = SwingIndex::new(&sw);
     let tbars = ctx.charts[&cfg.trigger].bars.clone();
     let mut out = Vec::new();
     for (ti, pos, session, minute, u) in each_trigger(ctx, cfg) {
@@ -417,7 +458,7 @@ fn detect_trendline(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
             (SwingKind::Low, Direction::Long),
             (SwingKind::High, Direction::Short),
         ] {
-            let Some(tl) = trend_line(&sw, k, u.saturating_sub(1), cfg.trendline_anchors) else {
+            let Some(tl) = trend_line(&sidx, k, u.saturating_sub(1), cfg.trendline_anchors) else {
                 continue;
             };
             let price = tl.price_at(u.saturating_sub(1));
@@ -436,13 +477,13 @@ fn detect_trendline(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
             ev.kinds = kind::TOUCH | if inside { kind::CLOSEBACK } else { 0 };
             ev.kinds |= candle_flags(&tbars, ti, dir);
             ev.swing_ref = match dir {
-                Direction::Long => last_of_kind(&sw, SwingKind::Low, u - 1, 1).first().map(|s| s.price),
-                Direction::Short => last_of_kind(&sw, SwingKind::High, u - 1, 1).first().map(|s| s.price),
+                Direction::Long => sidx.last_of(SwingKind::Low, u - 1, 1).first().map(|s| s.price),
+                Direction::Short => sidx.last_of(SwingKind::High, u - 1, 1).first().map(|s| s.price),
             }
             .unwrap_or(f64::NAN);
             ev.next_swing = match dir {
-                Direction::Long => last_of_kind(&sw, SwingKind::High, u - 1, 1).first().map(|s| s.price),
-                Direction::Short => last_of_kind(&sw, SwingKind::Low, u - 1, 1).first().map(|s| s.price),
+                Direction::Long => sidx.last_of(SwingKind::High, u - 1, 1).first().map(|s| s.price),
+                Direction::Short => sidx.last_of(SwingKind::Low, u - 1, 1).first().map(|s| s.price),
             }
             .unwrap_or(f64::NAN);
             out.push(ev);
@@ -455,17 +496,20 @@ fn detect_structure(ctx: &mut DetCtx, cfg: &DetectCfg, want: BreakKind) -> Vec<E
     ctx.swings(cfg.chart, cfg.swing_strength);
     ctx.atr(cfg.chart);
     let sw = ctx.swings[&(cfg.chart, cfg.swing_strength)].clone();
-    let sbars = &ctx.charts[&cfg.chart];
-    let breaks = structure_breaks(&sbars.bars, &sw);
+    let sidx = SwingIndex::new(&sw);
+    let sbars = ctx.charts[&cfg.chart].bars.clone();
+    let sup = ctx.charts[&cfg.chart].usable_pos.clone();
+    let sses = ctx.charts[&cfg.chart].session_of.clone();
+    let breaks = structure_breaks(&sbars, &sw);
     let mut out = Vec::new();
     for br in breaks {
         if br.kind != want {
             continue;
         }
         // event goes live when the setup bar closes
-        let pos = sbars.usable_pos[br.idx];
-        let session = sbars.session_of[br.idx];
-        let minute = sbars.bars[br.idx].usable_from.saturating_sub(1);
+        let pos = sup[br.idx];
+        let session = sses[br.idx];
+        let minute = sbars[br.idx].usable_from.saturating_sub(1);
         let u = br.idx + 1;
         let dir = match br.dir {
             BreakDir::Up => Direction::Long,
@@ -477,13 +521,13 @@ fn detect_structure(ctx: &mut DetCtx, cfg: &DetectCfg, want: BreakKind) -> Vec<E
         ev.stop_level = br.level;
         ev.kinds = kind::BREAK;
         ev.swing_ref = match dir {
-            Direction::Long => last_of_kind(&sw, SwingKind::Low, br.idx, 1).first().map(|s| s.price),
-            Direction::Short => last_of_kind(&sw, SwingKind::High, br.idx, 1).first().map(|s| s.price),
+            Direction::Long => sidx.last_of(SwingKind::Low, br.idx, 1).first().map(|s| s.price),
+            Direction::Short => sidx.last_of(SwingKind::High, br.idx, 1).first().map(|s| s.price),
         }
         .unwrap_or(f64::NAN);
         ev.next_swing = match dir {
-            Direction::Long => last_of_kind(&sw, SwingKind::High, br.idx, 2).first().map(|s| s.price),
-            Direction::Short => last_of_kind(&sw, SwingKind::Low, br.idx, 2).first().map(|s| s.price),
+            Direction::Long => sidx.last_of(SwingKind::High, br.idx, 2).first().map(|s| s.price),
+            Direction::Short => sidx.last_of(SwingKind::Low, br.idx, 2).first().map(|s| s.price),
         }
         .unwrap_or(f64::NAN);
         out.push(ev);
@@ -502,10 +546,18 @@ fn detect_sweep(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
         lvls.extend(levels(sbars, &sw, k, cfg.level_tol_atr, &atr, cfg.touches));
     }
     let tbars = ctx.charts[&cfg.trigger].bars.clone();
+    // index the edge being swept: support -> lo, resistance -> hi
+    let index = MidIndex::new(lvls.len(), |i| match lvls[i].kind {
+        LevelKind::Support => lvls[i].lo,
+        LevelKind::Resistance => lvls[i].hi,
+    });
     let mut out = Vec::new();
     for (ti, pos, session, minute, u) in each_trigger(ctx, cfg) {
         let tb = &tbars[ti];
-        for lv in &lvls {
+        let mut cands = index.range_gt(tb.low, tb.high);
+        cands.sort_unstable();
+        for li in cands {
+            let lv = &lvls[li];
             if lv.born > u.saturating_sub(1) {
                 continue;
             }
@@ -551,11 +603,19 @@ fn detect_zone(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     let zs = zones(&sbars.bars, &atr);
     ctx.swings(cfg.chart, cfg.swing_strength);
     let tbars = ctx.charts[&cfg.trigger].bars.clone();
+    let pad = zs
+        .iter()
+        .map(|z| (z.hi - z.lo) / 2.0)
+        .fold(0.0f64, f64::max);
+    let index = MidIndex::new(zs.len(), |i| (zs[i].hi + zs[i].lo) / 2.0);
     let mut out = Vec::new();
     let mut entered: HashMap<usize, u16> = HashMap::new();
     for (ti, pos, session, minute, u) in each_trigger(ctx, cfg) {
         let tb = &tbars[ti];
-        for (zi, z) in zs.iter().enumerate() {
+        let mut cands = index.range(tb.low - pad, tb.high + pad);
+        cands.sort_unstable();
+        for zi in cands {
+            let z = &zs[zi];
             if z.born > u.saturating_sub(1) {
                 continue;
             }
@@ -615,11 +675,19 @@ fn detect_fvg(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     let gs = fvgs(&sbars.bars);
     ctx.swings(cfg.chart, cfg.swing_strength);
     let tbars = ctx.charts[&cfg.trigger].bars.clone();
+    let pad = gs
+        .iter()
+        .map(|g| (g.hi - g.lo) / 2.0)
+        .fold(0.0f64, f64::max);
+    let index = MidIndex::new(gs.len(), |i| (gs[i].hi + gs[i].lo) / 2.0);
     let mut out = Vec::new();
     let mut entered: HashMap<usize, u16> = HashMap::new();
     for (ti, pos, session, minute, u) in each_trigger(ctx, cfg) {
         let tb = &tbars[ti];
-        for (gi, g) in gs.iter().enumerate() {
+        let mut cands = index.range(tb.low - pad, tb.high + pad);
+        cands.sort_unstable();
+        for gi in cands {
+            let g = &gs[gi];
             if g.idx > u.saturating_sub(1) {
                 continue;
             }

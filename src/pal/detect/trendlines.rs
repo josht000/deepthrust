@@ -2,7 +2,7 @@
 //! (least-squares through 2-3 anchors), projected forward. Usable from
 //! the last anchor's confirmation. `line_at` gives the projected price.
 
-use crate::pal::detect::swings::{last_of_kind, Swing, SwingKind};
+use crate::pal::detect::swings::{SwingIndex, SwingKind};
 
 #[derive(Clone, Debug)]
 pub struct TrendLine {
@@ -19,8 +19,8 @@ pub struct TrendLine {
 
 /// Fit a line through the last `n_anchor` confirmed swings of `kind`
 /// usable at bar `at`. Returns None with fewer than 2 anchors.
-pub fn trend_line(swings: &[Swing], kind: SwingKind, at: usize, n_anchor: usize) -> Option<TrendLine> {
-    let anchors = last_of_kind(swings, kind, at, n_anchor);
+pub fn trend_line(idx: &SwingIndex, kind: SwingKind, at: usize, n_anchor: usize) -> Option<TrendLine> {
+    let anchors = idx.last_of(kind, at, n_anchor);
     if anchors.len() < 2 {
         return None;
     }

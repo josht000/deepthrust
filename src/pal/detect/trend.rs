@@ -2,7 +2,7 @@
 //! up = higher high + higher low, down = lower high + lower low,
 //! otherwise no trend.
 
-use crate::pal::detect::swings::{last_of_kind, Swing, SwingKind};
+use crate::pal::detect::swings::{Swing, SwingIndex, SwingKind};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Trend {
@@ -11,9 +11,10 @@ pub enum Trend {
     None,
 }
 
-pub fn trend_at(swings: &[Swing], at: usize) -> Trend {
-    let highs = last_of_kind(swings, SwingKind::High, at, 2);
-    let lows = last_of_kind(swings, SwingKind::Low, at, 2);
+/// Trend at bar `at` from an index (hot path).
+pub fn trend_idx(idx: &SwingIndex, at: usize) -> Trend {
+    let highs = idx.last_of(SwingKind::High, at, 2);
+    let lows = idx.last_of(SwingKind::Low, at, 2);
     if highs.len() < 2 || lows.len() < 2 {
         return Trend::None;
     }
@@ -26,4 +27,8 @@ pub fn trend_at(swings: &[Swing], at: usize) -> Trend {
         (_, _, true, true) => Trend::Down,
         _ => Trend::None,
     }
+}
+
+pub fn trend_at(swings: &[Swing], at: usize) -> Trend {
+    trend_idx(&SwingIndex::new(swings), at)
 }

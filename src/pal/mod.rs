@@ -8,6 +8,7 @@ pub mod detect;
 pub mod detctx;
 pub mod engine;
 pub mod enginecheck;
+pub mod funnel;
 pub mod guard;
 pub mod ingest;
 pub mod parquet;

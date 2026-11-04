@@ -38,7 +38,11 @@ enum Cmd {
     /// Run the behavior tests (NQ discovery, ES replication).
     Behavior,
     /// Run the funnel over the version registry.
-    Funnel,
+    Funnel {
+        /// cap the number of versions (smoke runs)
+        #[arg(long)]
+        limit: Option<usize>,
+    },
     /// The sealed final test (requires PAL_STEP + PAL_UNLOCK_SEALED=1).
     FinalTest,
     /// Build the presenter dashboard with provenance checks.
@@ -64,9 +68,56 @@ fn main() -> ExitCode {
         },
         Cmd::EngineCheck => run_engine_check(&store),
         Cmd::Behavior => run_behavior(&store),
-        Cmd::Funnel => todo("funnel"),
+        Cmd::Funnel { limit } => run_funnel(&store, limit),
         Cmd::FinalTest => todo("final-test"),
         Cmd::Dash => todo("dash"),
+    }
+}
+
+/// Build a DetCtx over discovery sessions; falls back to seeded
+/// synthetic sessions when a market has no processed data yet.
+fn disc_ctx(store: &Store, m: Market, label: &str) -> deepthrust::pal::detctx::DetCtx {
+    use deepthrust::pal::audit::load_rolls;
+    use deepthrust::pal::detctx::DetCtx;
+    use deepthrust::pal::enginecheck::roll_boundaries;
+    use deepthrust::pal::synth;
+    use deepthrust::pal::windows::{DISCOVERY_END, DISCOVERY_START};
+    let sessions = match store.read_1m(m, DISCOVERY_START, DISCOVERY_END, None) {
+        Ok(s) if !s.is_empty() => s,
+        _ => {
+            println!("{label}: no {} data — using synthetic", m.symbol());
+            synth::synth_sessions(
+                chrono::NaiveDate::from_ymd_opt(2022, 1, 3).unwrap(),
+                120,
+                &format!("{label}-synth-{}", m.as_str()),
+                4.0,
+            )
+        }
+    };
+    let rolls = load_rolls(&store.rolls_file(m)).unwrap_or_default();
+    let rb = roll_boundaries(&sessions, &rolls);
+    DetCtx::build(&sessions, &rb)
+}
+
+fn run_funnel(store: &Store, limit: Option<usize>) -> ExitCode {
+    use deepthrust::pal::enginecheck::news_set;
+    use deepthrust::pal::funnel;
+    let news = news_set(&store.read_news().unwrap_or_default());
+    let mut nq = disc_ctx(store, Market::Nq, "funnel");
+    let mut es = disc_ctx(store, Market::Es, "funnel");
+    println!("funnel: {} news days", news.len());
+    let out = funnel::run_funnel(&mut nq, &mut es, &news, limit);
+    let dir = store.results_dir().join("funnel");
+    match funnel::write_outputs(&out, &dir) {
+        Ok(()) => {
+            println!("funnel: wrote {} ({} versions, {} candidates)",
+                     dir.display(), out.rows.len(), out.candidates.len());
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("funnel write: {e}");
+            ExitCode::FAILURE
+        }
     }
 }
 
