@@ -52,12 +52,68 @@ fn main() -> ExitCode {
         Cmd::GuardTest => guard_test(&store),
         Cmd::Ingest { market } => run_ingest(&store, market),
         Cmd::Charts => todo("charts"),
-        Cmd::Rulebook => todo("rulebook"),
-        Cmd::EngineCheck => todo("engine-check"),
+        Cmd::Rulebook => match deepthrust::pal::rulebook::write_rulebook(std::path::Path::new(".")) {
+            Ok(()) => {
+                println!("wrote rulebook.md + rulebook_spec.json");
+                ExitCode::SUCCESS
+            }
+            Err(e) => {
+                eprintln!("rulebook: {e}");
+                ExitCode::FAILURE
+            }
+        },
+        Cmd::EngineCheck => run_engine_check(&store),
         Cmd::Behavior => todo("behavior"),
         Cmd::Funnel => todo("funnel"),
         Cmd::FinalTest => todo("final-test"),
         Cmd::Dash => todo("dash"),
+    }
+}
+
+fn run_engine_check(store: &Store) -> ExitCode {
+    use deepthrust::pal::detctx::DetCtx;
+    use deepthrust::pal::enginecheck;
+    use deepthrust::pal::synth;
+    use deepthrust::pal::windows::{DISCOVERY_END, DISCOVERY_START};
+
+    // real discovery sessions if present, else synthetic plumbing data
+    let sessions = match store.read_1m(Market::Nq, DISCOVERY_START, DISCOVERY_END, None) {
+        Ok(s) if !s.is_empty() => {
+            println!("engine-check: using NQ discovery ({} sessions)", s.len());
+            s
+        }
+        _ => {
+            println!("engine-check: no data — using 120 synthetic sessions");
+            synth::synth_sessions(
+                chrono::NaiveDate::from_ymd_opt(2022, 1, 3).unwrap(),
+                120,
+                "enginecheck-synth",
+                4.0,
+            )
+        }
+    };
+    let mut ctx = DetCtx::build(&sessions, &Default::default());
+
+    let r = enginecheck::random_entries(&mut ctx, 20_000);
+    println!(
+        "random entries: n={} mean=${:.2}/trade total=${:.0} win%={:.1} (expect: lose a little; lab ref -$9.80)",
+        r.n, r.mean_pnl, r.total_pnl, 100.0 * r.wins as f64 / r.n.max(1) as f64
+    );
+    let sane = r.mean_pnl < 0.0 && r.mean_pnl > -50.0;
+
+    let c = enginecheck::cheat_probe(&mut ctx, 2_000);
+    println!(
+        "cheat probe (peeks 60m): n={} mean=${:.2}/trade total=${:.0} win%={:.1} (expect: a lot of money)",
+        c.n, c.mean_pnl, c.total_pnl, 100.0 * c.wins as f64 / c.n.max(1) as f64
+    );
+    let cheat_ok = c.mean_pnl > 20.0;
+
+    if sane && cheat_ok {
+        println!("engine-check: PASS");
+        ExitCode::SUCCESS
+    } else {
+        println!("engine-check: FAIL");
+        ExitCode::FAILURE
     }
 }
 
