@@ -63,11 +63,107 @@ fn main() -> ExitCode {
             }
         },
         Cmd::EngineCheck => run_engine_check(&store),
-        Cmd::Behavior => todo("behavior"),
+        Cmd::Behavior => run_behavior(&store),
         Cmd::Funnel => todo("funnel"),
         Cmd::FinalTest => todo("final-test"),
         Cmd::Dash => todo("dash"),
     }
+}
+
+fn run_behavior(store: &Store) -> ExitCode {
+    use deepthrust::pal::behavior::{self, Behavior, TestResult};
+    use deepthrust::pal::detctx::DetCtx;
+    use deepthrust::pal::enginecheck::roll_boundaries;
+    use deepthrust::pal::audit::load_rolls;
+    use deepthrust::pal::synth;
+    use deepthrust::pal::types::ChartId;
+    use deepthrust::pal::windows::{DISCOVERY_END, DISCOVERY_START};
+
+    type Collector = fn(&mut Behavior, ChartId, bool) -> Vec<behavior::Measure>;
+    let tests: Vec<(&str, Collector, bool)> = vec![
+        ("levels_hold_vs_random", |b, c, d| b.level_touch_measures(c, d), true),
+        ("flip_hold", |b, c, d| b.flip_hold(c, d), true),
+        ("sweep_vs_close", |b, c, d| b.sweep_vs_close(c, d), true),
+        ("fvg_hold", |b, c, d| b.fvg_hold(c, d), true),
+        ("zone_first_vs_later", |b, c, d| b.zone_first_vs_later(c, d), true),
+        ("pullback_depth", |b, c, d| b.pullback_depth(c, d), true),
+        ("candles_at_levels", |b, c, d| b.candles_at_levels(c, d), true),
+        ("trendline_touch", |b, c, d| b.trendline_touch(c, d), true),
+    ];
+    let charts = [ChartId::M5, ChartId::M15, ChartId::H1, ChartId::H4, ChartId::D1];
+
+    // build contexts per market (NQ primary, ES replication)
+    let mut diffs: std::collections::HashMap<(String, String), f64> = Default::default();
+    let mut all_rows: Vec<(String, Vec<TestResult>)> = Vec::new();
+    for m in Market::ALL {
+        let sessions = match store.read_1m(m, DISCOVERY_START, DISCOVERY_END, None) {
+            Ok(s) if !s.is_empty() => s,
+            _ => {
+                println!("behavior: no {} data — using synthetic", m.symbol());
+                synth::synth_sessions(
+                    chrono::NaiveDate::from_ymd_opt(2022, 1, 3).unwrap(),
+                    120,
+                    &format!("behavior-synth-{}", m.as_str()),
+                    4.0,
+                )
+            }
+        };
+        let rolls = load_rolls(&store.rolls_file(m)).unwrap_or_default();
+        let rb = roll_boundaries(&sessions, &rolls);
+        let mut ctx = DetCtx::build(&sessions, &rb);
+        let session_dates = ctx.session_dates.clone();
+        for (name, col, claimed_pos) in &tests {
+            let mut measures = Vec::new();
+            for &c in &charts {
+                for dir in [true, false] {
+                    let mut b = Behavior { ctx: &mut ctx };
+                    measures.extend(col(&mut b, c, dir));
+                }
+            }
+            let results = behavior::summarize(name, &measures, &session_dates, *claimed_pos, 0.0);
+            if let Some(pooled) = results.first() {
+                diffs.insert((m.symbol().to_string(), name.to_string()), pooled.diff);
+            }
+            all_rows.push((format!("{}:{}", m.symbol(), name), results));
+        }
+        println!("behavior: {} done", m.symbol());
+    }
+
+    // write tables + verdicts
+    let out = store.results_dir();
+    let _ = std::fs::create_dir_all(&out);
+    let mut csv = String::from("market_test,chart,n_real,n_ctrl,real_mean,ctrl_mean,diff,ci_lo,ci_hi,era1_diff,era2_diff\n");
+    for (label, rows) in &all_rows {
+        for r in rows {
+            csv.push_str(&format!(
+                "{},{},{},{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4}\n",
+                label, r.chart, r.n_real, r.n_ctrl, r.real_mean, r.ctrl_mean,
+                r.diff, r.ci_lo, r.ci_hi, r.era1_diff, r.era2_diff
+            ));
+        }
+    }
+    let table_path = out.join("behavior_tables.csv");
+    let _ = std::fs::write(&table_path, csv);
+
+    let mut vc = String::from("test,nq_diff,nq_ci_lo,nq_ci_hi,es_diff,era1_diff,era2_diff,verdict\n");
+    for (name, _, claimed) in &tests {
+        let nq = all_rows.iter().find(|(l, _)| l == &format!("NQ:{name}"));
+        let pooled = nq.and_then(|(_, r)| r.first());
+        let (d, lo, hi, e1, e2) = pooled
+            .map(|p| (p.diff, p.ci_lo, p.ci_hi, p.era1_diff, p.era2_diff))
+            .unwrap_or((f64::NAN, f64::NAN, f64::NAN, f64::NAN, f64::NAN));
+        let es = diffs.get(&("ES".to_string(), name.to_string())).copied().unwrap_or(f64::NAN);
+        let v = behavior::verdict(d, lo, hi, *claimed, es, e1, e2);
+        vc.push_str(&format!(
+            "{},{:.4},{:.4},{:.4},{:.4},{:.4},{:.4},{}\n",
+            name, d, lo, hi, es, e1, e2, v.as_str()
+        ));
+    }
+    let verdicts_path = out.join("behavior_verdicts.csv");
+    let _ = std::fs::write(&verdicts_path, &vc);
+    println!("wrote {} and {}", table_path.display(), verdicts_path.display());
+    println!("\nverdicts:\n{vc}");
+    ExitCode::SUCCESS
 }
 
 fn run_engine_check(store: &Store) -> ExitCode {

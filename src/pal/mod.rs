@@ -3,6 +3,7 @@
 
 pub mod atr;
 pub mod audit;
+pub mod behavior;
 pub mod detect;
 pub mod detctx;
 pub mod engine;
