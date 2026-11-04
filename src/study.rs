@@ -109,7 +109,7 @@ impl StrategyDefinition for RsiStrategyDefinition {
     }
 
     fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
-        Ok(signals::compute_signals(panel, cfg))
+        signals::compute_signals(panel, cfg)
     }
 }
 

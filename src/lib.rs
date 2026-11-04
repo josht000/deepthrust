@@ -22,4 +22,5 @@ pub mod signals;
 pub mod stats;
 pub mod study;
 pub mod symbols_overview;
+pub mod ta_indicators;
 pub mod timing;

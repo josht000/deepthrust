@@ -28,23 +28,9 @@ fn ewm(x: &[f64], alpha: f64, min_periods: usize) -> Vec<f64> {
     out
 }
 
-/// Wilder RSI(n).
-pub fn wilder_rsi(close: &[f64], n: usize) -> Vec<f64> {
-    let mut up = vec![f64::NAN; close.len()];
-    let mut dn = vec![f64::NAN; close.len()];
-    for i in 1..close.len() {
-        let d = close[i] - close[i - 1];
-        if d.is_finite() {
-            up[i] = d.max(0.0);
-            dn[i] = (-d).max(0.0);
-        }
-    }
-    let alpha = 1.0 / n as f64;
-    let (u, d) = (ewm(&up, alpha, n), ewm(&dn, alpha, n));
-    u.iter()
-        .zip(&d)
-        .map(|(u, d)| 100.0 - 100.0 / (1.0 + u / d))
-        .collect()
+/// TA-Lib Wilder RSI(n), with errors returned for invalid periods or inputs.
+pub fn wilder_rsi(close: &[f64], n: usize) -> Result<Vec<f64>, String> {
+    crate::ta_indicators::rsi(close, n).map_err(|error| format!("TA-Lib RSI failed: {error:?}"))
 }
 
 /// Wilder ATR(n): ewm(alpha=1/n) of the true range.
@@ -131,7 +117,7 @@ pub struct Signals {
     pub benchmark_returns: Option<Vec<f64>>,
 }
 
-pub fn compute_signals(panel: &Panel, cfg: &Config) -> Signals {
+pub fn compute_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
     let n_sym = panel.symbols.len();
     let (mut rsi, mut signal, mut exit_now, mut tradable, mut add) =
         (vec![], vec![], vec![], vec![], vec![]);
@@ -139,7 +125,7 @@ pub fn compute_signals(panel: &Panel, cfg: &Config) -> Signals {
     for j in 0..n_sym {
         let close = &panel.close[j];
         let n = close.len();
-        let r = wilder_rsi(close, cfg.rsi_len);
+        let r = wilder_rsi(close, cfg.rsi_len)?;
         let sma_gate = rolling_mean(close, cfg.sma_window);
         let sma_exit = rolling_mean(close, cfg.exit_sma);
         let gate: Vec<bool> = if cfg.gate == "ret21" {
@@ -187,7 +173,7 @@ pub fn compute_signals(panel: &Panel, cfg: &Config) -> Signals {
         tradable.push(trad);
         rsi.push(r);
     }
-    Signals {
+    Ok(Signals {
         rsi,
         indicator_name: format!("rsi{}", cfg.rsi_len),
         signal,
@@ -209,7 +195,7 @@ pub fn compute_signals(panel: &Panel, cfg: &Config) -> Signals {
         entry_mat: None,
         exit_mat: None,
         benchmark_returns: None,
-    }
+    })
 }
 
 pub fn compute_double7_signals(panel: &Panel, cfg: &Config) -> Signals {
@@ -3430,13 +3416,11 @@ mod tests {
     }
 
     #[test]
-    fn rsi_matches_wilder_reference() {
-        // alpha=1/2: up=[_,1,1,0], dn=[_,0,0,2]
-        let rsi = wilder_rsi(&[10.0, 11.0, 12.0, 10.0], 2);
+    fn rsi_uses_ta_lib_wilder_reference() {
+        let rsi = wilder_rsi(&[10.0, 11.0, 12.0, 10.0], 2).unwrap();
         assert!(rsi[0].is_nan() && rsi[1].is_nan());
-        assert!((rsi[2] - 100.0).abs() < 1e-12); // dn == 0 -> RSI 100
-                                                 // up = .5*0 + .5*1 = 0.5 ; dn = .5*2 + .5*0 = 1.0 -> RSI = 100 - 100/(1+0.5)
-        assert!((rsi[3] - (100.0 - 100.0 / 1.5)).abs() < 1e-9);
+        assert!((rsi[2] - 100.0).abs() < 1e-12);
+        assert!((rsi[3] - (100.0 / 3.0)).abs() < 1e-12);
     }
 
     #[test]

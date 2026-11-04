@@ -260,6 +260,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "sha2",
+ "ta-lib",
 ]
 
 [[package]]
@@ -694,6 +695,21 @@ dependencies = [
  "quote",
  "unicode-ident",
 ]
+
+[[package]]
+name = "ta-lib"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4da552ae932721218c73cf1124610b0ce3d5f27cc1a62342debd370cd161d922"
+dependencies = [
+ "ta-lib-dispatch",
+]
+
+[[package]]
+name = "ta-lib-dispatch"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "726f5cc1f53b7994288221583f9fb7ca535bae2b349b738a01adc75c3bd9ee41"
 
 [[package]]
 name = "tiny-keccak"

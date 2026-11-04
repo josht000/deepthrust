@@ -216,7 +216,7 @@ pub fn compute_s070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
     let tqqq = symbol_index(panel, "TQQQ")?;
     let defensive = symbol_index(panel, &cfg.defensive_asset)?;
     let n = panel.dates.len();
-    let rsi = wilder_rsi(&panel.close[qqq], cfg.rsi_len);
+    let rsi = wilder_rsi(&panel.close[qqq], cfg.rsi_len)?;
     let sma = rolling_mean(&panel.close[qqq], cfg.sma_window);
     let mut result = blank_signals(panel, "qqq_rsi14");
     let mut weights = vec![vec![f64::NAN; n]; panel.symbols.len()];
