@@ -45,6 +45,10 @@ pub const S047_NAME: &str = "s047_absolute_dual_momentum";
 pub const S047_TITLE: &str = "S047 Absolute / Dual Momentum";
 pub const S050_NAME: &str = "s050_first_pullback";
 pub const S050_TITLE: &str = "S050 First Pullback After Breakout";
+pub const S013_NAME: &str = "s013_tlt_mean_reversion";
+pub const S013_TITLE: &str = "S013 TLT Mean Reversion (RSI(2))";
+pub const S104_NAME: &str = "s104_crash_protection";
+pub const S104_TITLE: &str = "S104 High-Beta/Momentum Crash Protection";
 pub const S041_NAME: &str = "s041_mom_12_1";
 pub const S041_TITLE: &str = "S041 12-1 Cross-Sectional Momentum";
 pub const S042_NAME: &str = "s042_sector_momentum";
@@ -527,6 +531,32 @@ impl StrategyDefinition for ResidualReversalStrategyDefinition {
     }
 }
 
+struct CrashProtectionStrategyDefinition;
+
+impl StrategyDefinition for CrashProtectionStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S104_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S104_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        signals::compute_s104_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        signals::s104_trades(panel, sig, cfg, fill)
+    }
+}
+
 struct NightTradingStrategyDefinition;
 
 impl StrategyDefinition for NightTradingStrategyDefinition {
@@ -608,6 +638,198 @@ impl StrategyDefinition for ExDividendCaptureStrategyDefinition {
     }
 }
 
+struct Family8Definition {
+    name: &'static str,
+    title: &'static str,
+    kind: Family8Kind,
+}
+
+#[derive(Copy, Clone)]
+enum Family8Kind {
+    TurnaroundTuesday,
+    TurnOfMonth,
+    PreHoliday,
+}
+
+impl StrategyDefinition for Family8Definition {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn title(&self) -> &'static str {
+        self.title
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        match self.kind {
+            Family8Kind::TurnaroundTuesday => crate::family8::compute_s010_signals(panel, cfg),
+            Family8Kind::TurnOfMonth => crate::family8::compute_s079_signals(panel, cfg),
+            Family8Kind::PreHoliday => crate::family8::compute_s080_signals(panel, cfg),
+        }
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        match self.kind {
+            Family8Kind::TurnaroundTuesday => crate::family8::s010_trades(panel, sig, cfg, fill),
+            Family8Kind::TurnOfMonth => crate::family8::s079_trades(panel, sig, cfg, fill),
+            Family8Kind::PreHoliday => crate::family8::s080_trades(panel, sig, cfg, fill),
+        }
+    }
+}
+
+struct Family7Definition {
+    name: &'static str,
+    title: &'static str,
+    kind: Family7Kind,
+}
+
+#[derive(Copy, Clone)]
+enum Family7Kind {
+    TltCrashHedge,
+    QqqRegimeTqqq,
+    CopperGoldTilt,
+    VolCompression,
+    CointegratedPairs,
+}
+
+impl StrategyDefinition for Family7Definition {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn title(&self) -> &'static str {
+        self.title
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        match self.kind {
+            Family7Kind::TltCrashHedge => crate::family7::compute_s069_signals(panel, cfg),
+            Family7Kind::QqqRegimeTqqq => crate::family7::compute_s070_signals(panel, cfg),
+            Family7Kind::CopperGoldTilt => crate::family7::compute_s102_signals(panel, cfg),
+            Family7Kind::VolCompression => crate::family7::compute_s065_signals(panel, cfg),
+            Family7Kind::CointegratedPairs => crate::family7::compute_s071_signals(panel, cfg),
+        }
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        match self.kind {
+            Family7Kind::TltCrashHedge => crate::family7::s069_trades(panel, sig, cfg, fill),
+            Family7Kind::QqqRegimeTqqq => crate::family7::s070_trades(panel, sig, cfg, fill),
+            Family7Kind::CopperGoldTilt => {
+                crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+            }
+            Family7Kind::VolCompression => crate::family7::s065_trades(panel, sig, cfg, fill),
+            Family7Kind::CointegratedPairs => crate::family7::s071_trades(panel, sig, cfg, fill),
+        }
+    }
+}
+
+struct Family5Definition {
+    name: &'static str,
+    title: &'static str,
+    kind: Family5Kind,
+}
+
+#[derive(Copy, Clone)]
+enum Family5Kind {
+    EarningsPremium,
+    PreEarningsRunup,
+    PeadSurprise,
+    SectorBreadth,
+    StatArb,
+}
+
+impl StrategyDefinition for Family5Definition {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn title(&self) -> &'static str {
+        self.title
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        match self.kind {
+            Family5Kind::EarningsPremium => crate::family5::compute_s052_signals(panel, cfg),
+            Family5Kind::PreEarningsRunup => crate::family5::compute_s053_signals(panel, cfg),
+            Family5Kind::PeadSurprise => crate::family5::compute_s054_signals(panel, cfg),
+            Family5Kind::SectorBreadth => crate::family5::compute_s067_signals(panel, cfg),
+            Family5Kind::StatArb => crate::family5::compute_s078_signals(panel, cfg),
+        }
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        match self.kind {
+            Family5Kind::EarningsPremium => crate::family5::s052_trades(panel, sig, cfg, fill),
+            Family5Kind::PreEarningsRunup => crate::family5::s053_trades(panel, sig, cfg, fill),
+            Family5Kind::PeadSurprise => crate::family5::s054_trades(panel, sig, cfg, fill),
+            Family5Kind::SectorBreadth => {
+                crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+            }
+            Family5Kind::StatArb => {
+                crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+            }
+        }
+    }
+}
+
+struct Family6Definition {
+    name: &'static str,
+    title: &'static str,
+    kind: Family6Kind,
+}
+
+#[derive(Copy, Clone)]
+enum Family6Kind {
+    NewsSentiment,
+    TopicSentiment,
+}
+
+impl StrategyDefinition for Family6Definition {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn title(&self) -> &'static str {
+        self.title
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        match self.kind {
+            Family6Kind::NewsSentiment => crate::family6::compute_s056_signals(panel, cfg),
+            Family6Kind::TopicSentiment => crate::family6::compute_s058_signals(panel, cfg),
+        }
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family6::news_trades(panel, sig, cfg, fill)
+    }
+}
+
 impl StrategyDefinition for OvernightStrategyDefinition {
     fn name(&self) -> &'static str {
         self.name
@@ -673,7 +895,87 @@ static S017_STRATEGY: NightTradingStrategyDefinition = NightTradingStrategyDefin
 static S023_STRATEGY: PostEarningsDriftStrategyDefinition = PostEarningsDriftStrategyDefinition;
 static S024_STRATEGY: ExDividendCaptureStrategyDefinition = ExDividendCaptureStrategyDefinition;
 static S051_STRATEGY: DarvasBoxStrategyDefinition = DarvasBoxStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 23] = [
+static S010_STRATEGY: Family8Definition = Family8Definition {
+    name: crate::family8::S010_NAME,
+    title: crate::family8::S010_TITLE,
+    kind: Family8Kind::TurnaroundTuesday,
+};
+static S079_STRATEGY: Family8Definition = Family8Definition {
+    name: crate::family8::S079_NAME,
+    title: crate::family8::S079_TITLE,
+    kind: Family8Kind::TurnOfMonth,
+};
+static S080_STRATEGY: Family8Definition = Family8Definition {
+    name: crate::family8::S080_NAME,
+    title: crate::family8::S080_TITLE,
+    kind: Family8Kind::PreHoliday,
+};
+static S069_STRATEGY: Family7Definition = Family7Definition {
+    name: crate::family7::S069_NAME,
+    title: crate::family7::S069_TITLE,
+    kind: Family7Kind::TltCrashHedge,
+};
+static S070_STRATEGY: Family7Definition = Family7Definition {
+    name: crate::family7::S070_NAME,
+    title: crate::family7::S070_TITLE,
+    kind: Family7Kind::QqqRegimeTqqq,
+};
+static S102_STRATEGY: Family7Definition = Family7Definition {
+    name: crate::family7::S102_NAME,
+    title: crate::family7::S102_TITLE,
+    kind: Family7Kind::CopperGoldTilt,
+};
+static S065_STRATEGY: Family7Definition = Family7Definition {
+    name: crate::family7::S065_NAME,
+    title: crate::family7::S065_TITLE,
+    kind: Family7Kind::VolCompression,
+};
+static S071_STRATEGY: Family7Definition = Family7Definition {
+    name: crate::family7::S071_NAME,
+    title: crate::family7::S071_TITLE,
+    kind: Family7Kind::CointegratedPairs,
+};
+static S052_STRATEGY: Family5Definition = Family5Definition {
+    name: crate::family5::S052_NAME,
+    title: crate::family5::S052_TITLE,
+    kind: Family5Kind::EarningsPremium,
+};
+static S053_STRATEGY: Family5Definition = Family5Definition {
+    name: crate::family5::S053_NAME,
+    title: crate::family5::S053_TITLE,
+    kind: Family5Kind::PreEarningsRunup,
+};
+static S054_STRATEGY: Family5Definition = Family5Definition {
+    name: crate::family5::S054_NAME,
+    title: crate::family5::S054_TITLE,
+    kind: Family5Kind::PeadSurprise,
+};
+static S067_STRATEGY: Family5Definition = Family5Definition {
+    name: crate::family5::S067_NAME,
+    title: crate::family5::S067_TITLE,
+    kind: Family5Kind::SectorBreadth,
+};
+static S078_STRATEGY: Family5Definition = Family5Definition {
+    name: crate::family5::S078_NAME,
+    title: crate::family5::S078_TITLE,
+    kind: Family5Kind::StatArb,
+};
+static S013_STRATEGY: RsiStrategyDefinition = RsiStrategyDefinition {
+    name: S013_NAME,
+    title: S013_TITLE,
+};
+static S104_STRATEGY: CrashProtectionStrategyDefinition = CrashProtectionStrategyDefinition;
+static S056_STRATEGY: Family6Definition = Family6Definition {
+    name: crate::family6::S056_NAME,
+    title: crate::family6::S056_TITLE,
+    kind: Family6Kind::NewsSentiment,
+};
+static S058_STRATEGY: Family6Definition = Family6Definition {
+    name: crate::family6::S058_NAME,
+    title: crate::family6::S058_TITLE,
+    kind: Family6Kind::TopicSentiment,
+};
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -697,6 +999,23 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 23] = [
     &S023_STRATEGY,
     &S024_STRATEGY,
     &S105_STRATEGY,
+    &S010_STRATEGY,
+    &S079_STRATEGY,
+    &S080_STRATEGY,
+    &S069_STRATEGY,
+    &S070_STRATEGY,
+    &S102_STRATEGY,
+    &S065_STRATEGY,
+    &S071_STRATEGY,
+    &S052_STRATEGY,
+    &S053_STRATEGY,
+    &S054_STRATEGY,
+    &S067_STRATEGY,
+    &S078_STRATEGY,
+    &S013_STRATEGY,
+    &S104_STRATEGY,
+    &S056_STRATEGY,
+    &S058_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -833,6 +1152,15 @@ impl<'a> Study<'a> {
             S024_NAME => Some(crate::family2::s024_symbols(Path::new(
                 &cfg.corporate_actions_file,
             ))?),
+            name if matches!(
+                name,
+                crate::family5::S052_NAME
+                    | crate::family5::S053_NAME
+                    | crate::family5::S054_NAME
+            ) =>
+            {
+                Some(crate::family5::publish_symbols(&cfg.earnings_dates_file)?)
+            }
             _ => None,
         };
         let mut symbol_bars = Vec::new();
@@ -844,10 +1172,14 @@ impl<'a> Study<'a> {
             let selected_symbols = if cfg.strategy == S040_NAME {
                 crate::family4::sp500_symbols(&cfg.sp500_membership_file, &source_symbols)?
             } else if let Some(event_symbols) = &event_symbols {
-                source_symbols
-                    .into_iter()
-                    .filter(|symbol| event_symbols.contains(&symbol.to_ascii_uppercase()))
-                    .collect()
+                if source.name == "etfs" {
+                    source_symbols
+                } else {
+                    source_symbols
+                        .into_iter()
+                        .filter(|symbol| event_symbols.contains(&symbol.to_ascii_uppercase()))
+                        .collect()
+                }
             } else {
                 source_symbols
             };
@@ -971,6 +1303,7 @@ impl<'a> Study<'a> {
                 | S047_NAME
                 | S050_NAME
                 | S051_NAME
+                | S104_NAME
         );
         if family4_universe {
             for t in 1..n_rows {
@@ -1879,6 +2212,297 @@ impl<'a> Study<'a> {
                 "- Limitations: daily open/close prices proxy fills; this is not a point-in-time S&P 500 universe and includes ETFs; taxes and the qualified-dividend holding rule are not modeled.".into(),
             ];
         }
+        if c.strategy == crate::family8::S010_NAME {
+            return vec![
+                format!(
+                    "- Universe: {}; daily total-return-adjusted Parquet bars.",
+                    s.panel.symbols.join(", ")
+                ),
+                format!(
+                    "- Rule: after a weak {} close (mode={}, threshold={:.2}%), hold to the next session {}; weekday={}.",
+                    if c.weekday == 1 { "Monday".to_string() } else { format!("weekday {}", c.weekday) },
+                    c.signal_mode,
+                    100.0 * c.weakness_threshold,
+                    if c.exit_offset == 0 { "open" } else { "close" },
+                    c.weekday
+                ),
+                format!(
+                    "- Fill: `close_to_open`; {} bps/side.",
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: unconditional overnight return and equal-weight close-to-close of the universe; random timing is also reported.".into(),
+                "- Limitations: the VIX-filter variant is not implemented (no VIX series locally); weekday placebos are run as variants, not separate studies.".into(),
+            ];
+        }
+        if c.strategy == crate::family8::S079_NAME {
+            return vec![
+                format!(
+                    "- Universe: {}; daily total-return-adjusted Parquet bars.",
+                    s.panel.symbols.join(", ")
+                ),
+                format!(
+                    "- Rule: enter {} session(s) before month end (offset {}), exit on session {} of the following month; regime={}.",
+                    c.entry_offset.unsigned_abs(),
+                    c.entry_offset,
+                    c.exit_offset,
+                    if c.regime_mode.is_empty() { "none".into() } else { c.regime_mode.clone() }
+                ),
+                format!(
+                    "- Fill: {}; {} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: equal-weight close-to-close buy-and-hold of the universe plus random-timing exposure matching.".into(),
+                "- Limitations: `open` fill enters at the open of the signal session (one session earlier than close entry); month-end/session counts derive from the panel calendar.".into(),
+            ];
+        }
+        if c.strategy == crate::family8::S080_NAME {
+            return vec![
+                format!(
+                    "- Universe: {}; daily total-return-adjusted Parquet bars.",
+                    s.panel.symbols.join(", ")
+                ),
+                format!(
+                    "- Rule: buy the second-to-last close before an exchange holiday gap; exit {} (early-close sessions {}).",
+                    if c.exit_offset == 0 { "at the last-session close before the holiday" } else { "at the first-session close after the holiday" },
+                    if c.exclude_early_close { "excluded" } else { "included" }
+                ),
+                format!(
+                    "- Fill: {}; {} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: equal-weight close-to-close buy-and-hold of the universe plus random-timing exposure matching.".into(),
+                "- Limitations: holidays are inferred from weekday gaps in the trading calendar (no external holiday file); early-close detection covers the Jul-4/Dec-25 adjacent gaps only.".into(),
+            ];
+        }
+        if c.strategy == crate::family7::S069_NAME {
+            return vec![
+                format!(
+                    "- Universe: SPY + {}; daily total-return-adjusted Parquet bars.",
+                    c.defensive_asset
+                ),
+                format!(
+                    "- Rule: hold SPY while close > SMA({}); otherwise hold {}; cadence={}.",
+                    c.sma_window, c.defensive_asset, c.strategy_mode
+                ),
+                format!(
+                    "- Fill: {}; {} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: SPY close-to-close benchmark plus random-timing exposure matching.".into(),
+                "- Limitations: weight changes are modeled as full exit+entry at the fill price (conservative turnover); the hedge uses the ETF sleeve, not VIX futures.".into(),
+            ];
+        }
+        if c.strategy == crate::family7::S070_NAME {
+            return vec![
+                "- Universe: QQQ, TQQQ, defensive cash proxy; daily total-return-adjusted Parquet bars.".into(),
+                format!(
+                    "- Rule: RSI({})<{:.1} arms TQQQ at {:.1}x until RSI>{:.1}; otherwise QQQ while close > SMA({}), else {}.",
+                    c.rsi_len, c.oversold_in, c.levered_cap, c.oversold_out, c.sma_window, c.defensive_asset
+                ),
+                format!(
+                    "- Fill: {}; {} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: QQQ close-to-close benchmark plus random-timing exposure matching.".into(),
+                "- Limitations: real TQQQ history only (post-2016 cache window); leveraged-ETF path decay is real data here, not simulated.".into(),
+            ];
+        }
+        if c.strategy == crate::family7::S102_NAME {
+            return vec![
+                format!(
+                    "- Universe: CPER, GLD signals plus baskets {} vs {}.",
+                    c.cyclical_symbols, c.defensive_symbols
+                ),
+                format!(
+                    "- Rule: {} weekly rebalance; {} mode picks the cyclical basket when the CPER/GLD ratio rises and its 63d z > 0.",
+                    c.rebalance, c.signal_mode
+                ),
+                format!(
+                    "- Fill: {}; {} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: SPY close-to-close benchmark plus random-timing exposure matching.".into(),
+                "- Limitations: CPER is a copper futures ETF (roll effects embedded); the momentum control variant drops the copper signal entirely.".into(),
+            ];
+        }
+        if c.strategy == crate::family7::S065_NAME {
+            return vec![
+                format!(
+                    "- Universe: {} symbols; daily OHLC bars.",
+                    s.panel.symbols.len()
+                ),
+                format!(
+                    "- Rule: when RV({})<{:.2}xRV({}), stop orders at the {}d extremes for {} sessions; exit opposite {}d extreme or after {} sessions.",
+                    c.rv_short, c.rv_ratio, c.rv_long, c.entry_window, c.order_validity, c.exit_extreme_window, c.max_hold
+                ),
+                format!(
+                    "- Fill: `stop` (entry max/min of open vs level); {} bps/side.",
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: equal-weight close-to-close of the universe plus random-timing exposure matching.".into(),
+                "- Limitations: daily bars approximate intraday stop placement; same-day two-side triggers resolve to the side nearer the open.".into(),
+            ];
+        }
+        if c.strategy == crate::family7::S071_NAME {
+            return vec![
+                format!(
+                    "- Universe: {} registered ETF pairs from `pairs`.",
+                    crate::config::split_csv(&c.pairs).len()
+                ),
+                format!(
+                    "- Rule: monthly Engle-Granger ADF (formation {}d, p<{:.2}); trade z>|{:.1}| on the {}d residual window; exits {:.2}/{:.2}.",
+                    c.formation_window, c.adf_max_p, c.z_entry, c.z_window, c.z_exit_short, c.z_exit_long
+                ),
+                format!(
+                    "- Fill: {}; {} bps/side plus {:.0} bps/yr borrow on short legs.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side,
+                    c.borrow_bps_annual
+                ),
+                "- Baselines: SPY close-to-close benchmark plus random-timing exposure matching.".into(),
+                "- Limitations: the pair list is a pre-registered subset, not the paper's full 30-pair appendix; ADF critical values are asymptotic MacKinnon approximations.".into(),
+            ];
+        }
+        if c.strategy == crate::family5::S052_NAME {
+            return vec![
+                format!(
+                    "- Universe: {} SimFin-covered stocks, liquid top {}, ${:.0}+ close, {} prior bars.",
+                    s.panel.symbols.len(),
+                    c.universe_top_n,
+                    c.min_price,
+                    c.min_history
+                ),
+                format!(
+                    "- Rule: {} rebalance; long the top {:.0}% of expected next-month announcers (exactly {} reports/12m) by announcement-month volume concentration; leg={}, weighting={}.",
+                    c.rebalance,
+                    100.0 * c.volume_quintile,
+                    c.required_reports,
+                    c.leg_mode,
+                    c.weighting_mode
+                ),
+                format!(
+                    "- Fill: {}; {:.0} bps/side stocks, plus {:.0} bps/yr borrow on shorts.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side,
+                    c.borrow_bps_annual
+                ),
+                "- Baselines: equal-weight stock-universe return plus random-timing exposure matching.".into(),
+                "- Limitations: expected months come from the firm's own publish-month history (no consensus calendar); delisted names exit at the last close adjusted by `delisting_return`.".into(),
+            ];
+        }
+        if c.strategy == crate::family5::S053_NAME {
+            return vec![
+                format!(
+                    "- Universe: {} SimFin-covered stocks, liquid top {}, ${:.0}+ close.",
+                    s.panel.symbols.len(),
+                    c.universe_top_n,
+                    c.min_price
+                ),
+                format!(
+                    "- Rule: enter {} sessions before the expected announcement (prior publish date + {}d, top volume-concentration tercile); exit at the open after the realized report.",
+                    c.entry_sessions_before,
+                    c.expected_shift_days
+                ),
+                format!(
+                    "- Fill: {}; {:.0} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: equal-weight stock-universe return plus random-timing exposure matching.".into(),
+                "- Limitations: expected dates assume an annual cadence shift; announcements drifting >45 days from expected exit at the `max_hold` cap.".into(),
+            ];
+        }
+        if c.strategy == crate::family5::S054_NAME {
+            return vec![
+                format!(
+                    "- Universe: {} SimFin-covered stocks ({} announcement mode).",
+                    s.panel.symbols.len(),
+                    c.signal_mode
+                ),
+                format!(
+                    "- Rule: surprise mode={} (SUE > trailing P90 / EAR>0 / both), gap<{:.1}xATR({}); enter after the reaction day, exit within {} sessions or before the next report.",
+                    c.surprise_mode, c.gap_atr_multiple, c.atr_len, c.max_hold
+                ),
+                format!(
+                    "- Fill: {}; {:.0} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: equal-weight stock-universe return plus random-timing exposure matching.".into(),
+                "- Limitations: `edgar` mode only covers 2023-09+ (8-K timing history); `amc` treats every publish date as after-close, which overstates the reaction-day drift for BMO reporters.".into(),
+            ];
+        }
+        if c.strategy == crate::family5::S067_NAME {
+            return vec![
+                format!(
+                    "- Universe: liquid top {} stocks grouped by SimFin sector -> {} sector ETFs.",
+                    c.universe_top_n,
+                    crate::config::split_csv(&c.sector_etf_map).len()
+                ),
+                format!(
+                    "- Rule: {} rebalance; sector breadth = share of liquid members above SMA({}); long sectors with positive breadth z, weight propto z.",
+                    c.rebalance, c.sma_window
+                ),
+                format!(
+                    "- Fill: {}; {:.0} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: equal-weight stock-universe return plus random-timing exposure matching.".into(),
+                "- Limitations: SimFin sector map is current-vintage (not point-in-time); Business Services maps to XLC by convention.".into(),
+            ];
+        }
+        if c.strategy == crate::family5::S078_NAME {
+            return vec![
+                format!(
+                    "- Universe: liquid top {} stocks, ${:.0}+ close.",
+                    c.universe_top_n, c.min_price
+                ),
+                format!(
+                    "- Rule: daily {} book; {} stage picks {:.0}% tails{}.",
+                    c.rebalance,
+                    c.signal_mode,
+                    100.0 * c.top_fraction,
+                    if c.beta_neutral { ", beta-neutralized" } else { "" }
+                ),
+                format!(
+                    "- Fill: {}; {:.0} bps/side plus {:.0} bps/yr borrow on short legs.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side,
+                    c.borrow_bps_annual
+                ),
+                "- Baselines: equal-weight stock-universe return plus random-timing exposure matching.".into(),
+                "- Limitations: research-scale long-short book; beta neutralization rescales the long leg only; the OU stage is a simplified half-life screen, not a Kalman-hedged pair engine.".into(),
+            ];
+        }
+        if c.strategy == crate::family6::S056_NAME || c.strategy == crate::family6::S058_NAME {
+            return vec![
+                format!(
+                    "- Universe: liquid top {} stocks with scored news coverage, ${:.0}+ close.",
+                    c.universe_top_n, c.min_price
+                ),
+                format!(
+                    "- Rule: daily {:.0}% sentiment tails ({}/{}, {} timing), {}.",
+                    100.0 * c.top_fraction,
+                    c.score_mode,
+                    c.topic_mode,
+                    c.signal_mode,
+                    c.leg_mode
+                ),
+                format!(
+                    "- Fill: `close_to_open`; {:.0} bps/side plus {:.0} bps/yr borrow on shorts.",
+                    c.cost_bps_per_side,
+                    c.borrow_bps_annual
+                ),
+                "- Baselines: equal-weight stock-universe return plus random-timing exposure matching.".into(),
+                "- Limitations: sentiment is precomputed offline by tools/score_news_sentiment.py (frozen FinBERT; `lm` is the lexicon fallback); timestamps are ET-naive; the catalog's forward-test-only variants are not backtested.".into(),
+            ];
+        }
         if c.strategy == S021_NAME {
             return vec![
                 format!(
@@ -2066,6 +2690,8 @@ impl<'a> Study<'a> {
                 | S051_NAME
         ) {
             title_for(&c.strategy).to_string()
+        } else if c.strategy == S104_NAME {
+            format!("mom + {} overlay", c.overlay_mode)
         } else if c.strategy == S023_NAME {
             "long SUE>trailing P90, gap<3xATR20, open-to-next-close".to_string()
         } else if c.strategy == S024_NAME {
@@ -2074,6 +2700,46 @@ impl<'a> Study<'a> {
                 100.0 * c.s024_min_yield,
                 c.universe_top_n
             )
+        } else if c.strategy == crate::family8::S010_NAME {
+            format!(
+                "weak-{} mode={} exit={}",
+                if c.weekday == 1 { "Mon".into() } else { format!("wd{}", c.weekday) },
+                c.signal_mode,
+                if c.exit_offset == 0 { "open" } else { "close" }
+            )
+        } else if c.strategy == crate::family8::S079_NAME {
+            format!(
+                "ToM entry{} exit+{}",
+                c.entry_offset, c.exit_offset
+            )
+        } else if c.strategy == crate::family8::S080_NAME {
+            format!(
+                "pre-holiday -2 exit={} early-close={}",
+                if c.exit_offset == 0 { "before" } else { "after" },
+                if c.exclude_early_close { "excl" } else { "incl" }
+            )
+        } else if c.strategy == crate::family6::S056_NAME || c.strategy == crate::family6::S058_NAME {
+            format!("news {}/{} {} {:.0}%", c.score_mode, c.topic_mode, c.signal_mode, 100.0 * c.top_fraction)
+        } else if c.strategy == crate::family5::S052_NAME {
+            format!("ann-premium {} {} q{:.0}%", c.leg_mode, c.rebalance, 100.0 * c.volume_quintile)
+        } else if c.strategy == crate::family5::S053_NAME {
+            format!("runup -{}d shift{}d {}", c.entry_sessions_before, c.expected_shift_days, c.signal_mode)
+        } else if c.strategy == crate::family5::S054_NAME {
+            format!("pead {} {} hold{}", c.signal_mode, c.surprise_mode, c.max_hold)
+        } else if c.strategy == crate::family5::S067_NAME {
+            format!("breadth sma{} {} top{}", c.sma_window, c.rebalance, c.universe_top_n)
+        } else if c.strategy == crate::family5::S078_NAME {
+            format!("statarb {} tail{:.0}% beta={}", c.signal_mode, 100.0 * c.top_fraction, c.beta_neutral)
+        } else if c.strategy == crate::family7::S069_NAME {
+            format!("spy>sma{} -> SPY else {}", c.sma_window, c.defensive_asset)
+        } else if c.strategy == crate::family7::S070_NAME {
+            format!("rsi{}[{:.0},{:.0}] tqqq@{:.1}x else qqq/sma{}", c.rsi_len, c.oversold_in, c.oversold_out, c.levered_cap, c.sma_window)
+        } else if c.strategy == crate::family7::S102_NAME {
+            format!("copper/gold {} -> {}|{}", c.signal_mode, c.cyclical_symbols, c.defensive_symbols)
+        } else if c.strategy == crate::family7::S065_NAME {
+            format!("rv{}/{}<{:.2} donchian{} x{}", c.rv_short, c.rv_long, c.rv_ratio, c.entry_window, c.exit_extreme_window)
+        } else if c.strategy == crate::family7::S071_NAME {
+            format!("adf<{:.2} z>{:.1} out {:.2}/{:.2}", c.adf_max_p, c.z_entry, c.z_exit_short, c.z_exit_long)
         } else if c.strategy == S021_NAME {
             format!(
                 "overnight {} filter={}",

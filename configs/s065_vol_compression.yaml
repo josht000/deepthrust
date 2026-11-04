@@ -1,0 +1,53 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,QQQ,IWM,TLT,GLD
+benchmark: SPY
+start_date: "2008-01-01"
+rv_short: 5
+rv_long: 20
+rv_ratio: 0.5
+entry_window: 20
+exit_extreme_window: 10
+order_validity: 5
+max_hold: 5
+cost_bps_per_side: 1.0
+fills: stop
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 1
+
+variants:
+  rv3_20: {rv_short: 3}
+  rv10_40: {rv_short: 10, rv_long: 40}
+  rv5_40: {rv_long: 40}
+  rv10_60: {rv_short: 10, rv_long: 60}
+  ratio04: {rv_ratio: 0.4}
+  ratio06: {rv_ratio: 0.6}
+  ratio075: {rv_ratio: 0.75}
+  ratio03: {rv_ratio: 0.3}
+  dch40: {entry_window: 40}
+  dch55: {entry_window: 55}
+  dch10: {entry_window: 10}
+  exit5: {exit_extreme_window: 5}
+  exit20: {exit_extreme_window: 20}
+  valid3: {order_validity: 3}
+  valid10: {order_validity: 10}
+  hold3: {max_hold: 3}
+  hold10: {max_hold: 10}
+  hold15: {max_hold: 15}
+  spy_only: {symbols: SPY}
+  qqq_only: {symbols: QQQ, benchmark: QQQ}
+  iwm_only: {symbols: IWM, benchmark: IWM}
+  tlt_only: {symbols: TLT, benchmark: TLT}
+  gld_only: {symbols: GLD, benchmark: GLD}
+  equity3: {symbols: "SPY,QQQ,IWM"}
+  commodities: {symbols: "GLD,SLV,USO,CPER"}
+  bonds: {symbols: "TLT,IEF,AGG"}
+  cost025: {cost_bps_per_side: 0.25}
+  cost05: {cost_bps_per_side: 0.5}
+  cost2: {cost_bps_per_side: 2.0}
+  cost5: {cost_bps_per_side: 5.0}
+  equity3_ratio04: {symbols: "SPY,QQQ,IWM", rv_ratio: 0.4}
+  equity3_ratio06: {symbols: "SPY,QQQ,IWM", rv_ratio: 0.6}

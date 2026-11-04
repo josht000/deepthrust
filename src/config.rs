@@ -241,6 +241,96 @@ pub struct Config {
     #[serde(default)]
     pub delisting_return: f64,
     #[serde(default)]
+    pub news_file: String,
+    #[serde(default)]
+    pub sentiment_file: String,
+    #[serde(default)]
+    pub edgar_filings_file: String,
+    #[serde(default)]
+    pub pairs: String,
+    #[serde(default)]
+    pub sector_etf_map: String,
+    #[serde(default = "d_entry_sessions_before")]
+    pub entry_sessions_before: usize,
+    #[serde(default = "d_expected_shift_days")]
+    pub expected_shift_days: i64,
+    #[serde(default = "d_surprise_mode")]
+    pub surprise_mode: String,
+    #[serde(default = "d_score_mode")]
+    pub score_mode: String,
+    #[serde(default = "d_leg_mode")]
+    pub leg_mode: String,
+    #[serde(default = "d_rv_short")]
+    pub rv_short: usize,
+    #[serde(default = "d_rv_long")]
+    pub rv_long: usize,
+    #[serde(default = "d_rv_ratio")]
+    pub rv_ratio: f64,
+    #[serde(default = "d_order_validity")]
+    pub order_validity: usize,
+    #[serde(default = "d_exit_extreme_window")]
+    pub exit_extreme_window: usize,
+    #[serde(default = "d_oversold_in")]
+    pub oversold_in: f64,
+    #[serde(default = "d_oversold_out")]
+    pub oversold_out: f64,
+    #[serde(default = "d_levered_cap")]
+    pub levered_cap: f64,
+    #[serde(default = "d_z_entry")]
+    pub z_entry: f64,
+    #[serde(default = "d_z_exit_short")]
+    pub z_exit_short: f64,
+    #[serde(default = "d_z_exit_long")]
+    pub z_exit_long: f64,
+    #[serde(default = "d_adf_max_p")]
+    pub adf_max_p: f64,
+    #[serde(default = "d_overlay_mode")]
+    pub overlay_mode: String,
+    #[serde(default = "d_dd_threshold")]
+    pub dd_threshold: f64,
+    #[serde(default = "d_dd_high_window")]
+    pub dd_high_window: usize,
+    #[serde(default = "d_reentry_window")]
+    pub reentry_window: usize,
+    #[serde(default = "d_vol_scale_target")]
+    pub vol_scale_target: f64,
+    #[serde(default = "d_vol_scale_window")]
+    pub vol_scale_window: usize,
+    #[serde(default = "d_vol_cap")]
+    pub vol_cap: f64,
+    #[serde(default = "d_weighting_mode")]
+    pub weighting_mode: String,
+    #[serde(default = "d_volume_lookback_months")]
+    pub volume_lookback_months: i64,
+    #[serde(default = "d_volume_lag_months")]
+    pub volume_lag_months: i64,
+    #[serde(default = "d_volume_quintile")]
+    pub volume_quintile: f64,
+    #[serde(default = "d_required_reports")]
+    pub required_reports: i64,
+    #[serde(default)]
+    pub beta_neutral: bool,
+    #[serde(default = "d_exclude_early_close")]
+    pub exclude_early_close: bool,
+    #[serde(default = "d_entry_offset")]
+    pub entry_offset: i64,
+    #[serde(default = "d_exit_offset")]
+    pub exit_offset: i64,
+    #[serde(default = "d_weakness_threshold")]
+    pub weakness_threshold: f64,
+    #[serde(default = "d_weekday")]
+    pub weekday: i64,
+    #[serde(default = "d_entry_mode")]
+    pub entry_mode: String,
+    #[serde(default = "d_topic_mode")]
+    pub topic_mode: String,
+    #[serde(default = "d_adf_lags")]
+    pub adf_lags: usize,
+    #[serde(default = "d_cyclical_symbols")]
+    pub cyclical_symbols: String,
+    #[serde(default = "d_defensive_symbols")]
+    pub defensive_symbols: String,
+    #[serde(default)]
     pub results_tag: String,
     /// Resolved variant name ("baseline" when no overlay is applied).
     #[serde(skip, default = "d_baseline")]
@@ -523,6 +613,123 @@ fn d_defensive_asset() -> String {
 }
 fn d_strategy_mode() -> String {
     "baseline".into()
+}
+fn d_entry_sessions_before() -> usize {
+    6
+}
+fn d_expected_shift_days() -> i64 {
+    364
+}
+fn d_surprise_mode() -> String {
+    "sue".into()
+}
+fn d_score_mode() -> String {
+    "finbert".into()
+}
+fn d_leg_mode() -> String {
+    "long".into()
+}
+fn d_rv_short() -> usize {
+    5
+}
+fn d_rv_long() -> usize {
+    20
+}
+fn d_rv_ratio() -> f64 {
+    0.5
+}
+fn d_order_validity() -> usize {
+    5
+}
+fn d_exit_extreme_window() -> usize {
+    10
+}
+fn d_oversold_in() -> f64 {
+    29.7
+}
+fn d_oversold_out() -> f64 {
+    30.3
+}
+fn d_levered_cap() -> f64 {
+    1.0
+}
+fn d_z_entry() -> f64 {
+    2.0
+}
+fn d_z_exit_short() -> f64 {
+    0.75
+}
+fn d_z_exit_long() -> f64 {
+    -0.5
+}
+fn d_adf_max_p() -> f64 {
+    0.05
+}
+fn d_overlay_mode() -> String {
+    "none".into()
+}
+fn d_dd_threshold() -> f64 {
+    0.10
+}
+fn d_dd_high_window() -> usize {
+    252
+}
+fn d_reentry_window() -> usize {
+    63
+}
+fn d_vol_scale_target() -> f64 {
+    0.12
+}
+fn d_vol_scale_window() -> usize {
+    126
+}
+fn d_vol_cap() -> f64 {
+    1.0
+}
+fn d_weighting_mode() -> String {
+    "equal".into()
+}
+fn d_volume_lookback_months() -> i64 {
+    12
+}
+fn d_volume_lag_months() -> i64 {
+    1
+}
+fn d_volume_quintile() -> f64 {
+    0.20
+}
+fn d_required_reports() -> i64 {
+    4
+}
+fn d_exclude_early_close() -> bool {
+    true
+}
+fn d_entry_offset() -> i64 {
+    -2
+}
+fn d_exit_offset() -> i64 {
+    3
+}
+fn d_weakness_threshold() -> f64 {
+    0.0
+}
+fn d_weekday() -> i64 {
+    1
+}
+fn d_entry_mode() -> String {
+    "close".into()
+}
+fn d_topic_mode() -> String {
+    "all".into()
+}
+fn d_adf_lags() -> usize {
+    1
+}
+fn d_cyclical_symbols() -> String {
+    "XLB,XLI".into()
+}
+fn d_defensive_symbols() -> String {
+    "XLP,XLU".into()
 }
 
 impl Config {

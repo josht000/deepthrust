@@ -1,0 +1,48 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY
+benchmark: SPY
+start_date: "2008-01-01"
+weekday: 1
+signal_mode: close_below_prev
+weakness_threshold: 0.0
+exit_offset: 0
+cost_bps_per_side: 1.0
+fills: close_to_open
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 1
+
+variants:
+  exit_close: {exit_offset: 1}
+  ret05: {signal_mode: ret_le, weakness_threshold: -0.005}
+  ret1: {signal_mode: ret_le, weakness_threshold: -0.01}
+  ret2: {signal_mode: ret_le, weakness_threshold: -0.02}
+  gap_down: {signal_mode: gap_down}
+  gap_down_exit_close: {signal_mode: gap_down, exit_offset: 1}
+  ret05_exit_close: {signal_mode: ret_le, weakness_threshold: -0.005, exit_offset: 1}
+  ret1_exit_close: {signal_mode: ret_le, weakness_threshold: -0.01, exit_offset: 1}
+  tuesday: {weekday: 2}
+  wednesday: {weekday: 3}
+  thursday: {weekday: 4}
+  friday: {weekday: 5}
+  monday_today_only: {weekday: -1}
+  qqq: {symbols: QQQ, benchmark: QQQ}
+  iwm: {symbols: IWM, benchmark: IWM}
+  dia: {symbols: DIA, benchmark: DIA}
+  qqq_exit_close: {symbols: QQQ, benchmark: QQQ, exit_offset: 1}
+  iwm_exit_close: {symbols: IWM, benchmark: IWM, exit_offset: 1}
+  qqq_ret05: {symbols: QQQ, benchmark: QQQ, signal_mode: ret_le, weakness_threshold: -0.005}
+  iwm_ret05: {symbols: IWM, benchmark: IWM, signal_mode: ret_le, weakness_threshold: -0.005}
+  qqq_gap_down: {symbols: QQQ, benchmark: QQQ, signal_mode: gap_down}
+  iwm_gap_down: {symbols: IWM, benchmark: IWM, signal_mode: gap_down}
+  cost025: {cost_bps_per_side: 0.25}
+  cost05: {cost_bps_per_side: 0.5}
+  cost2: {cost_bps_per_side: 2.0}
+  cost5: {cost_bps_per_side: 5.0}
+  qqq_cost05: {symbols: QQQ, benchmark: QQQ, cost_bps_per_side: 0.5}
+  qqq_cost2: {symbols: QQQ, benchmark: QQQ, cost_bps_per_side: 2.0}
+  iwm_cost05: {symbols: IWM, benchmark: IWM, cost_bps_per_side: 0.5}
+  iwm_cost2: {symbols: IWM, benchmark: IWM, cost_bps_per_side: 2.0}

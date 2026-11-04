@@ -1,0 +1,51 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: QQQ,TQQQ,SHY,BIL
+benchmark: QQQ
+start_date: "2011-01-01"
+rsi_len: 14
+oversold_in: 29.7
+oversold_out: 30.3
+levered_cap: 1.0
+sma_window: 200
+defensive_asset: SHY
+cost_bps_per_side: 1.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 1
+
+variants:
+  cap05: {levered_cap: 0.5}
+  cap15: {levered_cap: 1.5}
+  cap20: {levered_cap: 2.0}
+  cap05_bil: {levered_cap: 0.5, defensive_asset: BIL}
+  cap15_bil: {levered_cap: 1.5, defensive_asset: BIL}
+  cap20_bil: {levered_cap: 2.0, defensive_asset: BIL}
+  os25: {oversold_in: 25.0, oversold_out: 25.6}
+  os35: {oversold_in: 35.0, oversold_out: 35.7}
+  os20: {oversold_in: 20.0, oversold_out: 20.4}
+  os25_cap05: {oversold_in: 25.0, oversold_out: 25.6, levered_cap: 0.5}
+  os35_cap05: {oversold_in: 35.0, oversold_out: 35.7, levered_cap: 0.5}
+  os25_cap15: {oversold_in: 25.0, oversold_out: 25.6, levered_cap: 1.5}
+  rsi10: {rsi_len: 10}
+  rsi21: {rsi_len: 21}
+  rsi10_cap05: {rsi_len: 10, levered_cap: 0.5}
+  rsi21_cap05: {rsi_len: 21, levered_cap: 0.5}
+  rsi10_os25: {rsi_len: 10, oversold_in: 25.0, oversold_out: 25.6}
+  rsi21_os35: {rsi_len: 21, oversold_in: 35.0, oversold_out: 35.7}
+  sma150: {sma_window: 150}
+  sma250: {sma_window: 250}
+  sma150_cap05: {sma_window: 150, levered_cap: 0.5}
+  sma250_cap05: {sma_window: 250, levered_cap: 0.5}
+  bil: {defensive_asset: BIL}
+  tlt: {defensive_asset: TLT, symbols: "QQQ,TQQQ,SHY,BIL,TLT"}
+  cost025: {cost_bps_per_side: 0.25}
+  cost05: {cost_bps_per_side: 0.5}
+  cost2: {cost_bps_per_side: 2.0}
+  cost5: {cost_bps_per_side: 5.0}
+  cap05_cost2: {levered_cap: 0.5, cost_bps_per_side: 2.0}
+  cap05_cost5: {levered_cap: 0.5, cost_bps_per_side: 5.0}
+  cap15_cost2: {levered_cap: 1.5, cost_bps_per_side: 2.0}

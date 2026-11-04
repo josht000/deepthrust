@@ -80,7 +80,7 @@ pub fn rolling_mean(x: &[f64], w: usize) -> Vec<f64> {
     out
 }
 
-fn rolling_extreme(x: &[f64], w: usize, minimum: bool) -> Vec<f64> {
+pub(crate) fn rolling_extreme(x: &[f64], w: usize, minimum: bool) -> Vec<f64> {
     let width = w.max(1);
     let mut out = vec![f64::NAN; x.len()];
     for t in (width - 1)..x.len() {
@@ -96,7 +96,7 @@ fn rolling_extreme(x: &[f64], w: usize, minimum: bool) -> Vec<f64> {
     out
 }
 
-fn rolling_median(x: &[f64], w: usize) -> Vec<f64> {
+pub(crate) fn rolling_median(x: &[f64], w: usize) -> Vec<f64> {
     let width = w.max(1);
     let mut out = vec![f64::NAN; x.len()];
     for t in (width - 1)..x.len() {
@@ -828,7 +828,7 @@ pub fn s042_trades(
     Ok(weight_rebalance_trades(trades, cfg.book_slots))
 }
 
-fn weight_rebalance_trades(
+pub(crate) fn weight_rebalance_trades(
     mut trades: Vec<crate::engine::Trade>,
     slots: usize,
 ) -> Vec<crate::engine::Trade> {
@@ -846,7 +846,7 @@ fn weight_rebalance_trades(
     trades
 }
 
-fn rebalance_trades(
+pub(crate) fn rebalance_trades(
     panel: &Panel,
     sig: &Signals,
     cfg: &Config,
@@ -856,7 +856,7 @@ fn rebalance_trades(
     rebalance_trades_with_breadth(panel, sig, cfg, fill, |_, _| breadth)
 }
 
-fn rebalance_trades_with_breadth(
+pub(crate) fn rebalance_trades_with_breadth(
     panel: &Panel,
     sig: &Signals,
     cfg: &Config,
@@ -1847,7 +1847,115 @@ pub fn s041_trades(
     Ok(weight_rebalance_trades(trades, cfg.book_slots))
 }
 
-fn simfin_groups(
+pub fn compute_s104_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    compute_s041_signals(panel, cfg)
+}
+
+/// S041 base book plus a crash-protection overlay: `ddgate` clips exits to cash when
+/// SPY falls `dd_threshold` below its `dd_high_window` high (re-enter on a
+/// `reentry_window` high); `volscale` rescales each monthly book by target/realized vol.
+pub fn s104_trades(
+    panel: &Panel,
+    sig: &Signals,
+    cfg: &Config,
+    fill: &str,
+) -> Result<Vec<crate::engine::Trade>, String> {
+    let mut trades = s041_trades(panel, sig, cfg, fill)?;
+    match cfg.overlay_mode.as_str() {
+        "none" => return Ok(trades),
+        "ddgate" | "volscale" => {}
+        other => return Err(format!("unknown S104 overlay_mode {other:?}")),
+    }
+    let spy = panel
+        .symbols
+        .iter()
+        .position(|symbol| symbol == "SPY")
+        .ok_or_else(|| "S104 requires SPY in the panel".to_string())?;
+    let n = panel.dates.len();
+    if cfg.overlay_mode == "ddgate" {
+        let hi_long = rolling_extreme(&panel.close[spy], cfg.dd_high_window, false);
+        let hi_entry = rolling_extreme(&panel.close[spy], cfg.reentry_window, false);
+        let mut gate = vec![true; n];
+        let mut on = true;
+        for t in 0..n {
+            if !on && hi_entry[t].is_finite() && panel.close[spy][t] >= hi_entry[t] {
+                on = true;
+            }
+            if on
+                && hi_long[t].is_finite()
+                && panel.close[spy][t] < hi_long[t] * (1.0 - cfg.dd_threshold)
+            {
+                on = false;
+            }
+            gate[t] = on;
+        }
+        let mut kept = Vec::with_capacity(trades.len());
+        for mut trade in trades {
+            if trade.entry_idx >= n || !gate[trade.entry_idx] {
+                continue;
+            }
+            if let Some(off) = (trade.entry_idx + 1..=trade.exit_idx.min(n - 1))
+                .find(|&t| !gate[t])
+            {
+                trade.exit_idx = off;
+                trade.exit_px = panel.close[trade.sym_idx][off];
+                trade.ret_gross = trade.weight.signum() * (trade.exit_px / trade.entry_px - 1.0);
+                trade.ret = trade.ret_gross
+                    - cfg.cost_for_symbol(&panel.symbols[trade.sym_idx])
+                        * (trade.entry_turnover + trade.exit_turnover)
+                        / trade.weight.abs().max(1e-9);
+                trade.exit_reason = "gate";
+                trade.hold = off - trade.entry_idx;
+            }
+            kept.push(trade);
+        }
+        trades = kept;
+    } else {
+        // volscale: annualized vol of the equal-weight tradable universe
+        let mut ew = vec![f64::NAN; n];
+        for t in 1..n {
+            let (mut sum, mut count) = (0.0, 0usize);
+            for j in 0..panel.symbols.len() {
+                if j == spy || !sig.tradable[j][t - 1] {
+                    continue;
+                }
+                let (a, b) = (panel.close[j][t - 1], panel.close[j][t]);
+                if a.is_finite() && a > 0.0 && b.is_finite() {
+                    sum += b / a - 1.0;
+                    count += 1;
+                }
+            }
+            if count > 0 {
+                ew[t] = sum / count as f64;
+            }
+        }
+        let ppy = cfg.periods_per_year as f64;
+        for trade in &mut trades {
+            let t = trade.signal_idx;
+            if t + 1 < cfg.vol_scale_window {
+                continue;
+            }
+            let slice = &ew[t + 1 - cfg.vol_scale_window..=t];
+            if slice.iter().any(|v| !v.is_finite()) {
+                continue;
+            }
+            let mean = slice.iter().sum::<f64>() / cfg.vol_scale_window as f64;
+            let var = slice.iter().map(|v| (v - mean).powi(2)).sum::<f64>()
+                / (cfg.vol_scale_window - 1) as f64;
+            let sigma = (var * ppy).sqrt();
+            if sigma <= 0.0 || !sigma.is_finite() {
+                continue;
+            }
+            let factor = (cfg.vol_scale_target / sigma).min(cfg.vol_cap);
+            trade.weight *= factor;
+            trade.entry_turnover *= factor;
+            trade.exit_turnover *= factor;
+        }
+    }
+    Ok(trades)
+}
+
+pub(crate) fn simfin_groups(
     symbols: &[String],
     root: &str,
 ) -> Result<(Vec<Option<String>>, Vec<Option<String>>), String> {

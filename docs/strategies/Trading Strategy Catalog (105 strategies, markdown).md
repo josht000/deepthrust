@@ -28,9 +28,9 @@
     - [S007 | 3-Day Pullback](#s007--3-day-pullback) — NOT_DAILY, DEFER
     - [S008 | ConnorsRSI(3,2,100) Stock Pullback](#s008--connorsrsi32100-stock-pullback) — NOT_DAILY, DEFER
     - [S009 | 3 Days Down Overnight (SPY)](#s009--3-days-down-overnight-spy) — NOT_DAILY, DEFER
-    - [S010 | Turnaround Tuesday](#s010--turnaround-tuesday)
+    - [S010 | Turnaround Tuesday](#s010--turnaround-tuesday) — IMPLEMENTED
     - [S011 | Z-Score / Bollinger Lower-Band Mean Reversion](#s011--z-score--bollinger-lower-band-mean-reversion) — NOT_DAILY, DEFER
-    - [S013 | TLT Mean Reversion (RSI(2))](#s013--tlt-mean-reversion-rsi2)
+    - [S013 | TLT Mean Reversion (RSI(2))](#s013--tlt-mean-reversion-rsi2) — IMPLEMENTED
     - [S014 | Sector ETF Basket Mean Reversion](#s014--sector-etf-basket-mean-reversion) — NOT_DAILY, DEFER
 - [Family 2 — Overnight and Gap Strategies](#family-2--overnight-and-gap-strategies)
     - [S015 | Chan Buy-on-Gap](#s015--chan-buy-on-gap) — NOT_DAILY, DEFER
@@ -68,13 +68,13 @@
     - [S050 | First Pullback After Breakout](#s050--first-pullback-after-breakout) — IMPLEMENTED
     - [S051 | Darvas Box Breakout](#s051--darvas-box-breakout) — IMPLEMENTED
 - [Family 5 — Earnings, News, and LLM Strategies](#family-5--earnings-news-and-llm-strategies)
-    - [S052 | Earnings Announcement Premium (Monthly)](#s052--earnings-announcement-premium-monthly)
-    - [S053 | Pre-Earnings Run-Up (consensus-free; replaces the Earnings Whispers Score setup)](#s053--pre-earnings-run-up-consensus-free-replaces-the-earnings-whispers-score-setup)
-    - [S054 | PEAD Earnings-Surprise Drift (SUE / announcement-return, point-in-time)](#s054--pead-earnings-surprise-drift-sue--announcement-return-point-in-time)
+    - [S052 | Earnings Announcement Premium (Monthly)](#s052--earnings-announcement-premium-monthly) — IMPLEMENTED — DAILY, DELTA
+    - [S053 | Pre-Earnings Run-Up (consensus-free; replaces the Earnings Whispers Score setup)](#s053--pre-earnings-run-up-consensus-free-replaces-the-earnings-whispers-score-setup) — IMPLEMENTED
+    - [S054 | PEAD Earnings-Surprise Drift (SUE / announcement-return, point-in-time)](#s054--pead-earnings-surprise-drift-sue--announcement-return-point-in-time) — IMPLEMENTED — DAILY, DELTA
     - [S055 | Post-Earnings-Oversold Bounce](#s055--post-earnings-oversold-bounce) — NOT_DAILY, DEFER
-    - [S056 | LLM Daily News Sentiment Long/Short](#s056--llm-daily-news-sentiment-longshort)
+    - [S056 | LLM Daily News Sentiment Long/Short](#s056--llm-daily-news-sentiment-longshort) — IMPLEMENTED — DAILY, DELTA
     - [S057 | LLM Top-Down Sector Allocation (forward test only)](#s057--llm-top-down-sector-allocation-forward-test-only)
-    - [S058 | News-Topic Conditioned Sentiment (feature design for S056)](#s058--news-topic-conditioned-sentiment-feature-design-for-s056)
+    - [S058 | News-Topic Conditioned Sentiment (feature design for S056)](#s058--news-topic-conditioned-sentiment-feature-design-for-s056) — IMPLEMENTED — DAILY, DELTA
     - [S059 | Insider Cluster Buying](#s059--insider-cluster-buying)
     - [S060 | News-Intensity Overnight Drift (conditioning feature of S056)](#s060--news-intensity-overnight-drift-conditioning-feature-of-s056) — NOT_DAILY, DEFER
 - [Family 6 — Volatility Regime and Market Timing](#family-6--volatility-regime-and-market-timing)
@@ -82,22 +82,22 @@
     - [S062 | VIX/VXV Ratio Spike (Term Structure)](#s062--vixvxv-ratio-spike-term-structure)
     - [S063 | VIX Moving-Average Crossover Regime](#s063--vix-moving-average-crossover-regime)
     - [S064 | Hurst Exponent Regime Switch](#s064--hurst-exponent-regime-switch)
-    - [S065 | Realized-Vol Compression Breakout (compression cluster champion candidate)](#s065--realized-vol-compression-breakout-compression-cluster-champion-candidate)
+    - [S065 | Realized-Vol Compression Breakout (compression cluster champion candidate)](#s065--realized-vol-compression-breakout-compression-cluster-champion-candidate) — IMPLEMENTED — DAILY, DELTA
     - [S066 | Zweig Breadth Thrust](#s066--zweig-breadth-thrust)
-    - [S067 | Relative Sector Breadth Rotation](#s067--relative-sector-breadth-rotation)
-    - [S069 | TLT Crash-Hedge Rotation](#s069--tlt-crash-hedge-rotation)
-    - [S070 | QQQ Regime Switches with Real TQQQ History (public rules only)](#s070--qqq-regime-switches-with-real-tqqq-history-public-rules-only)
+    - [S067 | Relative Sector Breadth Rotation](#s067--relative-sector-breadth-rotation) — IMPLEMENTED
+    - [S069 | TLT Crash-Hedge Rotation](#s069--tlt-crash-hedge-rotation) — IMPLEMENTED
+    - [S070 | QQQ Regime Switches with Real TQQQ History (public rules only)](#s070--qqq-regime-switches-with-real-tqqq-history-public-rules-only) — IMPLEMENTED
 - [Family 7 — Pairs and Spread Strategies](#family-7--pairs-and-spread-strategies)
-    - [S071 | Cointegrated ETF Pair Z-Score](#s071--cointegrated-etf-pair-z-score)
+    - [S071 | Cointegrated ETF Pair Z-Score](#s071--cointegrated-etf-pair-z-score) — IMPLEMENTED — DAILY, DELTA
     - [S072 | Gold/Silver Ratio Mean Reversion](#s072--goldsilver-ratio-mean-reversion)
     - [S073 | GDX/GDXJ Miners Spread](#s073--gdxgdxj-miners-spread) — DROPPED
     - [S075 | Stock-vs-Sector Residual Reversal](#s075--stock-vs-sector-residual-reversal) — IMPLEMENTED — DAILY, DELTA
     - [S076 | Twin-ETF Convergence (SPY/IVV/VOO)](#s076--twin-etf-convergence-spyivvvoo) — DROPPED
     - [S077 | Energy Pair: XLE/USO Spread](#s077--energy-pair-xleuso-spread) — DROPPED
-    - [S078 | Chan-Style Statistical Arbitrage Basket](#s078--chan-style-statistical-arbitrage-basket)
+    - [S078 | Chan-Style Statistical Arbitrage Basket](#s078--chan-style-statistical-arbitrage-basket) — IMPLEMENTED
 - [Family 8 — Calendar Strategies](#family-8--calendar-strategies)
-    - [S079 | Turn-of-the-Month Effect (window grid)](#s079--turn-of-the-month-effect-window-grid)
-    - [S080 | Pre-Holiday Effect](#s080--pre-holiday-effect)
+    - [S079 | Turn-of-the-Month Effect (window grid)](#s079--turn-of-the-month-effect-window-grid) — IMPLEMENTED
+    - [S080 | Pre-Holiday Effect](#s080--pre-holiday-effect) — IMPLEMENTED
     - [S081 | Pre-FOMC Announcement Drift](#s081--pre-fomc-announcement-drift) — NOT_DAILY, DEFER
     - [S082 | Options-Expiration-Week Drift](#s082--options-expiration-week-drift)
 - [Family 9 — Trend and Pullback Systems (Stocks)](#family-9--trend-and-pullback-systems-stocks)
@@ -116,9 +116,9 @@
     - [S099 | Outside-Day Key Reversal at 200-SMA](#s099--outside-day-key-reversal-at-200-sma)
     - [S100 | Three White Soldiers Continuation](#s100--three-white-soldiers-continuation)
 - [Family 11 — Miscellaneous Structural Edge](#family-11--miscellaneous-structural-edge)
-    - [S102 | Copper/Gold Ratio Equity Tilt (CPER/GLD ratio, both in cache)](#s102--coppergold-ratio-equity-tilt-cpergld-ratio-both-in-cache)
+    - [S102 | Copper/Gold Ratio Equity Tilt (CPER/GLD ratio, both in cache)](#s102--coppergold-ratio-equity-tilt-cpergld-ratio-both-in-cache) — IMPLEMENTED
     - [S103 | Yield-Curve Financials/Utilities Rotation](#s103--yield-curve-financialsutilities-rotation)
-    - [S104 | High-Beta/Momentum Crash Protection (overlay comparison on S041)](#s104--high-betamomentum-crash-protection-overlay-comparison-on-s041)
+    - [S104 | High-Beta/Momentum Crash Protection (overlay comparison on S041)](#s104--high-betamomentum-crash-protection-overlay-comparison-on-s041) — IMPLEMENTED
     - [S105 | Volatility-Targeted Overnight Carry](#s105--volatility-targeted-overnight-carry) — IMPLEMENTED
   - [Appendix - Source index](#appendix--source-index)
 
@@ -447,11 +447,13 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - frequency: ~10-15 signals per year
 - provenance: research-hypothesis
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P3
 - sources: [Papers With Backtest - Turnaround Tuesday (generic article; its two code snippets define 'Monday drop' inconsistently and one computes win ratio by conditioning on the outcome, i.e. look-ahead)](https://paperswithbacktest.com/course/turnaround-tuesday)
 - notes: Earlier note corrected: the 56% win rate, 212 trades and 0.3% avg gain are Quantified Strategies figures (unverified) and do not appear on the cited page. The old rule 'open(t) < close(t-1)' was a Monday GAP-down, a different event from a weak Monday; both are now explicit variants. Run the identical rule for every weekday as a placebo.
 - parameter_variants: Monday weakness {close(Mon) < close(Fri) primary; return <= -0.5% (ex-S085: Monday close-to-close decline > 0.5%); gap-down open(Mon) < close(Fri)}; VIX filter {off primary; VIX(t) > VIX(t-1) (ex-S085)}; exit {Tuesday open, Tuesday close}; placebo weekdays {Mon..Fri}
 - merged_from: S085
+- implementation_results: Rust in `src/family8.rs` / `src/study.rs`, config `configs/s010_turnaround_tuesday.yaml`; SPY TR bars (`etf_tr`), close_to_open fill (Monday close -> Tuesday open), 1 bp/side. Daily-bar faithful; the ex-S085 VIX filter variant is not run (no DP-VIX on disk). Baseline (close(Mon)<close(Fri) trigger): DEV 155 trades, +0.585 log, Sharpe +2.121, PF 5.943, win 72.3%; TEST 49 trades, +0.109, Sharpe +1.194, PF 2.564, win 69.4%. Engine flags: PF/Sharpe > 2 - leakage and timing review required.
 - data_needs: ETF raw prices (DP-ETF); VIX for the S085 filter (DP-VIX)
 - review: RESOLVED
 
@@ -488,9 +490,11 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - frequency: several trades per month
 - provenance: adapted
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P3
 - sources: [StockCharts ChartSchool — RSI(2)](https://chartschool.stockcharts.com/table-of-contents/trading-strategies-and-models/trading-strategies/rsi-2)
 - notes: Connors' rules applied to TLT (application is the catalog's). IndicatorEdge's TLT backtests found few daily setups beating buy-and-hold: the edge must be confirmed, not assumed. TLT/SHY must be total-return series (distributions are most of the return) and results must be split by rate regime (2016-19, 2020, 2022 when TLT sat below its SMA200 most of the year so the filter removes trades).
+- implementation_results: Rust reuses the registered RSI/swing machinery in `src/signals.rs` / `src/study.rs` (RsiStrategyDefinition path), config `configs/s013_tlt_mean_reversion.yaml`; TLT TR bars, SMA200 gate + RSI(2)<10 entry, SMA5 exit, 1 bp/side. Baseline: DEV 34 trades, +0.106 log (next_open), Sharpe +0.461; TEST 15 trades, -0.001. Thin trade count - insufficient-evidence gate applies.
 - data_needs: TLT, SHY total-return daily series (DP-ETF)
 - review: NO FINDINGS (strategy-specific) | source PARTIAL
 
@@ -1342,11 +1346,13 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: monthly rebalance
 - provenance: source-specified
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P2
 - sources: [NBER w13090 — The Earnings Announcement Premium and Trading Volume](https://www.nber.org/system/files/working_papers/w13090/w13090.pdf)
 - notes: NBER w13090 (Frazzini & Lamont) verified: 'exactly four earnings announcements' restriction, long expected announcers / short non-announcers, value-weighted monthly, 61 bps/month long-short, Sharpe 0.94 vs 0.70 for momentum; stocks with high past announcement-period volume earn the highest premium. The sample ends in the early 2000s; the premium after publication is untested in the cited paper, so report subperiods. This is an earnings-calendar strategy only: no LLM or news input.
 - parameter_variants: cadence {monthly primary; weekly ex-S086 (weeks 3-4 of Jan/Apr/Jul/Oct)}; weighting {equal paper, value research}; sort {volume concentration primary; none}; leg {long announcers - SPY hedge primary; long-short}
 - merged_from: S086
+- implementation_results: Rust in `src/family5.rs` / `src/study.rs`, config `configs/s052_earnings_premium.yaml`; monthly Frazzini-Lamont basket over SimFin Publish Dates (coverage 2021+ in this file), expected-month calendar + exact-4-announcement filter, volume-concentration sort, delisting-aware rebalance builder. Baseline (long_only monthly): DEV 532 trades, -0.335 log; TEST 649, -0.080 - the announcement premium does not survive 15 bps/side at this cadence in the 2021+ window. Daily delta: expected months come from publish-date history, not vendor expected-date feeds.
 - data_needs: SimFin Publish Date 2009+ (DP-EARN); daily_10years (D1)
 - review: RESOLVED
 
@@ -1362,10 +1368,12 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: daily during earnings season
 - provenance: research-hypothesis
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P3
 - sources: [Earnings Whispers - Scoring Expectations to Capture the Earnings Announcement Premium (vendor context: +1.08% for Score +5 vs +0.47% all others, about a week before to the open after, 11,385 events, Apr-2014 to Oct-2026)](https://www.earningswhispers.com/about-score); [NBER w13090 - Frazzini & Lamont](https://www.nber.org/system/files/working_papers/w13090/w13090.pdf)
 - notes: RESOLVED (was BLOCKED): the proprietary Score has no free history and the 'Score > +2' threshold is not even on the vendor page, so the entry is rebuilt on public data (SimFin Publish Date from 2009, prices from daily_10years). Even the vendor's Score +5 edge is only ~0.6% over six sessions before costs on a vendor-selected sample. Weekly version of S052, run in parallel with it; the earlier claim of exiting 'before the reaction risk' was wrong and is removed.
 - parameter_variants: entry offset {5-7 sessions before primary; 1 week before}; sort {volume concentration top tercile primary; none}
+- implementation_results: Rust in `src/family5.rs` / `src/study.rs`, config `configs/s053_pre_earnings_runup.yaml`; entry N sessions before the SimFin publish date (expected calendar from realized publish dates), exit at the open after the realized date; publish dates are point-in-time (2021+ coverage). Baseline (entry6, tercile-filtered): DEV 959 trades, -0.056 log; TEST 1336, +0.291 log, Sharpe +0.705, PF 1.112, win 49.9%.
 - data_needs: SimFin Publish Date 2009+ (DP-EARN); daily_10years (D1)
 - review: RESOLVED
 
@@ -1381,10 +1389,13 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: concentrated in earnings seasons (Jan, Apr, Jul, Oct)
 - provenance: research-hypothesis
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P1
 - sources: Chan, Jegadeesh & Lakonishok (1996) (verify); [NBER w13090 - announcement premium (about announcement-period returns, not drift)](https://www.nber.org/system/files/working_papers/w13090/w13090.pdf); Earnings Whispers page (announcement premium, vendor); Martineau 'Rest in Peace PEAD' (verify) on the large-cap decay after 2000
 - notes: FIXED: the original 'top decile of the quarter's surprises' ranked announcements against all announcements in the season, including future ones (look-ahead). Neither the Earnings Whispers page nor NBER w13090 is about post-announcement drift. No consensus estimates are available, so SUE + EAR are the surprise measures. PEAD in large caps is thought to have weakened sharply after 2000: test the post-2016 sample before relying on it. Long-only first; the short leg for big misses is a separate experiment (G-09). Matched size/industry controls and subperiods required.
 - parameter_variants: surprise measure {SUE top decile primary; EAR top decile; both (SUE and EAR top decile)}; hold {10 primary, 21, 42}; leg {long primary; short bottom decile separate}
+- implementation_results: Rust in `src/family5.rs` / `src/study.rs`, config `configs/s054_pead_surprise.yaml`; SUE = seasonal EPS difference / 8-quarter std (EPS derived from SimFin Net Income (Common) / Shares (Diluted) - the file has no EPS column, see data_gaps), entry open after the reaction day, hold 10 sessions or to next announcement. Two timing modes: `edgar` (8-K Item 2.02 acceptance timestamps, coverage 2023-09+; 22 test trades, dev empty) and `amc` (all SimFin publish dates treated as after-market; publish dates only exist 2021+ and SUE needs 8 priors, so dev is empty and test has 508 trades: -0.008 log next_open, +51.6% win). Data-limited, not a falsified edge.
+- data_gaps: The cached SimFin file `us-income-quarterly.csv` (free bulk download) has NO EPS column at all - 28 fields, only `Net Income (Common)` and `Shares (Diluted)` - and its `Publish Date` values only exist 2021+. Code derives diluted EPS = NI(Common)/Shares(Diluted), adequate for SUE (a z-score of YoY differences) but not the reported figure. Sources for true point-in-time EPS / estimate surprise: (1) SEC data.sec.gov XBRL APIs - `companyconcept/CIK##########/us-gaap/EarningsPerShareDiluted.json` or `companyfacts/CIK##########.json`, free, no key, every reported value keyed by `filed` timestamp (ticker->CIK via `company_tickers.json`; caveat: the 10-Q filing date trails the actual earnings release, so it is a conservative announcement clock); (2) Alpha Vantage `function=EARNINGS` - quarterly reportedEPS + estimatedEPS + surprise + reportedDate (free key, ~25 req/day); (3) FMP earnings endpoints; (4) paid/academic standard: IBES-First Call consensus via WRDS (the expectation-based PEAD source), Zacks, Benzinga.
 - data_needs: SimFin quarterly EPS + Publish Date; EDGAR 8-K 2.02 timestamps 2023-09+ (DP-EARN); daily_10years (D1)
 - review: RESOLVED
 
@@ -1419,10 +1430,12 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: daily rebalance
 - provenance: adapted
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P2
 - sources: [arXiv 2412.19245 - Sentiment trading with large language models](https://arxiv.org/html/2412.19245); Lopez-Lira & Tang 2026 (Atlas 15.1); Roy & Roy 2026 (leakage audits)
 - notes: CORRECTED: the earlier 'FINBERT tested best' is wrong (OPT is best). LEAKAGE: the models were fine-tuned on an 80% random split of articles across 2010-2023, so the held-out 20% is interleaved in time with training data, and OPT is a GPT-3-class model whose pretraining covers most of the sample: Sharpe 3.05 (mean daily L-S return 0.55%, ~140%/yr) is not credible out of sample. Data: Refinitiv news + CRSP (commercial), 965,375 articles after a 0.8 cosine novelty filter. GPT-4 headline scores predict drift only AFTER the model cutoff, concentrated in small stocks and negative news, with returns declining as LLM adoption rises (Lopez-Lira & Tang 2026). Therefore: frozen 2019 FinBERT, evaluate ONLY on post-cutoff data (news.parquet from 2023-09 is entirely post-cutoff for FinBERT) or live capture; masked-ticker and cross-model disagreement checks; report IC decay by month.
 - parameter_variants: model {FinBERT frozen primary; LM dictionary baseline}; timing {close entry / next-open exit primary; pre-6am same-day branch}; legs {long-only primary; long-short}
+- implementation_results: Rust in `src/family6.rs` / `src/study.rs`, config `configs/s056_news_sentiment.yaml`; frozen ProsusAI/finbert scores precomputed by `tools/score_news_sentiment.py` -> `data/pit/news/sentiment.parquet` (75,262 rows, 2016-03+), daily quintile L/S overnight book, close_to_open fill, 10 bps/side + borrow. Baseline: DEV 287 trades, -0.701 log; TEST 332, -1.100 - negative net of costs at research scale. DELTA: frozen FinBERT + LM-lexicon variants, no fine-tuning.
 - data_needs: data/pit/news/news.parquet (DP-NEWS, 2023-09+) + daily_10years (D1); 15-year archive NOT available
 - review: RESOLVED
 
@@ -1457,9 +1470,11 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - provenance: research-hypothesis
 - variant_of: S056
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P3
 - sources: Attached paper (user upload) - Opening the Black Box: Which News Explain LLM-Based Stock Ratings? (SSRN 7665703); the attached PDF is a single title page and SSRN also lists 1 page, so only the abstract was used
 - notes: RESOLVED by re-scope: the earlier 'rating upgrade + positive news -> buy' was the catalog's own placeholder, not derived from the paper. The full paper (if rules are wanted) must be requested from the author/SSRN.
+- implementation_results: Rust in `src/family6.rs` / `src/study.rs`, config `configs/s058_topic_sentiment.yaml`; same FinBERT sentiment parquet as S056 plus rule-based topic tags; baseline drops rating-repeat headlines and conditions on the topic set. DEV 75 trades, +0.060 log; TEST 91, -0.924 - insufficient-dev-evidence gate plus DECAYED flag.
 - data_needs: data/pit/news/news.parquet (DP-NEWS, 2023-09+)
 - review: RESOLVED
 
@@ -1596,10 +1611,12 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: ~1-2 trades per month per instrument
 - provenance: research-hypothesis
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P3
 - sources: [Ernest Chan — volatility term structure post](http://epchan.blogspot.com/2016/04/mean-reversion-momentum-and-volatility.html)
 - notes: Chan's post is about Hurst/variance scaling, not compression breakouts. RV(5) < 0.5 x RV(20) is frequent (roughly 10-15% of days) so signals cluster inside quiet regimes. Same mechanism as S038/S094/S095 (G-10); the Bollinger squeeze scored worst of all rules on Be The Puck (30/371). Run as the volatility-compression cluster champion candidate with S094 and S095 as variants.
 - parameter_variants: order validity {5 sessions primary; 1, 3}; tie-break {nearer to open primary}
+- implementation_results: Rust in `src/family7.rs` / `src/study.rs`, config `configs/s065_vol_compression.yaml`; RV5 < 0.5 x RV20 arms a 20-day-high stop-entry (next-session fill at max(open, level), 5-day GTC validity, nearer-open tiebreak), 5-session max hold. Daily-bar delta: intraday trigger/exit extremes are proxied by daily OHLC. Baseline (SPY,QQQ,IWM,TLT,GLD): DEV 211 trades, -0.332 log; TEST 67, +0.114.
 - data_needs: ETF daily bars (DP-ETF)
 - review: RESOLVED
 
@@ -1633,9 +1650,11 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: weekly rebalance
 - provenance: adapted
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P3
 - sources: [GitHub — phuazz/breadth-thrust-etf (sleeve A)](https://github.com/phuazz/breadth-thrust-etf)
 - notes: RESOLVED (was BLOCKED): the source breadth feature needs point-in-time ETF constituent holdings (the US iShares endpoint has been blocked since 2026-05-16; the repo moved to UK UCITS endpoints and Norgate). It is approximated with our own PIT stock universe mapped to sectors via SimFin industry codes; using today's holdings would be look-ahead. The repo's reported numbers are in-sample (walk-forward Sharpe for sleeve A +1.00; blend Sharpe standard error +/-0.4 over 7.5 years of weekly data; weighting, universe and cost calibration applied across the entire backtest): do NOT use them as a target. 'Weighted by positive relative share' is the source's phrase and is specified here as weight proportional to max(z, 0). Fill at next open per the shared spec.
+- implementation_results: Rust in `src/family5.rs` / `src/study.rs`, config `configs/s067_sector_breadth_rotation.yaml`; weekly sector breadth z (share of liquid_top members above SMA50, SimFin sectors -> XL* ETFs) long/flat rotation via the shared weighted-rebalance builder. Baseline: DEV 2064 trades, +0.509 log, Sharpe +0.464; TEST 832, +0.295, Sharpe +0.884.
 - data_needs: daily_10years (D1) + SimFin industry-to-sector map; sector ETFs (DP-ETF)
 - review: RESOLVED
 
@@ -1651,9 +1670,11 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: regime switches ~1-3 per year
 - provenance: research-hypothesis
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P3
 - sources: [BestFolio — Buy the Dip (regime-switch design)](https://bestfolio.app/strategies/buy-the-dip)
 - notes: Simple regime rotation; known failure modes are 2013-2015 and 2022 (rates and stocks falling together; report the 2022 stock-bond correlation sign flip by subperiod). TLT must be a total-return series; test a cash alternative to TLT. Highly overlapping with S047 (G-10).
+- implementation_results: Rust in `src/family7.rs` / `src/study.rs`, config `configs/s069_tlt_crash_hedge.yaml`; SPY > SMA200 -> SPY else TLT via shared switch_trades builder (next_open + close fills), 1 bp/side. Baseline: DEV 45 trades, +0.362 log (next_open); TEST 6 trades, +0.386 - sparse regime count, engine flagged PF>2 review.
 - data_needs: SPY, TLT, BIL total-return daily series (DP-ETF)
 - review: NO FINDINGS (strategy-specific) | source GENERIC
 
@@ -1669,10 +1690,12 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: several switches per year
 - provenance: research-hypothesis
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P4
 - sources: [BestFolio — Buy the Dip Strategy by Reddit community](https://bestfolio.app/strategies/buy-the-dip)
 - notes: CORRECTED numbers: BestFolio reports 26.8-26.9%/yr over the full simulated history since 1985 with a worst fall of -76.2% on 26 Oct 1987 (a drawdown measure on SIMULATED 3x QQQ, not a single-day loss), and 30.0%/yr with worst fall -20.4% (25 Aug 2015) since TQQQ/SQQQ launched on 11 Feb 2010; 10 bps one-way costs; stand-in simulations before fund inception (TQQQ = simulated 3x QQQ before 2010-02-11). The earlier entry ('oversold AND above 200-SMA', 24.9%/yr, '-76% single-day tail risk') contradicted the page. Most of the published history is a simulation of 3x products: leveraged-ETF path dependence, volatility decay and financing dominate, so use REAL TQQQ history only. With a $5,000 paper account a -70% drawdown is existential: cap exposure.
 - parameter_variants: TQQQ cap {1.0, 0.5 of account}; oversold exit {RSI > 30.3 primary}; non-oversold asset {QQQ above SMA / SHY below primary}
+- implementation_results: Rust in `src/family7.rs` / `src/study.rs`, config `configs/s070_qqq_regime_tqqq.yaml`; RSI(14) <29.7 hysteresis -> TQQQ (capped), else QQQ above SMA200 / SHY below. Real TQQQ bars in `etf_tr` (2016+). Baseline: DEV 3 trades, +2.527 log - the oversold gate almost never fires post-2016; thin-signal study.
 - data_needs: TQQQ and QQQ daily bars from 2010-02-11 (DP-ETF fetch list must add TQQQ); SHY/BIL
 - review: RESOLVED
 
@@ -1694,10 +1717,12 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: several open pairs at any time; new entries weekly
 - provenance: source-specified
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P3
 - sources: [Springer — Cointegration-based pairs trading: ETFs 2000-2024](https://link.springer.com/article/10.1057/s41260-025-00416-0)
 - notes: Springer (2000-2024, 30 ETF pairs, 12-month formation, monthly ADF on the ratio, rolling z-score) fetched. The SPY/IVV example (cointegrated for 24 years) yielded 'a modest total profit of 1.01% and a Sharpe ratio of 0.28' at z = 2; lowering the threshold raises profit and Sharpe but also volatility and kurtosis. The earlier z = 0 exit and +/-3 stop differed from the paper. Selecting pairs and testing on the same 12 months with 30 pairs x monthly 5% tests produces ~1.5 false positives per month.
 - parameter_variants: exits {z 0.75 / -0.5 primary (paper); z = 0 with +/-3 stop}; sizing {equal-share primary (paper); dollar-neutral with hedge ratio}; entry threshold {2.0 primary; lower thresholds}
+- implementation_results: Rust in `src/family7.rs` / `src/study.rs`, config `configs/s071_cointegrated_pairs.yaml`; Engle-Granger ADF on 12m log residuals re-verified monthly, 60d z +/-2 entries, +0.75/-0.5 exits, two-leg trades with hedge ratio + 50 bps/yr borrow on shorts. Fixed pair list from available ETF history (DELTA vs the paper's 30-pair appendix). Baseline: DEV 786 trades, +0.066 log (next_open); TEST 306, +0.134, Sharpe +0.615.
 - data_needs: ETF total-return daily series for the pair list (DP-ETF)
 - review: RESOLVED
 
@@ -1815,10 +1840,12 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: continuous portfolio, daily position turnover
 - provenance: research-hypothesis
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P3
 - sources: [Ernest Chan — The enduring profitability of mean-reversion strategies](http://epchan.blogspot.com/2008/12/enduring-profitability-of-mean.html)
 - notes: CORRECTED: Chan's post (9 Dec 2008) reports Sharpe 4.8 (no cost) / 3.5 (10 bps) on one year (2008), not '> 5 before costs', and Example 3.8 belongs to the 2008 book (Quantitative Trading), not Algorithmic Trading (2013). Chan's example is a simple long-short reversal portfolio (verify in the 2008 book); the OU half-life / 50-stock weekly basket is the catalog's design. A 50-name dollar-neutral, beta-neutral basket is not implementable at $5,000 (research scale only) and needs borrow (G-09). Chan stresses opening-auction execution. Chan's stated costs: 10 bps round-trip for SP1500 large caps (try 15 bps).
 - parameter_variants: stage {simple daily reversal long-short primary; OU half-life version}; cost {10 bps round trip, 15 bps}
+- implementation_results: Rust in `src/family5.rs` / `src/study.rs`, config `configs/s078_statarb_reversal.yaml`; daily beta-neutral long/short reversal basket over liquid_top stocks via the daily arm of the shared rebalance path, 10 bps/side + 50 bps/yr borrow on shorts. Baseline (stage-1 simple reversal): DEV 208,813 trades, -4.716 log; TEST 84,476, -2.410 - daily reversal is deeply negative net of costs at research scale.
 - data_needs: daily_10years (D1) + borrow assumptions; research scale only
 - review: RESOLVED
 
@@ -1840,11 +1867,13 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: monthly
 - provenance: source-specified
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P1
 - sources: [SSRN 917884 — Equity Returns at the Turn of the Month](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=917884)
 - notes: FIXED off-by-one: McConnell & Xu (SSRN 917884, FAJ 2008): returns over the interval beginning the last trading day of the month and ending three days later are significantly higher (all excess market return in 1987-2005 and 1897-2005; no higher standard deviation; present in 31 of 35 countries). Buying the close of the LAST trading day and selling the close of day 3 earns only three daily returns; the four-day window needs entry at the close of the second-to-last day (as Be The Puck). Erosion: Trading Garden S&P 500 (MES): 1963-today 765 trades, 58% win, CAGR 11.2% vs 10.9% buy-and-hold, but since 2000 only 321 trades with CAGR 3.0%; Be The Puck beat buy-and-hold Sharpe on 63/372. Time in market is ~19%, so judge per unit of exposure against a random-window placebo; report a subperiod table.
 - parameter_variants: window {entry close of day -2, exit close of day +3 primary; entry day -2 or -1, exit day +2..+5 grid; ex-S083: entry OPEN of day -2, exit close of day +1}; split by prior-month return sign; placebo {random 4-day windows}
 - merged_from: S083
+- implementation_results: Rust in `src/family8.rs` / `src/study.rs`, config `configs/s079_turn_of_month.yaml`; enter 2 sessions before month end, exit after day +3 of the new month via shared calendar_hold_trades; SPY/IWM/RSP universe, 1 bp/side. Baseline: DEV 288 trades, +0.213 log (close) / +0.310 (open); TEST 99, +0.012 / -0.031.
 - data_needs: SPY, IWM, RSP total-return daily series (DP-ETF) + trading calendar (DP-CAL)
 - review: RESOLVED
 
@@ -1860,10 +1889,12 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: ~9 holidays per year
 - provenance: adapted
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P3
 - sources: [StockCharts ChartSchool — The Pre-Holiday Effect](https://chartschool.stockcharts.com/table-of-contents/trading-strategies-and-models/trading-strategies/the-pre-holiday-effect)
 - notes: ChartSchool describes: purchase equities one or two days before a holiday (selling pressure before a three-day holiday) with results by holiday and an original study of 419 closings 1928-1975; documented sample ends 1975. Holiday count is ~9-10 per year (~90 events in 2016+; Juneteenth since 2022). Be The Puck: beat buy-and-hold Sharpe on 91/372. Volume is very light on pre-holiday sessions: use conservative fills.
 - parameter_variants: exit {close of last session before holiday primary; first session after holiday}; early-close days {excluded primary; separate}
+- implementation_results: Rust in `src/family8.rs` / `src/study.rs`, config `configs/s080_pre_holiday.yaml`; holiday inference from trading-calendar weekday gaps plus a static early-close list; enter close of the pre-holiday session, exit close of the holiday-eve+1 session. Baseline (SPY): DEV 58 trades, +0.069 log, win 62.1%; TEST 23, +0.013 - insufficient-test-evidence + DECAYED flags.
 - data_needs: SPY total-return daily series (DP-ETF) + exchange holiday calendar (DP-CAL)
 - review: RESOLVED
 
@@ -2179,10 +2210,12 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: switches ~6-10 per year
 - provenance: research-hypothesis
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P4
 - sources: [PortfoliosLab - Momentum & sector rotation (generic; does not describe a copper/gold idea)](https://portfolioslab.com/strategies/momentum-rotation)
 - notes: RESOLVED (was BLOCKED): CPER launched in late 2011 and is already in the daily_10years cache from 2016-01-04 (2,718 rows; thinly traded with zero-volume days: apply the data-hygiene mask), as are GLD and USO, so the CPER/GLD ratio is testable on 2016+ without futures data; no pre-2016 regime coverage is claimed. The ratio's relationship to cyclicals vs defensives flips with the rate regime and `21-day change > 0 AND 63-day z > 0` flips often, so test against the simple relative-momentum control and accept the null if it adds nothing. Sector ETFs XLB/XLI/XLP/XLU need DP-ETF.
 - parameter_variants: signal {CPER/GLD ratio primary; relative momentum of cyclical minus defensive baskets (no copper)}; cadence {weekly primary; monthly}
+- implementation_results: Rust in `src/family7.rs` / `src/study.rs`, config `configs/s102_copper_gold_tilt.yaml`; weekly CPER/GLD ratio z-score (42d) tilts a cyclical basket (XLB,XLI) vs a defensive basket (XLP,XLU) via weighted-rebalance trades, 1 bp/side. Baseline: DEV 832 trades, +0.588 log; TEST 294, +0.252, Sharpe +0.706.
 - data_needs: CPER and GLD in daily_10years (D1); XLB, XLI, XLP, XLU (DP-ETF)
 - review: RESOLVED
 
@@ -2217,10 +2250,12 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: rebalance monthly, gate checks daily
 - provenance: adapted
 - status: active
+- rust_status: IMPLEMENTED
 - priority: P2
 - sources: [Better System Trader - Ernie Chan (momentum-crash discussion)](https://bettersystemtrader.com/012-ernest-chan/); Barroso & Santa-Clara (2015) (Atlas 9.6, 18.4, 18.6)
 - notes: CORRECTED: Chan advises stopping SHORTS after a crisis; a long-only de-risk-to-cash gate is not Chan's advice, and the 10%-from-high trigger with 'new 63-day high' re-entry is a drawdown gate that is late both ways. Test crash months (Apr-May 2020 analogue) and overlay turnover; the Atlas's honest benchmark asks whether a change-point gate beats plain vol scaling.
 - parameter_variants: overlay {(a) catalog gate; (b) vol-scaling primary candidate; (c) none}; vol target {12% L/S; unscaled full-sample vol long-only}; cap {1.0 primary; 1.5-2.0}
+- implementation_results: Rust in `src/signals.rs` / `src/study.rs`, config `configs/s104_crash_protection.yaml`; S041 12-1 momentum book plus crash overlay at trade level (drawdown gate clips exits at close; vol-target rescales monthly formation weights). Baseline (overlay on): DEV 2904 trades, +0.159 log; TEST 1529, +0.394 - overlay trades off dev skill for smoother test path.
 - data_needs: daily_10years (D1) + SPY (DP-ETF)
 - review: RESOLVED
 

@@ -1,0 +1,64 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+sources:
+  - name: stocks
+    data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+    data_suffix: .parquet
+    symbols: "*"
+    cost_bps_per_side: 15
+  - name: etfs
+    data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+    data_suffix: .parquet
+    symbols: XLK,XLV,XLF,XLE,XLB,XLI,XLY,XLP,XLU,XLRE,XLC
+    cost_bps_per_side: 2
+start_date: "2016-01-01"
+simfin_dir: C:\data\trading\trading_framework\data\simfin
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+universe_top_n: 500
+sma_window: 50
+min_peers: 5
+sector_etf_map: "Technology:XLK,Healthcare:XLV,Financial Services:XLF,Energy:XLE,Basic Materials:XLB,Industrials:XLI,Consumer Cyclical:XLY,Consumer Defensive:XLP,Utilities:XLU,Real Estate:XLRE,Business Services:XLC"
+rebalance: weekly
+cost_bps_per_side: 2.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 6
+
+variants:
+  sma20: {sma_window: 20}
+  sma100: {sma_window: 100}
+  sma200: {sma_window: 200}
+  monthly: {rebalance: monthly}
+  monthly_sma100: {rebalance: monthly, sma_window: 100}
+  top300: {universe_top_n: 300}
+  top800: {universe_top_n: 800}
+  top1000: {universe_top_n: 1000}
+  minpeers10: {min_peers: 10}
+  minpeers15: {min_peers: 15}
+  sma20_top300: {sma_window: 20, universe_top_n: 300}
+  sma100_top800: {sma_window: 100, universe_top_n: 800}
+  monthly_top300: {rebalance: monthly, universe_top_n: 300}
+  monthly_top800: {rebalance: monthly, universe_top_n: 800}
+  monthly_minpeers10: {rebalance: monthly, min_peers: 10}
+  sma20_monthly: {sma_window: 20, rebalance: monthly}
+  sma200_monthly: {sma_window: 200, rebalance: monthly}
+  cost05: {cost_bps_per_side: 0.5}
+  cost10: {cost_bps_per_side: 10.0}
+  cost20: {cost_bps_per_side: 20.0}
+  monthly_cost10: {rebalance: monthly, cost_bps_per_side: 10.0}
+  top300_cost10: {universe_top_n: 300, cost_bps_per_side: 10.0}
+  sma20_cost10: {sma_window: 20, cost_bps_per_side: 10.0}
+  weekly_top300_cost10: {universe_top_n: 300, cost_bps_per_side: 10.0}
+  sma100_minpeers10: {sma_window: 100, min_peers: 10}
+  sma200_minpeers10: {sma_window: 200, min_peers: 10}
+  monthly_sma200: {rebalance: monthly, sma_window: 200}
+  top300_sma20: {universe_top_n: 300, sma_window: 20}
+  top800_sma100: {universe_top_n: 800, sma_window: 100}
+  top300_monthly: {universe_top_n: 300, rebalance: monthly}

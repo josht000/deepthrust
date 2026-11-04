@@ -1,0 +1,72 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+sources:
+  - name: stocks
+    data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+    data_suffix: .parquet
+    symbols: "*"
+    cost_bps_per_side: 15
+  - name: etfs
+    data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+    data_suffix: .parquet
+    symbols: SPY
+    cost_bps_per_side: 2
+start_date: "2016-01-01"
+earnings_dates_file: C:\data\trading\trading_framework\data\simfin\us-income-quarterly.csv
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+universe_top_n: 500
+min_price: 5.0
+min_history: 252
+rebalance: monthly
+leg_mode: long_spy_hedge
+weighting_mode: equal
+volume_lookback_months: 12
+volume_lag_months: 1
+volume_quintile: 0.20
+required_reports: 4
+borrow_bps_annual: 50.0
+delisting_return: -1.0
+cost_bps_per_side: 15.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 40
+
+variants:
+  long_only: {leg_mode: long_only}
+  long_short: {leg_mode: long_short}
+  value_w: {weighting_mode: value}
+  value_w_hedge: {weighting_mode: value, leg_mode: long_spy_hedge}
+  q10: {volume_quintile: 0.10}
+  q30: {volume_quintile: 0.30}
+  q50: {volume_quintile: 0.50}
+  vlb6: {volume_lookback_months: 6}
+  vlb18: {volume_lookback_months: 18}
+  vlb24: {volume_lookback_months: 24}
+  vlag0: {volume_lag_months: 0}
+  vlag2: {volume_lag_months: 2}
+  reports3: {required_reports: 3}
+  reports5: {required_reports: 5}
+  top300: {universe_top_n: 300}
+  top800: {universe_top_n: 800}
+  top1000: {universe_top_n: 1000}
+  long_only_q10: {leg_mode: long_only, volume_quintile: 0.10}
+  long_short_q10: {leg_mode: long_short, volume_quintile: 0.10}
+  value_q10: {weighting_mode: value, volume_quintile: 0.10}
+  hedge_q10: {leg_mode: long_spy_hedge, volume_quintile: 0.10}
+  hedge_q30: {leg_mode: long_spy_hedge, volume_quintile: 0.30}
+  minprice2: {min_price: 2.0}
+  minprice10: {min_price: 10.0}
+  cost10: {cost_bps_per_side: 10.0}
+  cost20: {cost_bps_per_side: 20.0}
+  cost30: {cost_bps_per_side: 30.0}
+  borrow0: {borrow_bps_annual: 0.0}
+  borrow100: {borrow_bps_annual: 100.0}
+  weekly: {rebalance: weekly}
+  weekly_hedge: {rebalance: weekly, leg_mode: long_spy_hedge}

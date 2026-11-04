@@ -22,39 +22,39 @@ const TRAILING_SUE_DAYS: i64 = 756;
 const MIN_TRAILING_SUE_EVENTS: usize = 20;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-enum ReleaseTiming {
+pub(crate) enum ReleaseTiming {
     BeforeMarket,
     AfterMarket,
 }
 
 #[derive(Clone, Debug)]
-struct Announcement {
-    symbol: String,
-    date: NaiveDate,
-    timing: ReleaseTiming,
+pub(crate) struct Announcement {
+    pub(crate) symbol: String,
+    pub(crate) date: NaiveDate,
+    pub(crate) timing: ReleaseTiming,
 }
 
 #[derive(Clone, Debug)]
-struct QuarterlyEps {
-    symbol: String,
-    fiscal_year: i32,
-    fiscal_period: String,
-    publish_date: NaiveDate,
-    eps: f64,
+pub(crate) struct QuarterlyEps {
+    pub(crate) symbol: String,
+    pub(crate) fiscal_year: i32,
+    pub(crate) fiscal_period: String,
+    pub(crate) publish_date: NaiveDate,
+    pub(crate) eps: f64,
 }
 
 #[derive(Clone, Debug)]
-struct Surprise {
-    symbol: String,
-    publish_date: NaiveDate,
-    sue: f64,
+pub(crate) struct Surprise {
+    pub(crate) symbol: String,
+    pub(crate) publish_date: NaiveDate,
+    pub(crate) sue: f64,
 }
 
-fn canonical_symbol(symbol: &str) -> String {
+pub(crate) fn canonical_symbol(symbol: &str) -> String {
     symbol.trim().to_ascii_uppercase()
 }
 
-fn field_text<'a>(
+pub(crate) fn field_text<'a>(
     field: Option<&'a Field>,
     name: &str,
     path: &Path,
@@ -113,7 +113,7 @@ fn is_us_daylight(timestamp: DateTime<Utc>) -> bool {
     }
 }
 
-fn classify_release(timestamp: DateTime<Utc>) -> Option<(NaiveDate, ReleaseTiming)> {
+pub(crate) fn classify_release(timestamp: DateTime<Utc>) -> Option<(NaiveDate, ReleaseTiming)> {
     let offset = if is_us_daylight(timestamp) { 4 } else { 5 };
     let local = timestamp - Duration::hours(offset);
     let local_time = local.time();
@@ -128,7 +128,7 @@ fn classify_release(timestamp: DateTime<Utc>) -> Option<(NaiveDate, ReleaseTimin
     }
 }
 
-fn read_announcements(path: &Path) -> Result<Vec<Announcement>, String> {
+pub(crate) fn read_announcements(path: &Path) -> Result<Vec<Announcement>, String> {
     let file = File::open(path).map_err(|error| format!("{}: {error}", path.display()))?;
     let reader = SerializedFileReader::new(file)
         .map_err(|error| format!("{}: invalid Parquet file: {error}", path.display()))?;
@@ -219,7 +219,7 @@ fn parse_eps(value: &str) -> Option<f64> {
         .filter(|number| number.is_finite())
 }
 
-fn read_quarterly_eps(path: &Path) -> Result<Vec<QuarterlyEps>, String> {
+pub(crate) fn read_quarterly_eps(path: &Path) -> Result<Vec<QuarterlyEps>, String> {
     let sample = std::fs::read(path).map_err(|error| format!("{}: {error}", path.display()))?;
     let first_line = sample
         .split(|byte| *byte == b'\n')
@@ -261,8 +261,25 @@ fn read_quarterly_eps(path: &Path) -> Result<Vec<QuarterlyEps>, String> {
         "eps",
         "earningspersharebasic",
         "earningspershare",
-    ])
-    .ok_or_else(|| format!("{}: missing diluted EPS column", path.display()))?;
+    ]);
+    let ni_col = find(&[
+        "netincomecommon",
+        "netincome",
+        "netincomeloss",
+        "netincomelosscommon",
+    ]);
+    let shares_col = find(&[
+        "sharesdiluted",
+        "weightedaversharesdiluted",
+        "dilutedshares",
+        "sharesbasic",
+    ]);
+    // NOTE: the cached SimFin free bulk file has no EPS column at all; when none
+    // is found, diluted EPS is derived as Net Income (Common) / Shares (Diluted).
+    // See the S054 data_gaps note in the strategy catalog for true-EPS sources.
+    if eps_col.is_none() && (ni_col.is_none() || shares_col.is_none()) {
+        return Err(format!("{}: missing diluted EPS column", path.display()));
+    }
     let mut quarters = Vec::new();
     for (index, record) in reader.records().enumerate() {
         let row_number = index + 2;
@@ -281,7 +298,20 @@ fn read_quarterly_eps(path: &Path) -> Result<Vec<QuarterlyEps>, String> {
         let publish_date = publish
             .get(..10)
             .and_then(|value| data::parse_date(value).ok());
-        let eps = record.get(eps_col).and_then(parse_eps);
+        let eps = if let Some(col) = eps_col {
+            record.get(col).and_then(parse_eps)
+        } else {
+            let ni = ni_col
+                .and_then(|col| record.get(col))
+                .and_then(parse_eps);
+            let sh = shares_col
+                .and_then(|col| record.get(col))
+                .and_then(parse_eps);
+            match (ni, sh) {
+                (Some(ni), Some(sh)) if sh > 0.0 => Some(ni / sh),
+                _ => None,
+            }
+        };
         let valid_period = matches!(period.as_str(), "Q1" | "Q2" | "Q3" | "Q4");
         if symbol.is_empty() || !valid_period {
             continue;
@@ -308,7 +338,7 @@ fn read_quarterly_eps(path: &Path) -> Result<Vec<QuarterlyEps>, String> {
     Ok(quarters)
 }
 
-fn seasonal_differences(quarters: &[QuarterlyEps]) -> Vec<(String, i32, String, NaiveDate, f64)> {
+pub(crate) fn seasonal_differences(quarters: &[QuarterlyEps]) -> Vec<(String, i32, String, NaiveDate, f64)> {
     let mut sorted = quarters.to_vec();
     sorted.sort_by(|a, b| {
         (&a.publish_date, &a.symbol, a.fiscal_year, &a.fiscal_period).cmp(&(
@@ -348,7 +378,7 @@ fn seasonal_differences(quarters: &[QuarterlyEps]) -> Vec<(String, i32, String, 
     differences
 }
 
-fn sample_std(values: &[f64]) -> Option<f64> {
+pub(crate) fn sample_std(values: &[f64]) -> Option<f64> {
     if values.len() < 2 {
         return None;
     }
@@ -362,7 +392,7 @@ fn sample_std(values: &[f64]) -> Option<f64> {
     (std.is_finite() && std > 0.0).then_some(std)
 }
 
-fn surprises(quarters: &[QuarterlyEps]) -> Vec<Surprise> {
+pub(crate) fn surprises(quarters: &[QuarterlyEps]) -> Vec<Surprise> {
     let differences = seasonal_differences(quarters);
     let mut by_symbol = BTreeMap::<String, Vec<(NaiveDate, f64)>>::new();
     for (symbol, _, _, date, difference) in differences {
@@ -397,7 +427,7 @@ fn surprises(quarters: &[QuarterlyEps]) -> Vec<Surprise> {
     output
 }
 
-fn quantile(values: &mut [f64], probability: f64) -> f64 {
+pub(crate) fn quantile(values: &mut [f64], probability: f64) -> f64 {
     values.sort_by(f64::total_cmp);
     let position = (values.len() - 1) as f64 * probability;
     let lower = position.floor() as usize;
@@ -405,7 +435,7 @@ fn quantile(values: &mut [f64], probability: f64) -> f64 {
     values[lower] + (values[upper] - values[lower]) * (position - lower as f64)
 }
 
-fn trailing_sue_threshold(history: &[Surprise], date: NaiveDate) -> Option<f64> {
+pub(crate) fn trailing_sue_threshold(history: &[Surprise], date: NaiveDate) -> Option<f64> {
     let mut values: Vec<f64> = history
         .iter()
         .filter(|item| {
@@ -546,7 +576,7 @@ pub fn s023_trades(
     Ok(trades)
 }
 
-fn blank_signals(panel: &Panel, indicator_name: &str) -> Signals {
+pub(crate) fn blank_signals(panel: &Panel, indicator_name: &str) -> Signals {
     let n_symbols = panel.symbols.len();
     let n_rows = panel.dates.len();
     let mut tradable = vec![vec![false; n_rows]; n_symbols];

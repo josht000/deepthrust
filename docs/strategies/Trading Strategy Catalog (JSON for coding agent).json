@@ -1,4 +1,4 @@
-﻿{
+{
   "version": "1.2",
   "generated": "2026-11-01",
   "source_review": "docs/strategies/review/r1.md",
@@ -260,7 +260,8 @@
       "parameter_variants": "Monday weakness {close(Mon) < close(Fri) primary; return <= -0.5% (ex-S085: Monday close-to-close decline > 0.5%); gap-down open(Mon) < close(Fri)}; VIX filter {off primary; VIX(t) > VIX(t-1) (ex-S085)}; exit {Tuesday open, Tuesday close}; placebo weekdays {Mon..Fri}",
       "data_needs": "ETF raw prices (DP-ETF); VIX for the S085 filter (DP-VIX)",
       "review": "RESOLVED",
-      "frequency_class": "calendar"
+      "frequency_class": "calendar",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S011",
@@ -310,7 +311,8 @@
       "parameter_variants": null,
       "data_needs": "TLT, SHY total-return daily series (DP-ETF)",
       "review": "NO FINDINGS (strategy-specific) | source PARTIAL",
-      "frequency_class": "swing"
+      "frequency_class": "swing",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S014",
@@ -1193,7 +1195,8 @@
       "parameter_variants": "cadence {monthly primary; weekly ex-S086 (weeks 3-4 of Jan/Apr/Jul/Oct)}; weighting {equal paper, value research}; sort {volume concentration primary; none}; leg {long announcers - SPY hedge primary; long-short}",
       "data_needs": "SimFin Publish Date 2009+ (DP-EARN); daily_10years (D1)",
       "review": "RESOLVED",
-      "frequency_class": "slow"
+      "frequency_class": "slow",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S053",
@@ -1217,7 +1220,8 @@
       "parameter_variants": "entry offset {5-7 sessions before primary; 1 week before}; sort {volume concentration top tercile primary; none}",
       "data_needs": "SimFin Publish Date 2009+ (DP-EARN); daily_10years (D1)",
       "review": "RESOLVED",
-      "frequency_class": "swing"
+      "frequency_class": "swing",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S054",
@@ -1241,7 +1245,8 @@
       "parameter_variants": "surprise measure {SUE top decile primary; EAR top decile; both (SUE and EAR top decile)}; hold {10 primary, 21, 42}; leg {long primary; short bottom decile separate}",
       "data_needs": "SimFin quarterly EPS + Publish Date; EDGAR 8-K 2.02 timestamps 2023-09+ (DP-EARN); daily_10years (D1)",
       "review": "RESOLVED",
-      "frequency_class": "swing"
+      "frequency_class": "swing",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S055",
@@ -1289,7 +1294,8 @@
       "parameter_variants": "model {FinBERT frozen primary; LM dictionary baseline}; timing {close entry / next-open exit primary; pre-6am same-day branch}; legs {long-only primary; long-short}",
       "data_needs": "data/pit/news/news.parquet (DP-NEWS, 2023-09+) + daily_10years (D1); 15-year archive NOT available",
       "review": "RESOLVED",
-      "frequency_class": "swing"
+      "frequency_class": "swing",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S057",
@@ -1337,7 +1343,8 @@
       "parameter_variants": null,
       "data_needs": "data/pit/news/news.parquet (DP-NEWS, 2023-09+)",
       "review": "RESOLVED",
-      "frequency_class": "swing"
+      "frequency_class": "swing",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S059",
@@ -1505,7 +1512,8 @@
       "parameter_variants": "order validity {5 sessions primary; 1, 3}; tie-break {nearer to open primary}",
       "data_needs": "ETF daily bars (DP-ETF)",
       "review": "RESOLVED",
-      "frequency_class": "swing"
+      "frequency_class": "swing",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S066",
@@ -1553,7 +1561,8 @@
       "parameter_variants": null,
       "data_needs": "daily_10years (D1) + SimFin industry-to-sector map; sector ETFs (DP-ETF)",
       "review": "RESOLVED",
-      "frequency_class": "swing"
+      "frequency_class": "swing",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S069",
@@ -1577,7 +1586,8 @@
       "parameter_variants": null,
       "data_needs": "SPY, TLT, BIL total-return daily series (DP-ETF)",
       "review": "NO FINDINGS (strategy-specific) | source GENERIC",
-      "frequency_class": "slow"
+      "frequency_class": "slow",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S070",
@@ -1601,7 +1611,8 @@
       "parameter_variants": "TQQQ cap {1.0, 0.5 of account}; oversold exit {RSI > 30.3 primary}; non-oversold asset {QQQ above SMA / SHY below primary}",
       "data_needs": "TQQQ and QQQ daily bars from 2010-02-11 (DP-ETF fetch list must add TQQQ); SHY/BIL",
       "review": "RESOLVED",
-      "frequency_class": "slow"
+      "frequency_class": "slow",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S071",
@@ -1625,7 +1636,8 @@
       "parameter_variants": "exits {z 0.75 / -0.5 primary (paper); z = 0 with +/-3 stop}; sizing {equal-share primary (paper); dollar-neutral with hedge ratio}; entry threshold {2.0 primary; lower thresholds}",
       "data_needs": "ETF total-return daily series for the pair list (DP-ETF)",
       "review": "RESOLVED",
-      "frequency_class": "swing"
+      "frequency_class": "swing",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S072",
@@ -1804,7 +1816,8 @@
       "parameter_variants": "stage {simple daily reversal long-short primary; OU half-life version}; cost {10 bps round trip, 15 bps}",
       "data_needs": "daily_10years (D1) + borrow assumptions; research scale only",
       "review": "RESOLVED",
-      "frequency_class": "swing"
+      "frequency_class": "swing",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S079",
@@ -1830,7 +1843,8 @@
       "parameter_variants": "window {entry close of day -2, exit close of day +3 primary; entry day -2 or -1, exit day +2..+5 grid; ex-S083: entry OPEN of day -2, exit close of day +1}; split by prior-month return sign; placebo {random 4-day windows}",
       "data_needs": "SPY, IWM, RSP total-return daily series (DP-ETF) + trading calendar (DP-CAL)",
       "review": "RESOLVED",
-      "frequency_class": "calendar"
+      "frequency_class": "calendar",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S080",
@@ -1854,7 +1868,8 @@
       "parameter_variants": "exit {close of last session before holiday primary; first session after holiday}; early-close days {excluded primary; separate}",
       "data_needs": "SPY total-return daily series (DP-ETF) + exchange holiday calendar (DP-CAL)",
       "review": "RESOLVED",
-      "frequency_class": "calendar"
+      "frequency_class": "calendar",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S081",
@@ -2238,7 +2253,8 @@
       "parameter_variants": "signal {CPER/GLD ratio primary; relative momentum of cyclical minus defensive baskets (no copper)}; cadence {weekly primary; monthly}",
       "data_needs": "CPER and GLD in daily_10years (D1); XLB, XLI, XLP, XLU (DP-ETF)",
       "review": "RESOLVED",
-      "frequency_class": "slow"
+      "frequency_class": "slow",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S103",
@@ -2286,7 +2302,8 @@
       "parameter_variants": "overlay {(a) catalog gate; (b) vol-scaling primary candidate; (c) none}; vol target {12% L/S; unscaled full-sample vol long-only}; cap {1.0 primary; 1.5-2.0}",
       "data_needs": "daily_10years (D1) + SPY (DP-ETF)",
       "review": "RESOLVED",
-      "frequency_class": "slow"
+      "frequency_class": "slow",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S105",

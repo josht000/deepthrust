@@ -86,6 +86,57 @@ if errorlevel 1 exit /b %errorlevel%
 target\release\deepthrust.exe --strategy s105_overnight_carry --variant cap2x,daily_resize,target5,target15,window10,window40,cap05,cap15,target25,target75,target20,target25pct,window5,window15,window30,window60,band10,band40,cap05_target5,cap2_target5,cap2_target15,window10_target5,window10_target15,window40_target5,window40_target15,daily_cap2,daily_target5,daily_target15,band10_target5,band40_target15 %DEBUG_ARGS%
 if errorlevel 1 exit /b %errorlevel%
 
+target\release\deepthrust.exe --strategy s010_turnaround_tuesday --variant exit_close,ret05,ret1,ret2,gap_down,gap_down_exit_close,ret05_exit_close,ret1_exit_close,tuesday,wednesday,thursday,friday,monday_today_only,qqq,iwm,dia,qqq_exit_close,iwm_exit_close,qqq_ret05,iwm_ret05,qqq_gap_down,iwm_gap_down,cost025,cost05,cost2,cost5,qqq_cost05,qqq_cost2,iwm_cost05,iwm_cost2 %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s013_tlt_mean_reversion --variant rsi5,rsi15,rsi20,rsi25,rsi3,rsi4,rsi5len,rsi3_15,rsi4_10,rsi5_20,gate100,gate150,gate250,gate300,gate21,exit_sma3,exit_sma7,exit_sma10,exit_sma20,exit_rsi50,exit_rsi65,exit_rsi70,exit_rsi80,ief_add,agg_add,ief_agg,stop3atr,stop5atr,pyramid2,pyramid3,pyramid_add10,cost025,cost05,cost2,cost5,ief_cost2 %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s052_earnings_premium --variant long_only,long_short,value_w,value_w_hedge,q10,q30,q50,vlb6,vlb18,vlb24,vlag0,vlag2,reports3,reports5,top300,top800,top1000,long_only_q10,long_short_q10,value_q10,hedge_q10,hedge_q30,minprice2,minprice10,cost10,cost20,cost30,borrow0,borrow100,weekly,weekly_hedge %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s053_pre_earnings_runup --variant no_tercile,entry3,entry5,entry7,entry10,entry15,entry3_tercile,entry7_tercile,shift350,shift357,shift371,shift378,top300,top800,top1000,vlb6,vlb18,vlag0,vlag2,maxhold15,maxhold45,minprice2,minprice10,entry5_shift357,entry7_shift371,entry5_top300,entry7_top800,cost10,cost20,cost30,entry5_cost20 %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s054_pead_surprise --variant amc_all,ear,both,ear_amc,both_amc,hold5,hold21,hold42,hold63,hold5_ear,hold21_ear,hold21_both,hold5_amc,hold21_amc,hold42_amc,nogap,gap2,gap5,nogap_ear,nogap_amc,minprice2,minprice10,amc_minprice2,cost10,cost20,cost30,amc_cost20,hold21_cost20,ear_hold21_cost20,amc_hold21_cost20 %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s056_news_sentiment --variant lm,lm_ls,long_only,lm_long,intraday,intraday_ls,intraday_lm,full_day,full_day_ls,full_day_lm,tail10,tail30,tail10_ls,tail30_ls,tail10_lm,top300,top800,top300_ls,firm_topics,firm_topics_ls,no_ratings,minprice2,minprice10,borrow0,borrow150,cost10,cost20,cost30,ls_cost20,tail10_cost20,lm_cost10 %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s058_topic_sentiment --variant all_topics,no_ratings,ls,ls_firm,lm,lm_firm,lm_ls,intraday,intraday_ls,full_day,full_day_ls,tail10,tail30,tail10_ls,tail30_ls,tail10_lm,top300,top800,top300_ls,minprice2,minprice10,borrow0,borrow150,cost10,cost20,cost30,ls_cost20,tail10_cost20,all_ls_cost20,lm_cost10 %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s065_vol_compression --variant rv3_20,rv10_40,rv5_40,rv10_60,ratio04,ratio06,ratio075,ratio03,dch40,dch55,dch10,exit5,exit20,valid3,valid10,hold3,hold10,hold15,spy_only,qqq_only,iwm_only,tlt_only,gld_only,equity3,commodities,bonds,cost025,cost05,cost2,cost5,equity3_ratio04,equity3_ratio06 %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s067_sector_breadth_rotation --variant sma20,sma100,sma200,monthly,monthly_sma100,top300,top800,top1000,minpeers10,minpeers15,sma20_top300,sma100_top800,monthly_top300,monthly_top800,monthly_minpeers10,sma20_monthly,sma200_monthly,cost05,cost10,cost20,monthly_cost10,top300_cost10,sma20_cost10,weekly_top300_cost10,sma100_minpeers10,sma200_minpeers10,monthly_sma200,top300_sma20,top800_sma100,top300_monthly %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s069_tlt_crash_hedge --variant monthly,monthly_next_open,monthly_close,bil,bil_monthly,sma100,sma150,sma250,sma300,sma100_bil,sma150_bil,sma250_bil,sma300_bil,sma100_monthly,sma150_monthly,sma250_monthly,sma100_bil_monthly,sma150_bil_monthly,sma250_bil_monthly,cost025,cost05,cost2,cost5,monthly_cost05,monthly_cost2,monthly_cost5,bil_cost05,bil_cost2,bil_cost5,sma200_bil_monthly_cost2 %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s070_qqq_regime_tqqq --variant cap05,cap15,cap20,cap05_bil,cap15_bil,cap20_bil,os25,os35,os20,os25_cap05,os35_cap05,os25_cap15,rsi10,rsi21,rsi10_cap05,rsi21_cap05,rsi10_os25,rsi21_os35,sma150,sma250,sma150_cap05,sma250_cap05,bil,tlt,cost025,cost05,cost2,cost5,cap05_cost2,cap05_cost5,cap15_cost2 %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s071_cointegrated_pairs --variant p01,p10,form504,form126,form504_p01,z15,z25,z30,zwin30,zwin120,z15_zwin30,z25_zwin120,exit_sym,exit_tight,exit_wide,lags2,lags4,core6,equity5,bonds4,metals3,intl3,borrow0,borrow100,cost025,cost05,cost2,cost5,p10_z15,p01_z25,form504_p10 %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s078_statarb_reversal --variant ou,ou_f90,ou_f120,no_beta,tail10,tail30,tail05,tail10_nobeta,tail30_nobeta,top200,top500,top1000,beta63,beta252,beta63_tail10,beta252_tail10,top200_tail10,top500_tail10,top200_nobeta,top500_nobeta,minprice2,minprice10,borrow0,borrow150,cost05,cost15,cost20,ou_cost05,ou_borrow0,tail10_cost05,tail10_cost15 %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s079_turn_of_month --variant exit1,exit2,exit4,exit5,entry1_exit1,entry1_exit2,entry1_exit3,entry1_exit4,entry1_exit5,prior_up,prior_down,spy_only,iwm_only,rsp_only,spy_exit1,spy_exit5,spy_prior_up,spy_prior_down,qqq_add,sector_add,cost025,cost05,cost2,cost5,entry1_exit1_spy,entry1_exit3_spy,prior_up_exit1,prior_down_exit5,qqq_add_exit1,qqq_add_exit5 %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s080_pre_holiday --variant exit_after,include_early_close,exit_after_early,qqq,iwm,dia,qqq_exit_after,iwm_exit_after,qqq_early,iwm_early,qqq_exit_after_early,iwm_exit_after_early,all_indexes,all_exit_after,all_early,cost025,cost05,cost2,cost5,qqq_cost05,qqq_cost2,iwm_cost05,iwm_cost2,next_open_exit,all_next_open,cost5_exit_after,cost5_early,all_cost05,all_cost2,qqq_all %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s102_copper_gold_tilt --variant momentum,momentum_monthly,monthly,z42,z126,z42_mom,mom21,mom42,cyc3,cyc3_def3,def_xlv,def_xlu_xlv,cyc_xle,cyc_xle_def3,cyc_single_xlb,def_single_xlp,mom_cyc3,mom_cyc3_def3,mom_cyc_xle,mom_monthly_cyc3,monthly_cyc3,cost025,cost05,cost2,cost5,mom_cost05,mom_cost2,cyc3_cost2,monthly_cost05,monthly_cost2,mom_monthly_cost2 %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
+target\release\deepthrust.exe --strategy s104_crash_protection --variant none,volscale,volscale_cap15,volscale_cap20,volscale_t08,volscale_t15,volscale_t20,volscale_w63,volscale_w252,dd05,dd15,dd20,dd_high126,dd_high504,dd_reentry21,dd_reentry126,dd05_reentry21,dd15_reentry126,dd20_high504,none_breadth100,ddgate_breadth100,volscale_breadth100,none_mom126,ddgate_mom126,volscale_mom126,none_skip42,ddgate_skip42,volscale_skip42,ddgate_top300,ddgate_industry %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
 "C:\data\envs\trading_framework\Scripts\python.exe" tools\update_all_trade_metrics.py
 if errorlevel 1 exit /b %errorlevel%
 

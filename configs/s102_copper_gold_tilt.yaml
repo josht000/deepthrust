@@ -1,0 +1,53 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: CPER,GLD,XLB,XLI,XLP,XLU
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2013-01-01"
+rebalance: weekly
+signal_mode: copper_gold
+cyclical_symbols: XLB,XLI
+defensive_symbols: XLP,XLU
+z_window: 63
+mom_window: 105
+cost_bps_per_side: 1.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 2
+
+variants:
+  momentum: {signal_mode: momentum}
+  momentum_monthly: {signal_mode: momentum, rebalance: monthly}
+  monthly: {rebalance: monthly}
+  z42: {z_window: 42}
+  z126: {z_window: 126}
+  z42_mom: {z_window: 42, signal_mode: momentum}
+  mom21: {mom_window: 105, z_window: 63}
+  mom42: {mom_window: 210, z_window: 126}
+  cyc3: {cyclical_symbols: "XLB,XLI,XLK", book_slots: 3}
+  cyc3_def3: {cyclical_symbols: "XLB,XLI,XLK", defensive_symbols: "XLP,XLU,XLV", book_slots: 3}
+  def_xlv: {defensive_symbols: "XLP,XLV"}
+  def_xlu_xlv: {defensive_symbols: "XLU,XLV"}
+  cyc_xle: {cyclical_symbols: "XLB,XLI,XLE", book_slots: 3}
+  cyc_xle_def3: {cyclical_symbols: "XLB,XLI,XLE", defensive_symbols: "XLP,XLU,XLV", book_slots: 3}
+  cyc_single_xlb: {cyclical_symbols: XLB, book_slots: 1}
+  def_single_xlp: {defensive_symbols: XLP}
+  mom_cyc3: {signal_mode: momentum, cyclical_symbols: "XLB,XLI,XLK", book_slots: 3}
+  mom_cyc3_def3: {signal_mode: momentum, cyclical_symbols: "XLB,XLI,XLK", defensive_symbols: "XLP,XLU,XLV", book_slots: 3}
+  mom_cyc_xle: {signal_mode: momentum, cyclical_symbols: "XLB,XLI,XLE", book_slots: 3}
+  mom_monthly_cyc3: {signal_mode: momentum, rebalance: monthly, cyclical_symbols: "XLB,XLI,XLK", book_slots: 3}
+  monthly_cyc3: {rebalance: monthly, cyclical_symbols: "XLB,XLI,XLK", book_slots: 3}
+  cost025: {cost_bps_per_side: 0.25}
+  cost05: {cost_bps_per_side: 0.5}
+  cost2: {cost_bps_per_side: 2.0}
+  cost5: {cost_bps_per_side: 5.0}
+  mom_cost05: {signal_mode: momentum, cost_bps_per_side: 0.5}
+  mom_cost2: {signal_mode: momentum, cost_bps_per_side: 2.0}
+  cyc3_cost2: {cyclical_symbols: "XLB,XLI,XLK", book_slots: 3, cost_bps_per_side: 2.0}
+  monthly_cost05: {rebalance: monthly, cost_bps_per_side: 0.5}
+  monthly_cost2: {rebalance: monthly, cost_bps_per_side: 2.0}
+  mom_monthly_cost2: {signal_mode: momentum, rebalance: monthly, cost_bps_per_side: 2.0}

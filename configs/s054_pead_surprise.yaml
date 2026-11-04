@@ -1,0 +1,67 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+sources:
+  - name: stocks
+    data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+    data_suffix: .parquet
+    symbols: "*"
+    cost_bps_per_side: 15
+  - name: etfs
+    data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+    data_suffix: .parquet
+    symbols: SPY
+    cost_bps_per_side: 2
+start_date: "2016-01-01"
+earnings_dates_file: C:\data\trading\trading_framework\data\simfin\us-income-quarterly.csv
+edgar_filings_file: C:\data\trading\trading_framework\data\pit\edgar\filings.parquet
+s023_eps_file: C:\data\trading\trading_framework\data\simfin\us-income-quarterly.csv
+signal_mode: edgar
+surprise_mode: sue
+gap_atr_multiple: 3.0
+atr_len: 20
+max_hold: 10
+min_price: 5.0
+delisting_return: -1.0
+cost_bps_per_side: 15.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 20
+
+variants:
+  amc_all: {signal_mode: amc}
+  ear: {surprise_mode: ear}
+  both: {surprise_mode: both}
+  ear_amc: {surprise_mode: ear, signal_mode: amc}
+  both_amc: {surprise_mode: both, signal_mode: amc}
+  hold5: {max_hold: 5}
+  hold21: {max_hold: 21}
+  hold42: {max_hold: 42}
+  hold63: {max_hold: 63}
+  hold5_ear: {max_hold: 5, surprise_mode: ear}
+  hold21_ear: {max_hold: 21, surprise_mode: ear}
+  hold21_both: {max_hold: 21, surprise_mode: both}
+  hold5_amc: {max_hold: 5, signal_mode: amc}
+  hold21_amc: {max_hold: 21, signal_mode: amc}
+  hold42_amc: {max_hold: 42, signal_mode: amc}
+  nogap: {gap_atr_multiple: 0.0}
+  gap2: {gap_atr_multiple: 2.0}
+  gap5: {gap_atr_multiple: 5.0}
+  nogap_ear: {gap_atr_multiple: 0.0, surprise_mode: ear}
+  nogap_amc: {gap_atr_multiple: 0.0, signal_mode: amc}
+  minprice2: {min_price: 2.0}
+  minprice10: {min_price: 10.0}
+  amc_minprice2: {signal_mode: amc, min_price: 2.0}
+  cost10: {cost_bps_per_side: 10.0}
+  cost20: {cost_bps_per_side: 20.0}
+  cost30: {cost_bps_per_side: 30.0}
+  amc_cost20: {signal_mode: amc, cost_bps_per_side: 20.0}
+  hold21_cost20: {max_hold: 21, cost_bps_per_side: 20.0}
+  ear_hold21_cost20: {surprise_mode: ear, max_hold: 21, cost_bps_per_side: 20.0}
+  amc_hold21_cost20: {signal_mode: amc, max_hold: 21, cost_bps_per_side: 20.0}

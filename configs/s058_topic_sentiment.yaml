@@ -1,0 +1,58 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-04-01"
+sentiment_file: C:\data\trading\trading_framework\data\pit\news\sentiment.parquet
+news_file: C:\data\trading\trading_framework\data\pit\news\news.parquet
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+universe_top_n: 500
+min_price: 5.0
+min_history: 252
+score_mode: finbert
+topic_mode: firm_specific
+signal_mode: overnight
+leg_mode: long
+top_fraction: 0.20
+borrow_bps_annual: 75.0
+cost_bps_per_side: 15.0
+fills: close_to_open
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 60
+
+variants:
+  all_topics: {topic_mode: all}
+  no_ratings: {topic_mode: no_rating_repeat}
+  ls: {leg_mode: long_short}
+  ls_firm: {topic_mode: firm_specific, leg_mode: long_short}
+  lm: {score_mode: lm}
+  lm_firm: {score_mode: lm, topic_mode: firm_specific}
+  lm_ls: {score_mode: lm, leg_mode: long_short}
+  intraday: {signal_mode: intraday_close}
+  intraday_ls: {signal_mode: intraday_close, leg_mode: long_short}
+  full_day: {signal_mode: full_day}
+  full_day_ls: {signal_mode: full_day, leg_mode: long_short}
+  tail10: {top_fraction: 0.10}
+  tail30: {top_fraction: 0.30}
+  tail10_ls: {top_fraction: 0.10, leg_mode: long_short}
+  tail30_ls: {top_fraction: 0.30, leg_mode: long_short}
+  tail10_lm: {top_fraction: 0.10, score_mode: lm}
+  top300: {universe_top_n: 300}
+  top800: {universe_top_n: 800}
+  top300_ls: {universe_top_n: 300, leg_mode: long_short}
+  minprice2: {min_price: 2.0}
+  minprice10: {min_price: 10.0}
+  borrow0: {borrow_bps_annual: 0.0}
+  borrow150: {borrow_bps_annual: 150.0}
+  cost10: {cost_bps_per_side: 10.0}
+  cost20: {cost_bps_per_side: 20.0}
+  cost30: {cost_bps_per_side: 30.0}
+  ls_cost20: {leg_mode: long_short, cost_bps_per_side: 20.0}
+  tail10_cost20: {top_fraction: 0.10, cost_bps_per_side: 20.0}
+  all_ls_cost20: {topic_mode: all, leg_mode: long_short, cost_bps_per_side: 20.0}
+  lm_cost10: {score_mode: lm, cost_bps_per_side: 10.0}

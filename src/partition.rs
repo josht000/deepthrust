@@ -641,7 +641,7 @@ fn partition_period(
             .map(|_| (0..n_days).map(|_| resid[rng.below(n_days)]).sum::<f64>() - bias.value)
             .collect();
         p = (sk.iter().filter(|&&v| v <= 0.0).count() as f64 + 1.0) / (n_boot as f64 + 1.0);
-        sk.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        sk.sort_by(|a, b| a.total_cmp(b));
         lo = stats::quantile_sorted(&sk, 0.025);
         hi = stats::quantile_sorted(&sk, 0.975);
     }

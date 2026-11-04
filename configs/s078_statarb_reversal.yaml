@@ -1,0 +1,59 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-01-01"
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+universe_top_n: 300
+min_price: 5.0
+min_history: 252
+rebalance: daily
+signal_mode: reversal
+top_fraction: 0.20
+beta_neutral: true
+beta_window: 126
+beta_min_obs: 60
+formation_window: 60
+borrow_bps_annual: 75.0
+cost_bps_per_side: 10.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 60
+
+variants:
+  ou: {signal_mode: ou}
+  ou_f90: {signal_mode: ou, formation_window: 90}
+  ou_f120: {signal_mode: ou, formation_window: 120}
+  no_beta: {beta_neutral: false}
+  tail10: {top_fraction: 0.10}
+  tail30: {top_fraction: 0.30}
+  tail05: {top_fraction: 0.05}
+  tail10_nobeta: {top_fraction: 0.10, beta_neutral: false}
+  tail30_nobeta: {top_fraction: 0.30, beta_neutral: false}
+  top200: {universe_top_n: 200}
+  top500: {universe_top_n: 500}
+  top1000: {universe_top_n: 1000}
+  beta63: {beta_window: 63}
+  beta252: {beta_window: 252}
+  beta63_tail10: {beta_window: 63, top_fraction: 0.10}
+  beta252_tail10: {beta_window: 252, top_fraction: 0.10}
+  top200_tail10: {universe_top_n: 200, top_fraction: 0.10}
+  top500_tail10: {universe_top_n: 500, top_fraction: 0.10}
+  top200_nobeta: {universe_top_n: 200, beta_neutral: false}
+  top500_nobeta: {universe_top_n: 500, beta_neutral: false}
+  minprice2: {min_price: 2.0}
+  minprice10: {min_price: 10.0}
+  borrow0: {borrow_bps_annual: 0.0}
+  borrow150: {borrow_bps_annual: 150.0}
+  cost05: {cost_bps_per_side: 5.0}
+  cost15: {cost_bps_per_side: 15.0}
+  cost20: {cost_bps_per_side: 20.0}
+  ou_cost05: {signal_mode: ou, cost_bps_per_side: 5.0}
+  ou_borrow0: {signal_mode: ou, borrow_bps_annual: 0.0}
+  tail10_cost05: {top_fraction: 0.10, cost_bps_per_side: 5.0}
+  tail10_cost15: {top_fraction: 0.10, cost_bps_per_side: 15.0}

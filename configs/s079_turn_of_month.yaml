@@ -1,0 +1,46 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,IWM,RSP
+benchmark: SPY
+start_date: "2008-01-01"
+entry_offset: -2
+exit_offset: 3
+cost_bps_per_side: 1.0
+fills: close,open
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 3
+
+variants:
+  exit1: {exit_offset: 1}
+  exit2: {exit_offset: 2}
+  exit4: {exit_offset: 4}
+  exit5: {exit_offset: 5}
+  entry1_exit1: {entry_offset: -1, exit_offset: 1}
+  entry1_exit2: {entry_offset: -1, exit_offset: 2}
+  entry1_exit3: {entry_offset: -1, exit_offset: 3}
+  entry1_exit4: {entry_offset: -1, exit_offset: 4}
+  entry1_exit5: {entry_offset: -1, exit_offset: 5}
+  prior_up: {regime_mode: prior_month_up}
+  prior_down: {regime_mode: prior_month_down}
+  spy_only: {symbols: SPY, book_slots: 1}
+  iwm_only: {symbols: IWM, book_slots: 1}
+  rsp_only: {symbols: RSP, book_slots: 1}
+  spy_exit1: {symbols: SPY, book_slots: 1, exit_offset: 1}
+  spy_exit5: {symbols: SPY, book_slots: 1, exit_offset: 5}
+  spy_prior_up: {symbols: SPY, book_slots: 1, regime_mode: prior_month_up}
+  spy_prior_down: {symbols: SPY, book_slots: 1, regime_mode: prior_month_down}
+  qqq_add: {symbols: "SPY,IWM,RSP,QQQ", book_slots: 4}
+  sector_add: {symbols: "SPY,IWM,RSP,XLK,XLF,XLV,XLE,XLP,XLY,XLI,XLU,XLB", book_slots: 12}
+  cost025: {cost_bps_per_side: 0.25}
+  cost05: {cost_bps_per_side: 0.5}
+  cost2: {cost_bps_per_side: 2.0}
+  cost5: {cost_bps_per_side: 5.0}
+  entry1_exit1_spy: {symbols: SPY, book_slots: 1, entry_offset: -1, exit_offset: 1}
+  entry1_exit3_spy: {symbols: SPY, book_slots: 1, entry_offset: -1, exit_offset: 3}
+  prior_up_exit1: {regime_mode: prior_month_up, exit_offset: 1}
+  prior_down_exit5: {regime_mode: prior_month_down, exit_offset: 5}
+  qqq_add_exit1: {symbols: "SPY,IWM,RSP,QQQ", book_slots: 4, exit_offset: 1}
+  qqq_add_exit5: {symbols: "SPY,IWM,RSP,QQQ", book_slots: 4, exit_offset: 5}

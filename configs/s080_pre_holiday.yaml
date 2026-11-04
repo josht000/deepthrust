@@ -1,0 +1,46 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY
+benchmark: SPY
+start_date: "2008-01-01"
+exit_offset: 0
+exclude_early_close: true
+cost_bps_per_side: 1.0
+fills: close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 1
+
+variants:
+  exit_after: {exit_offset: 1}
+  include_early_close: {exclude_early_close: false}
+  exit_after_early: {exit_offset: 1, exclude_early_close: false}
+  qqq: {symbols: QQQ, benchmark: QQQ}
+  iwm: {symbols: IWM, benchmark: IWM}
+  dia: {symbols: DIA, benchmark: DIA}
+  qqq_exit_after: {symbols: QQQ, benchmark: QQQ, exit_offset: 1}
+  iwm_exit_after: {symbols: IWM, benchmark: IWM, exit_offset: 1}
+  qqq_early: {symbols: QQQ, benchmark: QQQ, exclude_early_close: false}
+  iwm_early: {symbols: IWM, benchmark: IWM, exclude_early_close: false}
+  qqq_exit_after_early: {symbols: QQQ, benchmark: QQQ, exit_offset: 1, exclude_early_close: false}
+  iwm_exit_after_early: {symbols: IWM, benchmark: IWM, exit_offset: 1, exclude_early_close: false}
+  all_indexes: {symbols: "SPY,QQQ,IWM,DIA", book_slots: 4}
+  all_exit_after: {symbols: "SPY,QQQ,IWM,DIA", book_slots: 4, exit_offset: 1}
+  all_early: {symbols: "SPY,QQQ,IWM,DIA", book_slots: 4, exclude_early_close: false}
+  cost025: {cost_bps_per_side: 0.25}
+  cost05: {cost_bps_per_side: 0.5}
+  cost2: {cost_bps_per_side: 2.0}
+  cost5: {cost_bps_per_side: 5.0}
+  qqq_cost05: {symbols: QQQ, benchmark: QQQ, cost_bps_per_side: 0.5}
+  qqq_cost2: {symbols: QQQ, benchmark: QQQ, cost_bps_per_side: 2.0}
+  iwm_cost05: {symbols: IWM, benchmark: IWM, cost_bps_per_side: 0.5}
+  iwm_cost2: {symbols: IWM, benchmark: IWM, cost_bps_per_side: 2.0}
+  next_open_exit: {fills: next_open}
+  all_next_open: {symbols: "SPY,QQQ,IWM,DIA", book_slots: 4, fills: next_open}
+  cost5_exit_after: {cost_bps_per_side: 5.0, exit_offset: 1}
+  cost5_early: {cost_bps_per_side: 5.0, exclude_early_close: false}
+  all_cost05: {symbols: "SPY,QQQ,IWM,DIA", book_slots: 4, cost_bps_per_side: 0.5}
+  all_cost2: {symbols: "SPY,QQQ,IWM,DIA", book_slots: 4, cost_bps_per_side: 2.0}
+  qqq_all: {symbols: QQQ, benchmark: QQQ, exit_offset: 1, exclude_early_close: false, cost_bps_per_side: 2.0}

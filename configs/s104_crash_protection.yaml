@@ -1,0 +1,78 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+sources:
+  - name: stocks
+    data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+    data_suffix: .parquet
+    symbols: "*"
+    cost_bps_per_side: 15
+  - name: etfs
+    data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+    data_suffix: .parquet
+    symbols: SPY
+    cost_bps_per_side: 2
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+simfin_dir: C:\data\trading\trading_framework\data\simfin
+start_date: "2016-01-01"
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+mom_window: 252
+skip_window: 21
+breadth_mode: decile
+decile: 0.10
+min_breadth: 1
+rebalance: monthly
+overlay_mode: ddgate
+dd_threshold: 0.10
+dd_high_window: 252
+reentry_window: 63
+vol_scale_target: 0.12
+vol_scale_window: 126
+vol_cap: 1.0
+delisting_return: -0.30
+cost_bps_per_side: 15.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 50
+
+variants:
+  none: {overlay_mode: none}
+  volscale: {overlay_mode: volscale}
+  volscale_cap15: {overlay_mode: volscale, vol_cap: 1.5}
+  volscale_cap20: {overlay_mode: volscale, vol_cap: 2.0}
+  volscale_t08: {overlay_mode: volscale, vol_scale_target: 0.08}
+  volscale_t15: {overlay_mode: volscale, vol_scale_target: 0.15}
+  volscale_t20: {overlay_mode: volscale, vol_scale_target: 0.20}
+  volscale_w63: {overlay_mode: volscale, vol_scale_window: 63}
+  volscale_w252: {overlay_mode: volscale, vol_scale_window: 252}
+  dd05: {dd_threshold: 0.05}
+  dd15: {dd_threshold: 0.15}
+  dd20: {dd_threshold: 0.20}
+  dd_high126: {dd_high_window: 126}
+  dd_high504: {dd_high_window: 504}
+  dd_reentry21: {reentry_window: 21}
+  dd_reentry126: {reentry_window: 126}
+  dd05_reentry21: {dd_threshold: 0.05, reentry_window: 21}
+  dd15_reentry126: {dd_threshold: 0.15, reentry_window: 126}
+  dd20_high504: {dd_threshold: 0.20, dd_high_window: 504}
+  none_breadth100: {overlay_mode: none, breadth_mode: top, breadth: 100}
+  ddgate_breadth100: {breadth_mode: top, breadth: 100}
+  volscale_breadth100: {overlay_mode: volscale, breadth_mode: top, breadth: 100}
+  none_mom126: {overlay_mode: none, mom_window: 126}
+  ddgate_mom126: {mom_window: 126}
+  volscale_mom126: {overlay_mode: volscale, mom_window: 126}
+  none_skip42: {overlay_mode: none, skip_window: 42}
+  ddgate_skip42: {skip_window: 42}
+  volscale_skip42: {overlay_mode: volscale, skip_window: 42}
+  ddgate_top300: {universe_top_n: 300}
+  ddgate_industry: {industry_neutral: true}

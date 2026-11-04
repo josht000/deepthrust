@@ -1,0 +1,47 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,TLT,BIL
+benchmark: SPY
+start_date: "2008-01-01"
+strategy_mode: daily
+sma_window: 200
+defensive_asset: TLT
+cost_bps_per_side: 1.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 1
+
+variants:
+  monthly: {strategy_mode: monthly}
+  monthly_next_open: {strategy_mode: monthly, fills: next_open}
+  monthly_close: {strategy_mode: monthly, fills: close}
+  bil: {defensive_asset: BIL}
+  bil_monthly: {defensive_asset: BIL, strategy_mode: monthly}
+  sma100: {sma_window: 100}
+  sma150: {sma_window: 150}
+  sma250: {sma_window: 250}
+  sma300: {sma_window: 300}
+  sma100_bil: {sma_window: 100, defensive_asset: BIL}
+  sma150_bil: {sma_window: 150, defensive_asset: BIL}
+  sma250_bil: {sma_window: 250, defensive_asset: BIL}
+  sma300_bil: {sma_window: 300, defensive_asset: BIL}
+  sma100_monthly: {sma_window: 100, strategy_mode: monthly}
+  sma150_monthly: {sma_window: 150, strategy_mode: monthly}
+  sma250_monthly: {sma_window: 250, strategy_mode: monthly}
+  sma100_bil_monthly: {sma_window: 100, defensive_asset: BIL, strategy_mode: monthly}
+  sma150_bil_monthly: {sma_window: 150, defensive_asset: BIL, strategy_mode: monthly}
+  sma250_bil_monthly: {sma_window: 250, defensive_asset: BIL, strategy_mode: monthly}
+  cost025: {cost_bps_per_side: 0.25}
+  cost05: {cost_bps_per_side: 0.5}
+  cost2: {cost_bps_per_side: 2.0}
+  cost5: {cost_bps_per_side: 5.0}
+  monthly_cost05: {strategy_mode: monthly, cost_bps_per_side: 0.5}
+  monthly_cost2: {strategy_mode: monthly, cost_bps_per_side: 2.0}
+  monthly_cost5: {strategy_mode: monthly, cost_bps_per_side: 5.0}
+  bil_cost05: {defensive_asset: BIL, cost_bps_per_side: 0.5}
+  bil_cost2: {defensive_asset: BIL, cost_bps_per_side: 2.0}
+  bil_cost5: {defensive_asset: BIL, cost_bps_per_side: 5.0}
+  sma200_bil_monthly_cost2: {defensive_asset: BIL, strategy_mode: monthly, cost_bps_per_side: 2.0}

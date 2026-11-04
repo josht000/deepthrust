@@ -8,7 +8,7 @@ use chrono::{Datelike, NaiveDate};
 use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
 
-fn blank_signals(panel: &Panel, label: &str) -> Signals {
+pub(crate) fn blank_signals(panel: &Panel, label: &str) -> Signals {
     let rows = panel.dates.len();
     let symbols = panel.symbols.len();
     Signals {
@@ -34,7 +34,7 @@ struct Membership {
     end: Option<NaiveDate>,
 }
 
-fn canonical_ticker(ticker: &str) -> String {
+pub(crate) fn canonical_ticker(ticker: &str) -> String {
     ticker.trim().to_ascii_uppercase().replace('.', "-")
 }
 
@@ -138,7 +138,7 @@ fn s_and_p_membership(panel: &Panel, path: &str) -> Result<Vec<Vec<bool>>, Strin
         .collect())
 }
 
-fn benchmark_returns(panel: &Panel, symbol: &str) -> Option<Vec<f64>> {
+pub(crate) fn benchmark_returns(panel: &Panel, symbol: &str) -> Option<Vec<f64>> {
     let column = panel.symbols.iter().position(|name| name == symbol)?;
     let close = &panel.close[column];
     Some(
@@ -183,7 +183,7 @@ fn rolling_median_before(values: &[f64], day: usize, window: usize) -> f64 {
     }
 }
 
-fn read_earnings_dates(path: &str) -> Result<HashMap<String, Vec<NaiveDate>>, String> {
+pub(crate) fn read_earnings_dates(path: &str) -> Result<HashMap<String, Vec<NaiveDate>>, String> {
     let path = Path::new(path);
     let mut reader = csv::ReaderBuilder::new()
         .delimiter(b';')
@@ -194,17 +194,19 @@ fn read_earnings_dates(path: &str) -> Result<HashMap<String, Vec<NaiveDate>>, St
         .map_err(|error| format!("{}: {error}", path.display()))?
         .clone();
     let find_column = |names: &[&str]| {
-        headers
-            .iter()
-            .position(|header| names.iter().any(|name| header.eq_ignore_ascii_case(name)))
+        names.iter().find_map(|name| {
+            headers
+                .iter()
+                .position(|header| header.eq_ignore_ascii_case(name))
+        })
     };
     let ticker_col = find_column(&["ticker", "symbol"])
         .ok_or_else(|| format!("{}: missing ticker/symbol column", path.display()))?;
     let date_col = find_column(&[
+        "publish date",
         "date",
         "earnings_date",
         "announcement_date",
-        "publish date",
         "report date",
     ])
     .ok_or_else(|| format!("{}: missing earnings date column", path.display()))?;
@@ -705,14 +707,15 @@ pub fn s050_trades(
     Ok(trades)
 }
 
-fn rebalance_days(panel: &Panel, frequency: &str) -> Result<Vec<usize>, String> {
-    if !matches!(frequency, "monthly" | "weekly") {
+pub(crate) fn rebalance_days(panel: &Panel, frequency: &str) -> Result<Vec<usize>, String> {
+    if !matches!(frequency, "monthly" | "weekly" | "daily") {
         return Err(format!("unsupported rebalance frequency {frequency:?}"));
     }
     let rows = panel.dates.len();
     Ok((0..rows)
         .filter(|&day| {
-            day + 1 == rows
+            frequency == "daily"
+                || day + 1 == rows
                 || if frequency == "monthly" {
                     let current = panel.dates[day];
                     let next = panel.dates[day + 1];
@@ -724,7 +727,7 @@ fn rebalance_days(panel: &Panel, frequency: &str) -> Result<Vec<usize>, String> 
         .collect())
 }
 
-fn momentum_matrix(panel: &Panel, window: usize, min_history: usize) -> Vec<Vec<f64>> {
+pub(crate) fn momentum_matrix(panel: &Panel, window: usize, min_history: usize) -> Vec<Vec<f64>> {
     panel
         .close
         .iter()
@@ -749,7 +752,7 @@ fn momentum_matrix(panel: &Panel, window: usize, min_history: usize) -> Vec<Vec<
         .collect()
 }
 
-fn blank_rebalance_signals(panel: &Panel, label: &str) -> Signals {
+pub(crate) fn blank_rebalance_signals(panel: &Panel, label: &str) -> Signals {
     let mut result = blank_signals(panel, label);
     result.tradable = panel
         .close
@@ -1082,7 +1085,7 @@ pub fn compute_s044_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
     Ok(result)
 }
 
-fn rolling_std(values: &[f64], day: usize, window: usize) -> f64 {
+pub(crate) fn rolling_std(values: &[f64], day: usize, window: usize) -> f64 {
     if window < 2 || day + 1 < window {
         return f64::NAN;
     }
@@ -1099,7 +1102,7 @@ fn rolling_std(values: &[f64], day: usize, window: usize) -> f64 {
         .sqrt()
 }
 
-fn cross_section_zscore(values: &[f64], eligible: &[usize]) -> Vec<f64> {
+pub(crate) fn cross_section_zscore(values: &[f64], eligible: &[usize]) -> Vec<f64> {
     let valid: Vec<_> = eligible
         .iter()
         .map(|&symbol| values[symbol])

@@ -1,0 +1,54 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,IVV,VOO,QQQ,IWM,DIA,RSP,TLT,IEF,SHY,BIL,AGG,TIP,GLD,SLV,CPER,GDX,GDXJ,USO,DBC,GSG,EEM,EFA,EWJ,HYG,LQD,IYR,VNQ,XLE,XLB,XLI,XLK,UUP
+benchmark: SPY
+start_date: "2008-01-01"
+pairs: "SPY:IVV,SPY:VOO,IVV:VOO,SPY:DIA,QQQ:SPY,IWM:RSP,TLT:IEF,AGG:IEF,GLD:SLV,GLD:GDX,GDX:GDXJ,USO:DBC,USO:GSG,EEM:EFA,EWJ:EFA,HYG:LQD,IYR:VNQ,XLE:USO,SHY:BIL,TLT:TIP"
+formation_window: 252
+adf_max_p: 0.05
+adf_lags: 1
+z_window: 60
+z_entry: 2.0
+z_exit_short: 0.75
+z_exit_long: -0.5
+borrow_bps_annual: 50.0
+cost_bps_per_side: 1.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 2
+
+variants:
+  p01: {adf_max_p: 0.01}
+  p10: {adf_max_p: 0.10}
+  form504: {formation_window: 504}
+  form126: {formation_window: 126}
+  form504_p01: {formation_window: 504, adf_max_p: 0.01}
+  z15: {z_entry: 1.5}
+  z25: {z_entry: 2.5}
+  z30: {z_entry: 3.0}
+  zwin30: {z_window: 30}
+  zwin120: {z_window: 120}
+  z15_zwin30: {z_entry: 1.5, z_window: 30}
+  z25_zwin120: {z_entry: 2.5, z_window: 120}
+  exit_sym: {z_exit_short: 0.5, z_exit_long: -0.5}
+  exit_tight: {z_exit_short: 0.25, z_exit_long: -0.25}
+  exit_wide: {z_exit_short: 1.0, z_exit_long: -1.0}
+  lags2: {adf_lags: 2}
+  lags4: {adf_lags: 4}
+  core6: {pairs: "SPY:IVV,TLT:IEF,GLD:SLV,GDX:GDXJ,EEM:EFA,IYR:VNQ", symbols: "SPY,IVV,TLT,IEF,GLD,SLV,GDX,GDXJ,EEM,EFA,IYR,VNQ"}
+  equity5: {pairs: "SPY:IVV,SPY:VOO,IVV:VOO,SPY:DIA,IWM:RSP", symbols: "SPY,IVV,VOO,DIA,IWM,RSP"}
+  bonds4: {pairs: "TLT:IEF,AGG:IEF,SHY:BIL,TLT:TIP", symbols: "TLT,IEF,AGG,SHY,BIL,TIP"}
+  metals3: {pairs: "GLD:SLV,GLD:GDX,GDX:GDXJ", symbols: "GLD,SLV,GDX,GDXJ"}
+  intl3: {pairs: "EEM:EFA,EWJ:EFA,SPY:EFA", symbols: "EEM,EFA,EWJ,SPY"}
+  borrow0: {borrow_bps_annual: 0.0}
+  borrow100: {borrow_bps_annual: 100.0}
+  cost025: {cost_bps_per_side: 0.25}
+  cost05: {cost_bps_per_side: 0.5}
+  cost2: {cost_bps_per_side: 2.0}
+  cost5: {cost_bps_per_side: 5.0}
+  p10_z15: {adf_max_p: 0.10, z_entry: 1.5}
+  p01_z25: {adf_max_p: 0.01, z_entry: 2.5}
+  form504_p10: {formation_window: 504, adf_max_p: 0.10}
