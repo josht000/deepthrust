@@ -173,11 +173,28 @@ impl Store {
     /// Append a manifest line (sha256 sidecar) — used by ingest and seal.
     pub fn write_manifest(dir: &Path, entries: &[(String, String)]) -> Result<(), StoreError> {
         std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-        let mut s = String::new();
+        // merge with an existing manifest so per-market runs accumulate
+        let path = dir.join("manifest.sha256");
+        let mut map: std::collections::BTreeMap<String, String> = if path.exists() {
+            std::fs::read_to_string(&path)
+                .unwrap_or_default()
+                .lines()
+                .filter_map(|l| {
+                    let (hash, name) = l.split_once("  ")?;
+                    Some((name.trim().to_string(), hash.trim().to_string()))
+                })
+                .collect()
+        } else {
+            Default::default()
+        };
         for (hash, name) in entries {
+            map.insert(name.clone(), hash.clone());
+        }
+        let mut s = String::new();
+        for (name, hash) in &map {
             s.push_str(&format!("{hash}  {name}\n"));
         }
-        std::fs::write(dir.join("manifest.sha256"), s).map_err(|e| e.to_string())?;
+        std::fs::write(&path, s).map_err(|e| e.to_string())?;
         Ok(())
     }
 

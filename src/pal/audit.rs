@@ -49,7 +49,14 @@ pub fn load_rolls(path: &Path) -> Result<Vec<Roll>, String> {
     for rec in rdr.records() {
         let rec = rec.map_err(|e| e.to_string())?;
         let ts = rec.get(0).unwrap_or("").trim().replace(' ', "T");
-        let ts = format!("{}Z", ts.trim_end_matches('Z'));
+        // normalize to Z: strip an explicit +HH:MM(.SS) or Z suffix, keep the naive part
+        let ts = ts
+            .trim_end_matches('Z')
+            .split('+')
+            .next()
+            .unwrap_or("")
+            .to_string();
+        let ts = format!("{}Z", ts);
         let roll_time_utc = ts
             .parse::<chrono::DateTime<chrono::Utc>>()
             .map_err(|e| format!("{}: bad roll_time_utc {:?}: {e}", path.display(), rec.get(0)))?;

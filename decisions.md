@@ -17,7 +17,12 @@ change is a numbered amendment written before the next look.
 | 7 | 2026-11-03 | Detection/execution split: cache detector event streams per dial-tuple, engine replays per version | ~100k funnel versions infeasible with per-version detection; also enables cheap no-lookahead proofs |
 | 8 | 2026-11-03 | Costs (user-specified): commission $2.00/side ($3.50–$4.50 RT range, midpoint). Slippage 0 on limit fills (touch = 100% fill at limit); 1 tick on market/stop fills; gap-through fills at gap price. ES tick 0.25 = $12.50, NQ tick 0.25 = $5.00 | User directive; spec requires stop & gap slippage for non-limit fills |
 | 9 | 2026-11-03 | Windows per spec: warm-up 2021-10-01→12-31; discovery 2022-01-03→2024-07-31 (era1=2022, era2=2023→2024-07); sealed 2024-08-01→2026-10-16 | Spec |
+| 10 | 2026-11-03 | Dashboard provenance: `Book` records (file,row,col,format,value,shown) for every number; independent `Verifier` rereads all records before write; page refused on any diff | Spec prompt 5: every number from a saved file, double-read, refuse on mismatch |
+| 11 | 2026-11-03 | Dashboard layout gate: `tools/check_dash.py` headless Chrome at 1920×1080 + 1280×720; fail on off-stage elements, facecam-corner (520×368 BR) overlap, or multi-line subtitles; screenshots every page | Spec prompt 5 layout checks |
+| 12 | 2026-11-03 | databento Python client pinned to `0.90.0` (dbn 0.73.0) in `requirements-data.txt` — `0.65.x` wheels don't support Python 3.14 | Env reproducibility |
 
 ## Amendments
+
+| A1 | 2026-11-03 | `splice()` drops contracts with zero in-window bars before splicing | Pre-window lookback contracts (e.g. ESM1) fetch fine but produce empty frames whose NaT `min()` poisoned the running `start_ts` — caught before first real run |
 
 (none — write before looking at results)

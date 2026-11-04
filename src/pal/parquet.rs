@@ -139,7 +139,12 @@ pub fn read_bars(path: &Path) -> Result<Vec<BarRow>, String> {
         for (name, field) in row.get_column_iter() {
             match name.as_str() {
                 "ts_event" => ts = get_i64(field),
-                "session_date" => sd = get_i64(field).map(|x| x as i32),
+                "session_date" => {
+                    sd = match field {
+                        Field::Date(d) => Some(*d),
+                        _ => get_i64(field).map(|x| x as i32),
+                    }
+                }
                 "open" => o = get_f64(field),
                 "high" => h = get_f64(field),
                 "low" => l = get_f64(field),

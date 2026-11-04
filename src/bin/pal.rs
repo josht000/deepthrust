@@ -295,8 +295,12 @@ fn run_behavior(store: &Store) -> ExitCode {
     for m in Market::ALL {
         let sessions = match store.read_1m(m, DISCOVERY_START, DISCOVERY_END, None) {
             Ok(s) if !s.is_empty() => s,
-            _ => {
-                println!("behavior: no {} data — using synthetic", m.symbol());
+            r => {
+                println!(
+                    "behavior: no {} data ({:?}) — using synthetic",
+                    m.symbol(),
+                    r.map(|v| v.len())
+                );
                 synth::synth_sessions(
                     chrono::NaiveDate::from_ymd_opt(2022, 1, 3).unwrap(),
                     120,

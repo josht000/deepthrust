@@ -43,7 +43,10 @@ def contract_codes(root: str, start: dt.date, end: dt.date) -> list[tuple[str, d
     for y in range(start.year - 1, end.year + 1):
         for m, code in month_codes.items():
             exp = third_friday(y, m)
-            if start - dt.timedelta(days=TENURE_DAYS) <= exp <= end:
+            # keep contracts whose tenure (pull window) overlaps the
+            # requested range — a contract expiring after `end` is still
+            # the front month during the window's tail.
+            if exp >= start - dt.timedelta(days=TENURE_DAYS) and exp - dt.timedelta(days=TENURE_DAYS) <= end:
                 out.append((f"{root}{code}{y % 10}", exp))
     out.sort(key=lambda x: x[1])
     return out
@@ -103,7 +106,7 @@ def main() -> None:
                 df = pd.read_parquet(pq)
             else:
                 pull_start = exp - dt.timedelta(days=TENURE_DAYS)
-                pull_end = exp + dt.timedelta(days=1)
+                pull_end = min(exp + dt.timedelta(days=1), end_d + dt.timedelta(days=1))
                 print(f"  {symbol} {pull_start}..{exp}", flush=True)
                 df = fetch_contract(client, symbol, pull_start, pull_end)
                 df.to_parquet(pq)
@@ -129,7 +132,10 @@ def splice(frames: list[tuple[str, dt.date, pd.DataFrame]]):
     is the first hour where the new contract's hourly volume exceeds the
     old's. Earlier history is back-adjusted by the cumulative price
     spread at each roll boundary (spread = new close - old close at the
-    splice bar)."""
+    splice bar). Contracts with no bars inside the requested window are
+    skipped — a leading empty frame would poison the running start_ts
+    with NaT."""
+    frames = [f for f in frames if not f[2].empty]
     parts_adj, parts_unadj, roll_rows = [], [], []
     cumulative_adj = 0.0
     start_ts = None
