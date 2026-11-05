@@ -53,7 +53,7 @@
     - [S035 | Low-Volatility Anomaly Portfolio](#s035--low-volatility-anomaly-portfolio) — IMPLEMENTED
 - [Family 4 — Momentum, Breakout, and Rotation](#family-4--momentum-breakout-and-rotation)
     - [S033 | 52-Week-High Breakout (Donchian-style)](#s033--52-week-high-breakout-donchian-style) — IMPLEMENTED — DAILY, DELTA
-    - [S036 | Donchian Breakout, Turtle Systems 1 and 2](#s036--donchian-breakout-turtle-systems-1-and-2)
+    - [S036 | Donchian Breakout, Turtle Systems 1 and 2](#s036--donchian-breakout-turtle-systems-1-and-2) — IMPLEMENTED — DELTA
     - [S038 | NR7 / Inside-Day Breakout](#s038--nr7--inside-day-breakout)
     - [S040 | Volume-Confirmed 20-Day-High Breakout](#s040--volume-confirmed-20-day-high-breakout) — IMPLEMENTED
     - [S041 | 12-1 Cross-Sectional Momentum](#s041--12-1-cross-sectional-momentum) — IMPLEMENTED
@@ -976,6 +976,15 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - parameter_variants: speed {20/10 System 1 primary; 55/20 System 2 (ex-S037)}; last-trade filter {on for speed 20, off for speed 55}; exit {channel exit primary; chandelier 3 x ATR(22) (see S091)}; direction {long-only, long-short}
 - merged_from: S037
 - data_needs: ETF total-return daily series incl. TLT, GLD, USO, GSG, dollar ETF (DP-ETF)
+- rust_status: IMPLEMENTED
+- implementation_delta: DELTA — unit sizing is a fixed equity fraction per unit (no compounding equity, no pyramiding, no correlation/cluster position limits); the System 1 shadow ledger ignores fresh breakouts while a real or shadow position is open; entries wait for the close and fill next open (Turtles entered intraday on the breakout).
+- implementation_results: `src/family4.rs` / `src/study.rs`, `configs/s036_turtle_donchian.yaml`; 20-ETF universe (equity/rates/metals/oil/dollar/commodity + SPDR sectors) from `etf_tr`, 5 bps/side, `next_open` primary, 2016-01-04 through 2026-10-23 (evaluation from 2016-03-30); dev < 2024-01-01 <= test. Demoted entry run as control/falsification: every variant's dev skill is negative (the trend sleeve adds nothing over the equal-weight universe on dev). `stop25` selected on dev skill (least negative).
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | +0.539 | -0.411 | 0.487 | -29.5% | +0.646 | +0.221 | 1.094 | -24.9% | 242+103 |
+  | stop25 (dev-selected) | +0.488 | -0.113 | 0.517 | -21.2% | +0.669 | +0.343 | 1.226 | -15.6% | 162+65 |
+  Baseline test PF 2.19 and `stop25` test PF 2.89 exceed 2 (few winners in a strong-trend test window; flag, not a validated edge); test skill sign flips vs dev on many variants (`DECAYED`). Long-short variants lose on dev (e.g. `ls` -1.78 skill) — no ETF futures-equivalent short edge. Reproduce: `target\release\deepthrust.exe --strategy s036_turtle_donchian --stages partition`; selected: add `--variant stop25`.
 - review: RESOLVED
 
 ### S038 | NR7 / Inside-Day Breakout
