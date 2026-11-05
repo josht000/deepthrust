@@ -683,6 +683,45 @@ impl StrategyDefinition for Family8Definition {
     }
 }
 
+struct Family9Definition {
+    name: &'static str,
+    title: &'static str,
+    kind: Family9Kind,
+}
+
+#[derive(Copy, Clone)]
+enum Family9Kind {
+    KeltnerBreakout,
+}
+
+impl StrategyDefinition for Family9Definition {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn title(&self) -> &'static str {
+        self.title
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        match self.kind {
+            Family9Kind::KeltnerBreakout => crate::family9::compute_s095_signals(panel, cfg),
+        }
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        match self.kind {
+            Family9Kind::KeltnerBreakout => crate::family9::s095_trades(panel, sig, cfg, fill),
+        }
+    }
+}
+
 struct Family7Definition {
     name: &'static str,
     title: &'static str,
@@ -975,7 +1014,12 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
+static S095_STRATEGY: Family9Definition = Family9Definition {
+    name: crate::family9::S095_NAME,
+    title: crate::family9::S095_TITLE,
+    kind: Family9Kind::KeltnerBreakout,
+};
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 41] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1016,6 +1060,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
     &S104_STRATEGY,
     &S056_STRATEGY,
     &S058_STRATEGY,
+    &S095_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -1165,7 +1210,16 @@ impl<'a> Study<'a> {
         };
         let mut symbol_bars = Vec::new();
         for source in &sources {
-            if cfg.strategy == S033_NAME && !cfg.include_stocks && source.name == "stocks" {
+            if matches!(cfg.strategy.as_str(), S033_NAME | crate::family9::S095_NAME)
+                && !cfg.include_stocks
+                && source.name == "stocks"
+            {
+                continue;
+            }
+            if cfg.strategy == crate::family9::S095_NAME
+                && !cfg.include_etfs
+                && source.name == "etfs"
+            {
                 continue;
             }
             let source_symbols = crate::config::split_csv(&source.symbols);
@@ -1304,6 +1358,7 @@ impl<'a> Study<'a> {
                 | S050_NAME
                 | S051_NAME
                 | S104_NAME
+                | crate::family9::S095_NAME
         );
         if family4_universe {
             for t in 1..n_rows {
@@ -2606,6 +2661,10 @@ impl<'a> Study<'a> {
                 "Buy a close above a confirmed three-session Darvas box top; confirm pivots only after the required sessions.",
                 "The PIT liquidity-rank cache defines the stock universe; available stock history starts in 2016.",
             )),
+            "s095_keltner_breakout" => Some((
+                "Buy a close above the upper Keltner band (EMA + k x ATR) on elevated volume; exit on a close below the EMA or after the max hold.",
+                "The PIT liquidity-rank cache defines the stock universe and the configured liquid-ETF list has no rank gate; the catalog's short leg is a separate unrun experiment; bars start in 2016.",
+            )),
             _ => None,
         };
         if let Some((description, limitations)) = family4 {
@@ -2740,6 +2799,11 @@ impl<'a> Study<'a> {
             format!("rv{}/{}<{:.2} donchian{} x{}", c.rv_short, c.rv_long, c.rv_ratio, c.entry_window, c.exit_extreme_window)
         } else if c.strategy == crate::family7::S071_NAME {
             format!("adf<{:.2} z>{:.1} out {:.2}/{:.2}", c.adf_max_p, c.z_entry, c.z_exit_short, c.z_exit_long)
+        } else if c.strategy == crate::family9::S095_NAME {
+            format!(
+                "keltner e{}+{:.1}xatr{} v>{:.1}x{}d h{} top{}",
+                c.ema_len, c.keltner_mult, c.atr_len, c.volume_mult, c.volume_median_window, c.max_hold, c.universe_top_n
+            )
         } else if c.strategy == S021_NAME {
             format!(
                 "overnight {} filter={}",

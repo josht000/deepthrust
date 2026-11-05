@@ -1,0 +1,77 @@
+etf_symbols: SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,TLT,IEF,GLD,EFA,EEM
+include_stocks: true
+include_etfs: true
+universe_top_n: 500
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+min_history: 250
+ema_len: 20
+atr_len: 10
+keltner_mult: 2.0
+volume_mult: 1.3
+volume_median_window: 20
+max_hold: 10
+delisting_return: -0.30
+cost_bps_per_side: 15.0
+fills: next_open,close
+book_slots: 20
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-01-01"
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+
+sources:
+  - name: etfs
+    data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+    data_suffix: .parquet
+    symbols: SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,TLT,IEF,GLD,EFA,EEM
+    cost_bps_per_side: 5.0
+  - name: stocks
+    data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+    data_suffix: .parquet
+    symbols: "*"
+    cost_bps_per_side: 15.0
+
+variants:
+  v_off: {volume_mult: 0.0}
+  v10: {volume_mult: 1.0}
+  v15: {volume_mult: 1.5}
+  v20: {volume_mult: 2.0}
+  k15: {keltner_mult: 1.5}
+  k25: {keltner_mult: 2.5}
+  k30: {keltner_mult: 3.0}
+  e10: {ema_len: 10}
+  e15: {ema_len: 15}
+  e30: {ema_len: 30}
+  e50: {ema_len: 50}
+  a5: {atr_len: 5}
+  a14: {atr_len: 14}
+  a20: {atr_len: 20}
+  vw10: {volume_median_window: 10}
+  vw60: {volume_median_window: 60}
+  h5: {max_hold: 5}
+  h15: {max_hold: 15}
+  h20: {max_hold: 20}
+  u250: {universe_top_n: 250}
+  u1000: {universe_top_n: 1000}
+  fill_close: {fills: close}
+  stocks_only: {include_etfs: false}
+  etf_only: {include_stocks: false, book_slots: 5}
+  e10_k15: {ema_len: 10, keltner_mult: 1.5}
+  e30_k25: {ema_len: 30, keltner_mult: 2.5}
+  e50_k15: {ema_len: 50, keltner_mult: 1.5}
+  k15_v15: {keltner_mult: 1.5, volume_mult: 1.5}
+  k15_v_off: {keltner_mult: 1.5, volume_mult: 0.0}
+  h5_k15: {max_hold: 5, keltner_mult: 1.5}
+  e10_h15: {ema_len: 10, max_hold: 15}
+  e15_a14: {ema_len: 15, atr_len: 14}
+  v13_h20: {volume_mult: 1.3, max_hold: 20}
+  u250_k15: {universe_top_n: 250, keltner_mult: 1.5}
+  u1000_v15: {universe_top_n: 1000, volume_mult: 1.5}
+  e10_v15: {ema_len: 10, volume_mult: 1.5}

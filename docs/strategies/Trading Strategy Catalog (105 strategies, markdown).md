@@ -108,7 +108,7 @@
     - [S091 | Donchian 55 with Chandelier Trail](#s091--donchian-55-with-chandelier-trail)
     - [S093 | Higher-Low Reversal Entry](#s093--higher-low-reversal-entry) — NOT_DAILY, DEFER
     - [S094 | Bollinger Squeeze Breakout](#s094--bollinger-squeeze-breakout)
-    - [S095 | Keltner Channel Breakout](#s095--keltner-channel-breakout)
+    - [S095 | Keltner Channel Breakout](#s095--keltner-channel-breakout) — IMPLEMENTED — DAILY, DELTA
 - [Family 10 — Candlestick and Bar Patterns](#family-10--candlestick-and-bar-patterns)
     - [S096 | Three-Bar Reversal (Bulkowski)](#s096--three-bar-reversal-bulkowski) — NOT_DAILY, DEFER
     - [S097 | Bullish Engulfing After Down-Streak](#s097--bullish-engulfing-after-down-streak)
@@ -2087,11 +2087,20 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - provenance: research-hypothesis
 - variant_of: S094
 - status: demoted
+- rust_status: IMPLEMENTED
 - priority: P4
 - sources: [TradingView — Keltner Channels strategies](https://www.tradingview.com/scripts/keltnerchannel/)
 - notes: Compression/channel cluster member only (correlated with S094). Be The Puck's Keltner rule (EMA20 + 2 x ATR10; exit below the EMA) beat buy-and-hold Sharpe on 46/372 and returned +2.1%/yr on the S&P 500 index vs +8.9%; the cited TradingView page is a script listing, not a source. Report the correlation with S094.
 - data_needs: ETF daily bars (DP-ETF); daily_10years (D1)
 - review: DEMOTE | source GENERIC
+- implementation_results: `src/family9.rs` (`s095_keltner_breakout`); liquid top-500 PIT stocks + 20-ETF sleeve, long-only (shared spec: long first), next_open primary / close upper bound, 15 bps stocks + 5 bps ETFs/side, dev < 2024-01-01 <= test. DELTA: liquid-ETF list is the 20-name repo set (no rank gate); correlation with S094 not computed (S094 not implemented in this worktree). `etf_only` = dev-selected winner of 37 variants (max dev skill; all variants show skill <= 0 vs random picks).
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev+test) | win pct (dev) |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | baseline | -0.15 | -0.69 | -0.06 | -38% | -0.04 | -0.37 | -0.00 | -23% | 18,320 | 49.4% |
+  | etf_only | +0.17 | -0.02 (p=0.55) | +0.40 | -12% | +0.00 | -0.05 (p=0.73) | +0.05 | -8% | 707 | 53.0% |
+
+  Reproduce: `deepthrust.exe --strategy s095_keltner_breakout --variant baseline,etf_only`
 
 ---
 
