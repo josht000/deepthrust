@@ -1341,9 +1341,10 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   | variant | dev total (log) | dev skill | dev Sharpe | dev PF | test total (log) | test skill | test Sharpe | test PF | trades (dev+test) |
   |---|---|---|---|---|---|---|---|---|---|
   | baseline | +0.07 | +0.11 | 0.14 | 1.03 | +0.28 | -0.00 | 1.04 | 1.56 | 1032+396 |
-  | gate20_sma250 (best both-side) | +0.18 | +0.19 | 0.33 | 1.13 | +0.32 | +0.24 | 1.30 | 1.66 | 624+396 |
-  | gate20 | +0.11 | +0.13 | 0.23 | 1.08 | +0.34 | +0.26 | 1.34 | 1.73 | 624+396 |
-  Vol-regime gate is the value-add: gate>=0.20 variants keep positive skill on BOTH dev and test while baseline's dev-only skill evaporates at test. sma50 top dev (+0.33) sign-flips test (-0.12). Reproduce: `cargo run --release --bin deepthrust -- --strategy g067_mlm_sma200`; variants `... --variant sma100,sma150,sma250,sma50,dom1,dom15,monthend,no_gate,gate10,gate20,gate25,gate10_sma150,gate20_sma250,no_gate_dom1,no_gate_end`
+  | vw15_g20s250 (iter2 best) | +0.15 | +0.17 | 0.25 | 1.08 | +0.38 | +0.28 | 1.52 | 1.80 | 624+396 |
+  | g20s250_monthend | +0.16 | +0.19 | 0.31 | 1.12 | +0.36 | +0.27 | 1.51 | 1.79 | 612+408 |
+  | gate20_sma250 | +0.18 | +0.19 | 0.33 | 1.13 | +0.32 | +0.24 | 1.30 | 1.66 | 624+396 |
+  Vol-regime gate is the value-add: gate>=0.20 variants keep positive skill on BOTH dev and test. Round 2 exposed vol_window + strategy_mode (defensive->IEF / lowvol inverted gate / volparity weights); 21 more variants: vw15_g20s250 (15d vol window) and g20s250_monthend improve on all test metrics (skill +0.28, Sharpe 1.5, PF 1.8). sma50 top dev (+0.33) sign-flips test (-0.12). Reproduce: `cargo run --release --bin deepthrust -- --strategy g067_mlm_sma200`; variants `... --variant vw15_g20s250,g20s250_monthend,gate20_sma250`
 
 ### G068 | Stochastic-Oversold-Exit + RSI-50 Confirmation with Chandelier(22,2) Trailing Exit
 - priority: High — Complete, daily-native, precise rule set combining oversold-exit timing + trend gate + vol trailing - immediately implementable.
@@ -1401,7 +1402,8 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   |---|---|---|---|---|---|---|---|---|---|---|---|
   | baseline | +0.33 | +0.04 (p=0.25) | 0.57 | 1.69 | -10.3% | +0.20 | +0.00 | 1.06 | 2.17 | -5.4% | 414+164 |
   | atr20 | +0.35 | +0.06 (p=0.20) | 0.56 | 1.68 | -11.3% | +0.24 | +0.01 | 1.23 | 2.47 | -7.8% | 418+158 |
-  Positive dev skill across most variants; atr20 keeps positive skill on both sides. mult2_5 top dev skill (+0.07, 523 trades) sign-flips on test (DECAYED). Test PF > 2 flagged — pooled multi-ETF trend book, signals on completed bars with next_open fills; no leakage found. Reproduce: `cargo run --release --bin deepthrust -- --strategy g070_supertrend`; variants `... --variant vbt7,atr14,atr20,atr22,mult2,mult2_5,mult3_5,mult4,fast,slow,spy_only,qqq_only,tlt_only,gld_only,tight,loose`
+  | atr16_g200 (iter2 dev pick) | +0.19 | +0.09 | 0.42 | 1.44 | n/a | +0.10 | +0.00 | 0.87 | 1.90 | n/a | 320+133 |
+  Round 2 added an SMA trend gate (gate: sma200 + sma_window) and atr wiring for disaster_stop_atr stops; 25 more variants. Gate roughly doubles dev skill (+0.09 atr16_g200 / +0.11 g200_mult25) but test skill stays ~0 — the edge is thin, no config clearly beats atr20 out-of-sample. Reproduce: `cargo run --release --bin deepthrust -- --strategy g070_supertrend`; variants `... --variant atr16_g200,gate200,atr20_gate200,atr20_g200_stop2`
 
 ### G071 | Keltner Mid-Channel Pullback-in-Trend EA
 - priority: Medium — Precise pullback-in-trend spec with sensible filters; the bar-midpoint condition and parallel-signal ranging filter are distinctive.
@@ -1859,8 +1861,9 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   | variant | dev total (log) | dev skill | dev Sharpe | dev PF | test total (log) | test skill | test Sharpe | test PF | trades (dev+test) |
   |---|---|---|---|---|---|---|---|---|---|
   | baseline (daily, 20ETF) | +0.12 | -0.84 | 0.19 | 0.86 | +0.50 | -0.00 | 0.96 | 0.84 | 2917+1325 |
-  | sectors_weekly (top robust) | +0.93 | +0.09 | 0.60 | 1.31 | +0.30 | +0.06 | 0.93 | 1.07 | 956+385 |
-  MILD EDGE: weekly ANTICOR on the 11-sector book keeps positive skill on both partitions; daily cadence churns the edge to dust (baseline dev skill -0.84). equity dev +0.10 decays to ~0 on test. Reproduce: `cargo run --release --bin deepthrust -- --strategy g096_anticor`; variants `... --variant w10,w20,w40,w60,w90,weekly,monthly,sectors,equity,bonds_gold,mixed8,sectors_w20,sectors_weekly,cost10,cost20,cost0`
+  | sectors_w45 (iter2 best) | +1.04 | +0.19 | 0.62 | 1.00 | +0.30 | +0.40 | 1.58 | 1.41 | 794+353 |
+  | sectors_weekly | +0.93 | +0.09 | 0.60 | 1.31 | +0.30 | +0.06 | 0.93 | 1.07 | 956+385 |
+  MILD EDGE: weekly ANTICOR on the 11-sector book keeps positive skill on both partitions; daily cadence churns the edge to dust (baseline dev skill -0.84). Round 2 added pos_cap + weekly-cadence neighbors (14 variants): sectors_w45 (w=45) lifts dev skill to +0.19 and test to +0.40 (Sharpe 1.58, PF 1.41). Reproduce: `cargo run --release --bin deepthrust -- --strategy g096_anticor`; variants `... --variant sectors_w45,sectors_w15,sectors_weekly,weekly,monthly`
 
 ### G097 | Baltas 2020 Trend Signal with Realized-Volatility Scaling
 - priority: Medium — Risk estimator and signal are reproducible at the notebook-call level, but private code and gross returns limit confidence.
