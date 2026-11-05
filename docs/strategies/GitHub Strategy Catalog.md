@@ -109,7 +109,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G088 | Median-Renko Price/Moving-Average Crossover](#g088--median-renko-pricemoving-average-crossover)
   - [G089 | Median-Renko SuperTrend Reversal EA](#g089--median-renko-supertrend-reversal-ea)
   - [G090 | Median-Renko Two-Moving-Average Crossover](#g090--median-renko-two-moving-average-crossover)
-  - [G091 | Parabolic SAR Stop-and-Reverse Trend](#g091--parabolic-sar-stop-and-reverse-trend)
+  - [G091 | Parabolic SAR Stop-and-Reverse Trend](#g091--parabolic-sar-stop-and-reverse-trend) — IMPLEMENTED
   - [G092 | Rayner-Teo Moving-Average Pullback Strategy (RT_MA)](#g092--rayner-teo-moving-average-pullback-strategy-rt_ma) — DUPLICATE (S087)
   - [G093 | SMA Crossover Trend (50/200; grid-optimized pairs)](#g093--sma-crossover-trend-50200-grid-optimized-pairs) — DUPLICATE (S089)
   - [G094 | Simple-Moving-Average MACD Oscillator Crossover](#g094--simple-moving-average-macd-oscillator-crossover) — DUPLICATE (S089)
@@ -1748,6 +1748,13 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - Best known candlestick timeframe(s): Daily bars are used in the example; other bar sizes are possible.
 - reported_metrics: none reported
 - sources: [je-suis-tm/quant-trading — Parabolic SAR calculation and position signal](https://github.com/je-suis-tm/quant-trading/blob/611b73f2c3f577ac5b28aaa19ac8c43d3236c7a5/Parabolic%20SAR%20backtest.py#L30-L101)
+- implementation_results: `src/signals.rs` compute_g091_signals (worktree branch g091_psar); pooled 15-ETF TR book, 5 bps/side, next_open primary; dev < 2024-01-01 <= test. Long-only: source's short leg unimplemented (engine is long-only) — DELTA. Baseline + 14 variants.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev PF | test total (log) | test skill | test Sharpe | test PF | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | +0.51 | -0.15 | 0.77 | 1.55 | +0.16 | -0.07 | 0.84 | 1.47 | 1193+504 |
+  | slow (top dev, still neg) | +0.51 | -0.04 | 0.79 | 1.54 | +0.13 | -0.05 | 1.10 | 1.5 | 770+325 |
+  NO EDGE: positive raw returns (trend capture) but negative skill vs random picks on every config. Reproduce: `cargo run --release --bin deepthrust -- --strategy g091_psar`; variants `... --variant step01,step03,step04,max15,max25,max30,slow,fast,tighter,spy_only,qqq_only,tlt_only,gld_only,uso_only`
 
 ### G092 | Rayner-Teo Moving-Average Pullback Strategy (RT_MA)
 - priority: Low — Mainstream pullback-in-trend system overlapping S087; exact parameters in the strategy doc.
