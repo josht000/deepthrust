@@ -2231,6 +2231,83 @@ pub fn s036_trades(
     Ok(trades)
 }
 
+/// G098 Moskowitz(2012) TSMOM: per asset sign(trailing mom_window return) at each
+/// rebalance day, position = sign * min(pos_cap, target_vol / sigma_i) where sigma_i
+/// is EWM(com=vol_window) daily vol annualized by sqrt(periods_per_year).
+/// Futures universe proxied by TR ETFs (DELTA: no ag/financial contracts).
+pub fn compute_g098_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if cfg.mom_window == 0 || cfg.vol_window == 0 {
+        return Err("G098 requires positive mom_window and vol_window".into());
+    }
+    if !matches!(cfg.strategy_mode.as_str(), "ewmvol" | "equal") {
+        return Err(format!("unknown G098 strategy_mode {:?}", cfg.strategy_mode));
+    }
+    let n = panel.dates.len();
+    let ns = panel.symbols.len();
+    let rets = momentum_matrix(panel, cfg.mom_window, cfg.min_history);
+    let alpha = 1.0 / (1.0 + cfg.vol_window as f64);
+    let mut ewm_var: Vec<Vec<f64>> = Vec::with_capacity(ns);
+    for j in 0..ns {
+        let mut var = vec![f64::NAN; n];
+        let mut state = f64::NAN;
+        for t in 1..n {
+            let (a, b) = (panel.close[j][t], panel.close[j][t - 1]);
+            if !a.is_finite() || !b.is_finite() {
+                continue;
+            }
+            let r = a / b - 1.0;
+            state = if state.is_nan() {
+                r * r
+            } else {
+                alpha * r * r + (1.0 - alpha) * state
+            };
+            var[t] = state;
+        }
+        ewm_var.push(var);
+    }
+    let days = rebalance_days(panel, &cfg.rebalance)?;
+    let mut result = blank_rebalance_signals(panel, "tsmom");
+    result.rsi = rets.clone();
+    let mut weights = vec![vec![0.0; n]; ns];
+    for &day in &days {
+        let mut w = vec![0.0f64; ns];
+        for j in 0..ns {
+            let r = rets[j][day];
+            if !r.is_finite() {
+                continue;
+            }
+            let sign = if r > 0.0 { 1.0 } else { -1.0 };
+            w[j] = if cfg.strategy_mode == "equal" {
+                sign
+            } else {
+                let var = ewm_var[j][day];
+                if !var.is_finite() || var <= 0.0 {
+                    continue;
+                }
+                let vol = (var * cfg.periods_per_year as f64).sqrt();
+                sign * cfg.pos_cap.min(cfg.target_vol / vol)
+            };
+        }
+        if cfg.strategy_mode == "equal" {
+            let active: f64 = w.iter().map(|v| v.abs()).sum();
+            if active > 0.0 {
+                for v in &mut w {
+                    *v /= active;
+                }
+            }
+        }
+        for (j, v) in w.iter().enumerate() {
+            if *v != 0.0 {
+                weights[j][day] = *v;
+                result.signal[j][day] = true;
+            }
+        }
+    }
+    result.trade_weights = Some(weights);
+    result.benchmark_returns = benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
