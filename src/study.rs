@@ -909,6 +909,45 @@ impl StrategyDefinition for Family8Definition {
     }
 }
 
+struct Family9Definition {
+    name: &'static str,
+    title: &'static str,
+    kind: Family9Kind,
+}
+
+#[derive(Copy, Clone)]
+enum Family9Kind {
+    KeltnerBreakout,
+}
+
+impl StrategyDefinition for Family9Definition {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn title(&self) -> &'static str {
+        self.title
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        match self.kind {
+            Family9Kind::KeltnerBreakout => crate::family9::compute_s095_signals(panel, cfg),
+        }
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        match self.kind {
+            Family9Kind::KeltnerBreakout => crate::family9::s095_trades(panel, sig, cfg, fill),
+        }
+    }
+}
+
 struct Family7Definition {
     name: &'static str,
     title: &'static str,
@@ -1248,7 +1287,12 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
 static S088_STRATEGY: MacdVolumeCrossStrategyDefinition = MacdVolumeCrossStrategyDefinition;
 static S091_STRATEGY: DonchianChandelierStrategyDefinition = DonchianChandelierStrategyDefinition;
 static S089_STRATEGY: GoldenCrossSlopeStrategyDefinition = GoldenCrossSlopeStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 53] = [
+static S095_STRATEGY: Family9Definition = Family9Definition {
+    name: crate::family9::S095_NAME,
+    title: crate::family9::S095_TITLE,
+    kind: Family9Kind::KeltnerBreakout,
+};
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 54] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1302,6 +1346,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 53] = [
     &S088_STRATEGY,
     &S091_STRATEGY,
     &S089_STRATEGY,
+    &S095_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -1451,9 +1496,15 @@ impl<'a> Study<'a> {
         };
         let mut symbol_bars = Vec::new();
         for source in &sources {
-            if matches!(cfg.strategy.as_str(), S033_NAME | S038_NAME)
+            if matches!(cfg.strategy.as_str(), S033_NAME | S038_NAME | crate::family9::S095_NAME)
                 && !cfg.include_stocks
                 && source.name == "stocks"
+            {
+                continue;
+            }
+            if cfg.strategy == crate::family9::S095_NAME
+                && !cfg.include_etfs
+                && source.name == "etfs"
             {
                 continue;
             }
@@ -1600,6 +1651,7 @@ impl<'a> Study<'a> {
                 | S091_NAME
                 | S089_NAME
                 | S104_NAME
+                | crate::family9::S095_NAME
         );
         if family4_universe {
             for t in 1..n_rows {
@@ -3090,6 +3142,10 @@ impl<'a> Study<'a> {
                 "Buy the configured fast/slow SMA golden cross only while the slow SMA rises over the slope lookback; exit on the death cross or the configured alternate exit.",
                 "Catalog status is demoted (regime overlay); run standalone per task. The PIT liquidity-rank cache gates the stock sleeve; ETF bars are total-return and stock bars are split+dividend adjusted, all from 2016.",
             )),
+            "s095_keltner_breakout" => Some((
+                "Buy a close above the upper Keltner band (EMA + k x ATR) on elevated volume; exit on a close below the EMA or after the max hold.",
+                "The PIT liquidity-rank cache defines the stock universe and the configured liquid-ETF list has no rank gate; the catalog's short leg is a separate unrun experiment; bars start in 2016.",
+            )),
             _ => None,
         };
         if let Some((description, limitations)) = family4 {
@@ -3298,6 +3354,11 @@ impl<'a> Study<'a> {
             format!("hurst{} {} {}/{} rsi{}<{}/sma{} dch{}/{}", c.hurst_window, c.rebalance, c.hurst_gate, c.hurst_neutral, c.rsi_len, c.rsi_threshold, c.exit_sma, c.entry_window, c.exit_extreme_window)
         } else if c.strategy == crate::family7::S066_NAME {
             format!("thrust {} ema{} {:.2}->{:.3} w{} xsma{} ->{}", c.breadth_metric, c.breadth_ema_len, c.thrust_low, c.thrust_high, c.thrust_window, c.sma_window, c.traded_symbol)
+        } else if c.strategy == crate::family9::S095_NAME {
+            format!(
+                "keltner e{}+{:.1}xatr{} v>{:.1}x{}d h{} top{}",
+                c.ema_len, c.keltner_mult, c.atr_len, c.volume_mult, c.volume_median_window, c.max_hold, c.universe_top_n
+            )
         } else if c.strategy == S021_NAME {
             format!(
                 "overnight {} filter={}",

@@ -200,6 +200,8 @@ pub struct Config {
     pub etf_symbols: String,
     #[serde(default)]
     pub include_stocks: bool,
+    #[serde(default = "d_true")]
+    pub include_etfs: bool,
     #[serde(default)]
     pub rank_source: String,
     #[serde(default)]
@@ -440,6 +442,14 @@ pub struct Config {
     pub s089_exit_mode: String,
     #[serde(default)]
     pub s089_max_hold: usize,
+    #[serde(default = "d_ema_len")]
+    pub ema_len: usize,
+    #[serde(default = "d_keltner_mult")]
+    pub keltner_mult: f64,
+    #[serde(default = "d_volume_mult")]
+    pub volume_mult: f64,
+    #[serde(default = "d_volume_median_window")]
+    pub volume_median_window: usize,
     #[serde(default)]
     pub results_tag: String,
     #[serde(default = "d_macd_fast")]
@@ -1007,6 +1017,21 @@ fn d_s089_vol_window() -> usize {
 }
 fn d_s089_exit_mode() -> String {
     "cross".into()
+}
+fn d_true() -> bool {
+    true
+}
+fn d_ema_len() -> usize {
+    20
+}
+fn d_keltner_mult() -> f64 {
+    2.0
+}
+fn d_volume_mult() -> f64 {
+    1.3
+}
+fn d_volume_median_window() -> usize {
+    20
 }
 
 impl Config {
