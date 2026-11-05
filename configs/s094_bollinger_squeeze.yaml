@@ -1,0 +1,92 @@
+# S094 Bollinger Squeeze Breakout (catalog family 9; status demoted -> compression-cluster control)
+# Baseline: BandWidth(20,2sd) in bottom decile of last 120 sessions AND close outside
+# the bands; long and short; exit on 20d middle-band cross against the position, max 10 sessions.
+etf_symbols: SPY,QQQ
+include_stocks: true
+universe_top_n: 500
+rank_window: 60
+rank_min_observations: 40
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+min_price: 5.0
+min_history: 250
+bb_len: 20
+bb_mult: 2.0
+width_lookback: 120
+decile: 0.10
+squeeze_lag: 0
+require_first_break: false
+vol_confirm_mult: 0.0
+gap_volume_window: 20
+leg_mode: long_short
+gate: none
+exit_mode: mid_band
+min_hold: 0
+max_hold: 10
+fixed_hold: 5
+borrow_bps_annual: 300.0
+delisting_return: -0.30
+cost_bps_per_side: 15.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 50
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+
+sources:
+  - name: etfs
+    data_dir: ..\trading_framework\data\cache\etf_tr
+    data_suffix: .parquet
+    symbols: SPY,QQQ
+    cost_bps_per_side: 5.0
+  - name: stocks
+    data_dir: ..\trading_framework\data\cache\daily_10years_split
+    data_suffix: .parquet
+    exclude_symbols: SPY,QQQ
+    symbols: "*"
+    cost_bps_per_side: 15.0
+
+variants:
+  bb10: {bb_len: 10}
+  bb30: {bb_len: 30}
+  bb50: {bb_len: 50}
+  mult15: {bb_mult: 1.5}
+  mult25: {bb_mult: 2.5}
+  mult30: {bb_mult: 3.0}
+  w60: {width_lookback: 60}
+  w90: {width_lookback: 90}
+  w125: {width_lookback: 125}
+  w252: {width_lookback: 252}
+  dec05: {decile: 0.05}
+  dec15: {decile: 0.15}
+  dec20: {decile: 0.20}
+  lag1: {squeeze_lag: 1}
+  lag3: {squeeze_lag: 3}
+  first_only: {require_first_break: true}
+  minhold2: {min_hold: 2}
+  hold5: {max_hold: 5}
+  hold15: {max_hold: 15}
+  hold20: {max_hold: 20}
+  exit_reentry: {exit_mode: reentry}
+  exit_fixed5: {exit_mode: fixed, fixed_hold: 5}
+  exit_fixed8: {exit_mode: fixed, fixed_hold: 8}
+  long_only: {leg_mode: long}
+  short_only: {leg_mode: short}
+  sma200: {gate: sma200}
+  vol125: {vol_confirm_mult: 1.25}
+  vol150: {vol_confirm_mult: 1.5}
+  etf_only: {include_stocks: false}
+  top100: {universe_top_n: 100}
+  top1000: {universe_top_n: 1000}
+  w180: {width_lookback: 180}
+  hold8: {max_hold: 8}
+  borrow30: {borrow_bps_annual: 30.0}
+  borrow1000: {borrow_bps_annual: 1000.0}
+  bb10_dec20: {bb_len: 10, decile: 0.20}
+  bb50_dec05: {bb_len: 50, decile: 0.05}
+  w252_dec05: {width_lookback: 252, decile: 0.05}
+  lag1_first: {squeeze_lag: 1, require_first_break: true}
+  long_reentry: {leg_mode: long, exit_mode: reentry}
