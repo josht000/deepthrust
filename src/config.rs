@@ -332,6 +332,20 @@ pub struct Config {
     pub defensive_symbols: String,
     #[serde(default)]
     pub results_tag: String,
+    #[serde(default = "d_macd_fast")]
+    pub macd_fast: usize,
+    #[serde(default = "d_macd_slow")]
+    pub macd_slow: usize,
+    #[serde(default = "d_macd_signal")]
+    pub macd_signal: usize,
+    #[serde(default = "d_volume_multiple")]
+    pub volume_multiple: f64,
+    #[serde(default = "d_volume_window")]
+    pub volume_window: usize,
+    #[serde(default = "d_volume_mode")]
+    pub volume_mode: String,
+    #[serde(default = "d_require_macd_positive")]
+    pub require_macd_positive: bool,
     /// Resolved variant name ("baseline" when no overlay is applied).
     #[serde(skip, default = "d_baseline")]
     pub variant: String,
@@ -730,6 +744,27 @@ fn d_cyclical_symbols() -> String {
 }
 fn d_defensive_symbols() -> String {
     "XLP,XLU".into()
+}
+fn d_macd_fast() -> usize {
+    12
+}
+fn d_macd_slow() -> usize {
+    26
+}
+fn d_macd_signal() -> usize {
+    9
+}
+fn d_volume_multiple() -> f64 {
+    1.3
+}
+fn d_volume_window() -> usize {
+    20
+}
+fn d_volume_mode() -> String {
+    "median".into()
+}
+fn d_require_macd_positive() -> bool {
+    true
 }
 
 impl Config {

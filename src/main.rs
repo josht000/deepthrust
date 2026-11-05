@@ -1,5 +1,6 @@
 //! Study runner: `deepthrust --strategy <name> [--variant NAME[,NAME2]] ...`
 //! (CLI mirrors trading_framework's run.py).
+#![recursion_limit = "256"]
 
 use clap::Parser;
 use std::path::{Path, PathBuf};
@@ -199,7 +200,15 @@ fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Resul
         "min_history": cfg.min_history,
         "rank_window": cfg.rank_window,
         "rank_min_observations": cfg.rank_min_observations,
-        "min_price": cfg.min_price
+        "min_price": cfg.min_price,
+        "macd_fast": cfg.macd_fast,
+        "macd_slow": cfg.macd_slow,
+        "macd_signal": cfg.macd_signal,
+        "volume_multiple": cfg.volume_multiple,
+        "volume_window": cfg.volume_window,
+        "volume_mode": cfg.volume_mode,
+        "require_macd_positive": cfg.require_macd_positive,
+        "max_hold": cfg.max_hold
     });
     for fill in cfg.fills_list() {
         let dev = study
