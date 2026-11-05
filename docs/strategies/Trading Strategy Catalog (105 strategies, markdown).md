@@ -102,7 +102,7 @@
     - [S082 | Options-Expiration-Week Drift](#s082--options-expiration-week-drift)
 - [Family 9 — Trend and Pullback Systems (Stocks)](#family-9--trend-and-pullback-systems-stocks)
     - [S087 | 20-Day-EMA Pullback in Uptrend](#s087--20-day-ema-pullback-in-uptrend) — NOT_DAILY, DEFER
-    - [S088 | MACD Bullish Cross with Volume](#s088--macd-bullish-cross-with-volume)
+    - [S088 | MACD Bullish Cross with Volume](#s088--macd-bullish-cross-with-volume) — IMPLEMENTED
     - [S089 | Golden Cross with Slope Filter](#s089--golden-cross-with-slope-filter)
     - [S090 | KAMA Breakout](#s090--kama-breakout)
     - [S091 | Donchian 55 with Chandelier Trail](#s091--donchian-55-with-chandelier-trail)
@@ -2022,6 +2022,14 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - notes: Rule-zoo audit member, not an independent strategy. Atlas 10.6 (Rink 2023; Chuang 2024; Yang 2020b): MACD/MA-type rules show no out-of-sample persistence after data-snooping correction; Be The Puck MACD Signal Cross beats buy-and-hold Sharpe on 59/372. 'MACD > 0 AND signal cross' is a late signal and 1.3x median volume is arbitrary; hold the parameterization fixed and report sensitivity. Include in the rule-zoo audit (G-05).
 - data_needs: daily_10years (D1)
 - review: DEMOTE | source GENERIC
+- implementation_results: `src/family9.rs` / `src/study.rs`, config `configs/s088_macd_volume_cross.yaml`; TA-Lib MACD(12,26,9) line crossing above signal while MACD > 0, close > SMA200, volume > 1.3 x the prior-20-session median (prior sessions only; `vol_incl` and `vol_mean` variants cover the alternative readings); liquid top-500 PIT universe from the rank cache, 11,058 split-adjusted symbols 2016-2026, 15 bps/side, next_open primary + close upper bound, max hold 10 sessions; dev < 2024-01-01 <= test. `u250` = `universe_top_n: 250` is the dev-selected winner among the 36 rule variants (cost variants excluded - `cost5` is mechanically best at dev skill -0.901 but is a cost sensitivity, not a rule change). DEMOTED audit member confirmed: every variant's dev skill < 0; no DECAYED and no Sharpe/PF > 2 flags.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | -1.01 | -1.43 (p=1.00) | -0.59 | -74% | -0.25 | -0.55 (p=0.97) | -0.30 | -38% | 4,597+2,019 |
+  | u250 | -0.59 | -0.97 (p=0.94) | -0.20 | -67% | +0.12 | -0.20 (p=0.71) | +0.29 | -32% | 2,334+1,034 |
+
+  Reproduce: `target\release\deepthrust.exe --strategy s088_macd_volume_cross --variant macd_8_21_5,macd_5_35_5,macd_10_30_9,macd_19_39_9,macd_24_52_9,sig_5,sig_7,sig_12,vol_1_0,vol_1_15,vol_1_5,vol_2_0,vol_off,volwin_10,volwin_50,volwin_60,vol_mean,vol_incl,sma_off,sma_50,sma_100,sma_150,nozero,hold_5,hold_15,hold_20,u250,u750,u1000,hist126,close_fill,cost10,cost5,fast_vol15,hold15_sma100,u750_vol15`
 
 ### S089 | Golden Cross with Slope Filter
 - family: trend and pullback

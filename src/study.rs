@@ -71,6 +71,8 @@ pub const S024_NAME: &str = crate::family2::S024_NAME;
 pub const S024_TITLE: &str = crate::family2::S024_TITLE;
 pub const S105_NAME: &str = "s105_overnight_carry";
 pub const S105_TITLE: &str = "S105 Volatility-Targeted Overnight Carry";
+pub const S088_NAME: &str = crate::family9::S088_NAME;
+pub const S088_TITLE: &str = crate::family9::S088_TITLE;
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -722,6 +724,32 @@ impl StrategyDefinition for ExDividendCaptureStrategyDefinition {
     }
 }
 
+struct MacdVolumeCrossStrategyDefinition;
+
+impl StrategyDefinition for MacdVolumeCrossStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S088_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S088_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family9::compute_s088_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family9::s088_trades(panel, sig, cfg, fill)
+    }
+}
+
 struct Family8Definition {
     name: &'static str,
     title: &'static str,
@@ -1086,7 +1114,8 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 46] = [
+static S088_STRATEGY: MacdVolumeCrossStrategyDefinition = MacdVolumeCrossStrategyDefinition;
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 47] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1133,6 +1162,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 46] = [
     &S056_STRATEGY,
     &S058_STRATEGY,
     &S063_STRATEGY,
+    &S088_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -1425,6 +1455,7 @@ impl<'a> Study<'a> {
                 | S047_NAME
                 | S050_NAME
                 | S051_NAME
+                | S088_NAME
                 | S104_NAME
         );
         if family4_universe {
@@ -2851,6 +2882,10 @@ impl<'a> Study<'a> {
                 "Buy a close above a confirmed three-session Darvas box top; confirm pivots only after the required sessions.",
                 "The PIT liquidity-rank cache defines the stock universe; available stock history starts in 2016.",
             )),
+            "s088_macd_volume_cross" => Some((
+                "Buy the MACD line crossing above its signal while MACD > 0, close > SMA200, and volume beats the configured multiple of the 20-day baseline; exit on the bearish cross at that close, or after the max hold.",
+                "The PIT liquidity-rank cache approximates S&P 500 membership; split-adjusted stock bars start in 2016; the 20-day volume baseline uses prior sessions only. This is a demoted rule-zoo audit member, not a validated edge.",
+            )),
             _ => None,
         };
         if let Some((description, limitations)) = family4 {
@@ -3066,6 +3101,19 @@ impl<'a> Study<'a> {
                 c.gap_volume_window,
                 c.gap_stop_mode,
                 c.gap_reward_risk
+            )
+        } else if c.strategy == S088_NAME {
+            format!(
+                "macd({},{},{}){} vol>{:.2}x{}d-{} sma{} hold{}",
+                c.macd_fast,
+                c.macd_slow,
+                c.macd_signal,
+                if c.require_macd_positive { ">0" } else { "" },
+                c.volume_multiple,
+                c.volume_window,
+                c.volume_mode,
+                c.sma_window,
+                c.max_hold
             )
         } else {
             format!(
