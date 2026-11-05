@@ -14,6 +14,8 @@ pub const S079_NAME: &str = "s079_turn_of_month";
 pub const S079_TITLE: &str = "S079 Turn-of-the-Month Effect";
 pub const S080_NAME: &str = "s080_pre_holiday";
 pub const S080_TITLE: &str = "S080 Pre-Holiday Effect";
+pub const S082_NAME: &str = "s082_opex_week_drift";
+pub const S082_TITLE: &str = "S082 Options-Expiration-Week Drift";
 
 fn weekday_of(date: NaiveDate) -> i64 {
     date.weekday().num_days_from_monday() as i64 + 1
@@ -302,5 +304,136 @@ pub fn compute_s080_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
 }
 
 pub fn s080_trades(panel: &Panel, sig: &Signals, cfg: &Config, fill: &str) -> Result<Vec<Trade>, String> {
+    calendar_hold_trades(panel, sig, cfg, fill)
+}
+
+/// Calendar 3rd Friday of a month (the monthly options-expiry anchor).
+fn third_friday(year: i32, month: u32) -> Option<NaiveDate> {
+    let first = NaiveDate::from_ymd_opt(year, month, 1)?;
+    let offset = (Weekday::Fri.num_days_from_monday() as i64
+        - first.weekday().num_days_from_monday() as i64)
+        .rem_euclid(7);
+    Some(first + Duration::days(offset + 14))
+}
+
+// S082: signal `entry_offset` sessions before the first session of options-expiration
+// week; exit on the close `exit_offset` sessions after the expiry session.
+pub fn compute_s082_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if !(-15..=-1).contains(&cfg.entry_offset) {
+        return Err(format!(
+            "S082 entry_offset must be -15..-1, got {}",
+            cfg.entry_offset
+        ));
+    }
+    if !(0..=10).contains(&cfg.exit_offset) {
+        return Err(format!(
+            "S082 exit_offset must be 0..10, got {}",
+            cfg.exit_offset
+        ));
+    }
+    if !matches!(cfg.opex_mode.as_str(), "all" | "quad" | "non_quad") {
+        return Err(format!(
+            "S082 opex_mode must be all|quad|non_quad, got {}",
+            cfg.opex_mode
+        ));
+    }
+    if !matches!(
+        cfg.regime_mode.as_str(),
+        "none" | "above_sma" | "below_sma" | "prior_month_up" | "prior_month_down"
+    ) {
+        return Err(format!(
+            "S082 regime_mode must be none|above_sma|below_sma|prior_month_up|prior_month_down, got {}",
+            cfg.regime_mode
+        ));
+    }
+    let n = panel.dates.len();
+    let ordinal = month_ordinal_rows(&panel.dates);
+    // first row of each row's calendar month
+    let mut month_first = vec![0usize; n];
+    for t in 0..n {
+        let mut m0 = t;
+        while m0 > 0 && ordinal[m0] != 1 {
+            m0 -= 1;
+        }
+        month_first[t] = m0;
+    }
+    // per-month (signal_row, exit_row) pairs
+    let mut windows: Vec<(usize, usize)> = Vec::new();
+    let mut last_exit: i64 = -1;
+    let mut t = 0usize;
+    while t < n {
+        let (year, month) = (panel.dates[t].year(), panel.dates[t].month());
+        let mut end = t;
+        while end + 1 < n && panel.dates[end + 1].year() == year && panel.dates[end + 1].month() == month
+        {
+            end += 1;
+        }
+        if let Some(tf) = third_friday(year, month) {
+            // expiry session: last session on or before the 3rd Friday, within the same week
+            let expiry_row = (t..=end)
+                .rev()
+                .find(|&r| panel.dates[r] <= tf && panel.dates[r] >= tf - Duration::days(7));
+            if let Some(expiry_row) = expiry_row {
+                let week_monday = panel.dates[expiry_row]
+                    - Duration::days(panel.dates[expiry_row].weekday().num_days_from_monday() as i64);
+                let mut first_opex = expiry_row;
+                while first_opex > 0 && panel.dates[first_opex - 1] >= week_monday {
+                    first_opex -= 1;
+                }
+                let signal_row = first_opex as i64 + cfg.entry_offset;
+                let exit_row = expiry_row + cfg.exit_offset as usize;
+                let quad = matches!(month, 3 | 6 | 9 | 12);
+                let keep = match cfg.opex_mode.as_str() {
+                    "quad" => quad,
+                    "non_quad" => !quad,
+                    _ => true,
+                };
+                if keep && signal_row > last_exit && signal_row >= 0 && exit_row < n {
+                    windows.push((signal_row as usize, exit_row));
+                    last_exit = exit_row as i64;
+                }
+            }
+        }
+        t = end + 1;
+    }
+    let mut result = blank_signals(panel, "opex_week");
+    for j in 0..panel.symbols.len() {
+        let close = &panel.close[j];
+        let sma = crate::signals::rolling_mean(close, cfg.sma_window);
+        for &(signal_row, exit_row) in &windows {
+            if !close[signal_row].is_finite() || !close[exit_row].is_finite() {
+                continue;
+            }
+            // prior full calendar month close-to-close return at the signal row
+            let m0 = month_first[signal_row];
+            let prior_ret = if m0 >= 2 {
+                let p_end = m0 - 1;
+                let p0 = month_first[p_end];
+                if p0 >= 1 && close[p_end].is_finite() && close[p0 - 1].is_finite() {
+                    close[p_end] / close[p0 - 1] - 1.0
+                } else {
+                    f64::NAN
+                }
+            } else {
+                f64::NAN
+            };
+            let gate = match cfg.regime_mode.as_str() {
+                "above_sma" => sma[signal_row].is_finite() && close[signal_row] > sma[signal_row],
+                "below_sma" => sma[signal_row].is_finite() && close[signal_row] <= sma[signal_row],
+                "prior_month_up" => prior_ret > 0.0,
+                "prior_month_down" => prior_ret <= 0.0,
+                _ => true,
+            };
+            result.rsi[j][signal_row] = prior_ret;
+            if gate {
+                result.signal[j][signal_row] = true;
+            }
+            result.exit_now[j][exit_row] = true;
+        }
+    }
+    Ok(result)
+}
+
+pub fn s082_trades(panel: &Panel, sig: &Signals, cfg: &Config, fill: &str) -> Result<Vec<Trade>, String> {
     calendar_hold_trades(panel, sig, cfg, fill)
 }

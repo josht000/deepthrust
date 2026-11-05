@@ -99,7 +99,7 @@
     - [S079 | Turn-of-the-Month Effect (window grid)](#s079--turn-of-the-month-effect-window-grid) — IMPLEMENTED
     - [S080 | Pre-Holiday Effect](#s080--pre-holiday-effect) — IMPLEMENTED
     - [S081 | Pre-FOMC Announcement Drift](#s081--pre-fomc-announcement-drift) — NOT_DAILY, DEFER
-    - [S082 | Options-Expiration-Week Drift](#s082--options-expiration-week-drift)
+    - [S082 | Options-Expiration-Week Drift](#s082--options-expiration-week-drift) — IMPLEMENTED — DELTA
 - [Family 9 — Trend and Pullback Systems (Stocks)](#family-9--trend-and-pullback-systems-stocks)
     - [S087 | 20-Day-EMA Pullback in Uptrend](#s087--20-day-ema-pullback-in-uptrend) — NOT_DAILY, DEFER
     - [S088 | MACD Bullish Cross with Volume](#s088--macd-bullish-cross-with-volume) — IMPLEMENTED
@@ -1990,6 +1990,14 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - notes: Placebo test only. The window is ~6 sessions, not the earlier '3-5'. Option-expiry literature concerns pinning and volatility effects, not drift; the Atlas (11.4) treats expiry as a calendar FEATURE to avoid mistaking settlement mechanics for information; daily/0DTE SPX options since 2022 weaken any monthly-gamma narrative. Use expiry-week dummies as a control variable in S079/S081 studies; run the simple drift once as a placebo test, otherwise drop. The cited page is an index (no rule).
 - data_needs: SPY total-return daily series (DP-ETF) + options-expiry calendar (DP-CAL)
 - review: DEMOTE | source GENERIC
+- implementation_results: `src/family8.rs` (`s082_opex_week_drift`), research scale, 1 bps/side, dev < 2024-01-01 <= test, expiry = 3rd-Friday week derived from the panel calendar (prior session when the Friday is a holiday). DELTA: 'high-open-interest stocks' replaced by IWM (baseline SPY,QQQ,IWM; `spy_only` variant covers the literal 'Buy SPY'); no exchange holiday/expiry file (DP-CAL) — calendar built in code. Placebo confirmed: a few small positive test-skill cells (largest +0.015, all p>0.4) sit among mostly negative ones.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev/test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline (close) | -0.07 | -0.22 | -0.03 | -39% | +0.15 | -0.03 (p=0.67) | 0.64 | -7% | 288/102 |
+  | all_next_open (next_open) | +0.03 | +0.11 (p=0.19) | 0.09 | -26% | +0.06 | -0.10 (p=0.99) | 0.30 | -7% | 384/136 |
+
+  Dev-selected `all_next_open` (4 index ETFs, next-open entry): DECAYED — test skill sign flips vs dev. SPY-only dev skill -0.23 (close), +0.11 (next_open). Reproduce: `target/release/deepthrust.exe --strategy s082_opex_week_drift --variant all_next_open`
 
 ---
 

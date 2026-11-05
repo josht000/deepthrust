@@ -789,6 +789,7 @@ enum Family8Kind {
     TurnaroundTuesday,
     TurnOfMonth,
     PreHoliday,
+    OpexWeekDrift,
 }
 
 impl StrategyDefinition for Family8Definition {
@@ -805,6 +806,7 @@ impl StrategyDefinition for Family8Definition {
             Family8Kind::TurnaroundTuesday => crate::family8::compute_s010_signals(panel, cfg),
             Family8Kind::TurnOfMonth => crate::family8::compute_s079_signals(panel, cfg),
             Family8Kind::PreHoliday => crate::family8::compute_s080_signals(panel, cfg),
+            Family8Kind::OpexWeekDrift => crate::family8::compute_s082_signals(panel, cfg),
         }
     }
 
@@ -819,6 +821,7 @@ impl StrategyDefinition for Family8Definition {
             Family8Kind::TurnaroundTuesday => crate::family8::s010_trades(panel, sig, cfg, fill),
             Family8Kind::TurnOfMonth => crate::family8::s079_trades(panel, sig, cfg, fill),
             Family8Kind::PreHoliday => crate::family8::s080_trades(panel, sig, cfg, fill),
+            Family8Kind::OpexWeekDrift => crate::family8::s082_trades(panel, sig, cfg, fill),
         }
     }
 }
@@ -1067,6 +1070,11 @@ static S080_STRATEGY: Family8Definition = Family8Definition {
     title: crate::family8::S080_TITLE,
     kind: Family8Kind::PreHoliday,
 };
+static S082_STRATEGY: Family8Definition = Family8Definition {
+    name: crate::family8::S082_NAME,
+    title: crate::family8::S082_TITLE,
+    kind: Family8Kind::OpexWeekDrift,
+};
 static S069_STRATEGY: Family7Definition = Family7Definition {
     name: crate::family7::S069_NAME,
     title: crate::family7::S069_TITLE,
@@ -1153,7 +1161,7 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     kind: Family6Kind::TopicSentiment,
 };
 static S088_STRATEGY: MacdVolumeCrossStrategyDefinition = MacdVolumeCrossStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 49] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 50] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1184,6 +1192,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 49] = [
     &S010_STRATEGY,
     &S079_STRATEGY,
     &S080_STRATEGY,
+    &S082_STRATEGY,
     &S069_STRATEGY,
     &S070_STRATEGY,
     &S102_STRATEGY,
@@ -2505,6 +2514,29 @@ impl<'a> Study<'a> {
                 "- Limitations: holidays are inferred from weekday gaps in the trading calendar (no external holiday file); early-close detection covers the Jul-4/Dec-25 adjacent gaps only.".into(),
             ];
         }
+        if c.strategy == crate::family8::S082_NAME {
+            return vec![
+                format!(
+                    "- Universe: {}; daily total-return-adjusted Parquet bars.",
+                    s.panel.symbols.join(", ")
+                ),
+                format!(
+                    "- Rule: enter {} session(s) before the first session of options-expiration week (offset {}), exit {} session(s) after the expiry session close; regime={}, opex={}.",
+                    c.entry_offset.unsigned_abs(),
+                    c.entry_offset,
+                    c.exit_offset,
+                    if c.regime_mode.is_empty() { "none".into() } else { c.regime_mode.clone() },
+                    c.opex_mode
+                ),
+                format!(
+                    "- Fill: {}; {} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: equal-weight close-to-close buy-and-hold of the universe plus random-timing exposure matching.".into(),
+                "- Limitations: monthly expiry is derived as the 3rd Friday (prior session when it is a holiday); quad-witching months are calendar-derived, not from an exchange file; high-open-interest single stocks are not in the universe.".into(),
+            ];
+        }
         if c.strategy == crate::family7::S069_NAME {
             return vec![
                 format!(
@@ -3108,6 +3140,11 @@ impl<'a> Study<'a> {
                 "pre-holiday -2 exit={} early-close={}",
                 if c.exit_offset == 0 { "before" } else { "after" },
                 if c.exclude_early_close { "excl" } else { "incl" }
+            )
+        } else if c.strategy == crate::family8::S082_NAME {
+            format!(
+                "opex entry{} exit+{} {} {}",
+                c.entry_offset, c.exit_offset, c.opex_mode, c.regime_mode
             )
         } else if c.strategy == crate::family6::S056_NAME || c.strategy == crate::family6::S058_NAME {
             format!("news {}/{} {} {:.0}%", c.score_mode, c.topic_mode, c.signal_mode, 100.0 * c.top_fraction)

@@ -116,7 +116,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G095 | Singular-Spectrum-Analysis Trend Signal](#g095--singular-spectrum-analysis-trend-signal)
 - [Momentum, Rotation and Cross-Sectional Factors](#momentum-rotation-and-cross-sectional-factors) (21)
   - [G096 | ANTICOR Anti-Correlation Wealth Transfer](#g096--anticor-anti-correlation-wealth-transfer) — IMPLEMENTED
-  - [G097 | Baltas 2020 Trend Signal with Realized-Volatility Scaling](#g097--baltas-2020-trend-signal-with-realized-volatility-scaling)
+  - [G097 | Baltas 2020 Trend Signal with Realized-Volatility Scaling](#g097--baltas-2020-trend-signal-with-realized-volatility-scaling) — IMPLEMENTED
   - [G098 | Moskowitz-Style Time-Series Momentum on Futures](#g098--moskowitz-style-time-series-momentum-on-futures) — IMPLEMENTED
   - [G099 | Online Portfolio Selection Algorithm Zoo (OLMAR/PAMR/CWMR/RMR/ANTICOR/CORN/UP/ONS...)](#g099--online-portfolio-selection-algorithm-zoo-olmarpamrcwmrrmranticorcornupons)
   - [G100 | QARMII 252-Day Binary Momentum Portfolio](#g100--qarmii-252-day-binary-momentum-portfolio) — IMPLEMENTED
@@ -1879,6 +1879,13 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - reported_metrics: none reported
 - external_refs: Baltas and Kosowski (2020), as cited in the notebook.
 - sources: [rolling-panda-san/notebooks — Original, volatility-scaled, Baltas-signal, and combined portfolios; code cells 8, 13, 18, and 23](https://github.com/rolling-panda-san/notebooks/blob/ce05661a5d4b3cdb439ece27dcccba88e2cb130a/trend_following_baltas2020.ipynb)
+- implementation_results: `src/family4.rs` compute_g097_signals (worktree branch g097_baltas_volscaled); 20-asset TR ETF book, month-end, w = sign(mom252) x min(0.95, 0.40/vol21), 5 bps/side; dev < 2024-01-01 <= test. DELTA: private TSMOMBaltas2020 -> TSMOM sign; futures -> ETFs; rolling/ewm/yz estimators implemented. Baseline + 15 variants.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev PF | test total (log) | test skill | test Sharpe | test PF | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | -10.1 | -12.3 | 0.09 | 1.00 | +1.56 | -5.1 | 1.18 | 1.63 | 1840+680 |
+  | cap50 (least-bad dev) | -2.77 | -3.65 | 0.05 | 1.00 | +0.9 | -1.73 | 1.2 | 1.63 | 1840+680 |
+  NO EDGE: faithful 40%-vol-target sizing produces ~4x gross on ETF vols; every config's skill is deeply negative vs random picks — same failure mode as G098. Reproduce: `cargo run --release --bin deepthrust -- --strategy g097_baltas_volscaled`; variants `... --variant ewm,yz,mom126,mom189,mom63,vol10,vol42,vol63,tv20,tv30,tv50,cap50,cap100,weekly,yz_mom126`
 
 ### G098 | Moskowitz-Style Time-Series Momentum on Futures
 - priority: Medium — Time-series momentum is a well-motivated futures premium and daily-adaptable, but net costs and code-level signal details are unavailable.
