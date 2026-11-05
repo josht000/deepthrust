@@ -1341,11 +1341,12 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   | variant | dev total (log) | dev skill | dev Sharpe | dev PF | test total (log) | test skill | test Sharpe | test PF | trades (dev+test) |
   |---|---|---|---|---|---|---|---|---|---|
   | baseline | +0.07 | +0.11 | 0.14 | 1.03 | +0.28 | -0.00 | 1.04 | 1.56 | 1032+396 |
-  | str02_vw15_g20s250 (iter3 best) | +0.13 | +0.33 | 0.23 | 1.12 | +0.32 | +0.30 | 0.92 | 2.01 | 446+217 |
+  | r3s20v20 (iter3 best) | +0.16 | +0.32 | 0.24 | 1.17 | +0.40 | +0.39 | 1.11 | 2.18 | 398+160 |
+  | str02_vw15_g20s250 | +0.13 | +0.33 | 0.23 | 1.12 | +0.32 | +0.30 | 0.92 | 2.01 | 446+217 |
   | vw15_g20s250 | +0.15 | +0.17 | 0.25 | 1.08 | +0.38 | +0.28 | 1.52 | 1.80 | 624+396 |
   | g20s250_monthend | +0.16 | +0.19 | 0.31 | 1.12 | +0.36 | +0.27 | 1.51 | 1.79 | 612+408 |
   | gate20_sma250 | +0.18 | +0.19 | 0.33 | 1.13 | +0.32 | +0.24 | 1.30 | 1.66 | 624+396 |
-  Vol-regime gate is the value-add: gate>=0.20 variants keep positive skill on BOTH dev and test. Round 2 exposed vol_window + strategy_mode (defensive->IEF / lowvol inverted gate / volparity weights); 21 variants. Round 3 added min_abs_resid trend-strength + mom_window agreement filters (19 variants): str02_vw15_g20s250 nearly doubles dev skill (+0.33) with test +0.30 and PF 2.01 (flagged); vw15_g18s250 test skill +0.41. Sharpe trades down on the convict-filtered books (~0.9 vs 1.5). Reproduce: `cargo run --release --bin deepthrust -- --strategy g067_mlm_sma200`; variants `... --variant str02_vw15_g20s250,vw15_g18s250,vw15_g20s250,mom126_g20s250`
+  Vol-regime gate is the value-add: gate>=0.20 variants keep positive skill on BOTH dev and test. Round 2 exposed vol_window + strategy_mode (defensive->IEF / lowvol inverted gate / volparity weights); 21 variants. Round 3 added min_abs_resid trend-strength + mom_window agreement filters (19 variants); round 4 added longonly/shortonly modes, RSI filter, skip_days hysteresis (95 variants): r3s20v20 (2% min-distance + vw20) lifts dev skill to +0.32 and test to +0.39, PF 2.18 (flagged). Sharpe ~1.1 on convict-filtered books. Reproduce: `cargo run --release --bin deepthrust -- --strategy g067_mlm_sma200`; variants `... --variant r3s20v20,str02_vw15_g20s250,vw15_g18s250,vw15_g20s250`
 
 ### G068 | Stochastic-Oversold-Exit + RSI-50 Confirmation with Chandelier(22,2) Trailing Exit
 - priority: High — Complete, daily-native, precise rule set combining oversold-exit timing + trend gate + vol trailing - immediately implementable.
@@ -1864,7 +1865,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   | baseline (daily, 20ETF) | +0.12 | -0.84 | 0.19 | 0.86 | +0.50 | -0.00 | 0.96 | 0.84 | 2917+1325 |
   | sectors_w45 (iter2 best) | +1.04 | +0.19 | 0.62 | 1.00 | +0.30 | +0.40 | 1.58 | 1.41 | 794+353 |
   | sectors_weekly | +0.93 | +0.09 | 0.60 | 1.31 | +0.30 | +0.06 | 0.93 | 1.07 | 956+385 |
-  MILD EDGE: weekly ANTICOR on the 11-sector book keeps positive skill on both partitions; daily cadence churns the edge to dust (baseline dev skill -0.84). Round 2 added pos_cap + weekly-cadence neighbors (14 variants): sectors_w45 (w=45) lifts dev skill to +0.19 and test to +0.40 (Sharpe 1.58, PF 1.41). Round 3 (14 variants) found the w-sweet-spot: sectors_w55 dev-overfits (+0.31 -> +0.04), w60_weekly on the 20-ETF book is positive both sides (+0.24/+0.14). Reproduce: `cargo run --release --bin deepthrust -- --strategy g096_anticor`; variants `... --variant sectors_w45,sectors_w15,w60_weekly,sectors_weekly`
+  MILD EDGE: weekly ANTICOR on the 11-sector book keeps positive skill on both partitions; daily cadence churns the edge to dust (baseline dev skill -0.84). Round 2 added pos_cap + weekly-cadence neighbors (14 variants): sectors_w45 (w=45) lifts dev skill to +0.19 and test to +0.40 (Sharpe 1.58, PF 1.41). Round 3 (14 variants) found the w-sweet-spot: sectors_w55 dev-overfits (+0.31 -> +0.04), w60_weekly on the 20-ETF book is positive both sides (+0.24/+0.14). Round 4 added mom-inverted mode, sma position gate, breadth top-N, skip_days min-hold (89 variants): no improvement over sectors_w45 — mom-inverted is negative everywhere (direction is the mechanism), sma gates overfit dev, r3w45b4/b6 tie sectors_w45 (+0.40 test). Reproduce: `cargo run --release --bin deepthrust -- --strategy g096_anticor`; variants `... --variant sectors_w45,r3w45b4,r3w45b6,w60_weekly`
 
 ### G097 | Baltas 2020 Trend Signal with Realized-Volatility Scaling
 - priority: Medium — Risk estimator and signal are reproducible at the notebook-call level, but private code and gross returns limit confidence.
