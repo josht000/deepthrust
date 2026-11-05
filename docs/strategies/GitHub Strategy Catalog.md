@@ -50,7 +50,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G030 | Commodity Crack-Spread Cointegration Reversion](#g030--commodity-crack-spread-cointegration-reversion) — DUPLICATE (S071)
   - [G031 | Crude-Oil Calendar-Spread Bollinger Mean Reversion (CL front vs second month)](#g031--crude-oil-calendar-spread-bollinger-mean-reversion-cl-front-vs-second-month)
   - [G032 | Crypto Pair Z-Score Reversion (BTC/ETH, Johansen screening)](#g032--crypto-pair-z-score-reversion-btceth-johansen-screening) — DUPLICATE (S071)
-  - [G033 | Decorrelation-Gated Buy-the-Loser Pair Rotation (PEP/KO example)](#g033--decorrelation-gated-buy-the-loser-pair-rotation-pepko-example)
+  - [G033 | Decorrelation-Gated Buy-the-Loser Pair Rotation (PEP/KO example)](#g033--decorrelation-gated-buy-the-loser-pair-rotation-pepko-example) — IMPLEMENTED
   - [G034 | Kalman Forecast-Error Pair Reversion](#g034--kalman-forecast-error-pair-reversion) — DUPLICATE (S071)
   - [G035 | Kalman-Updated Hedge-Ratio Pair Z-Score Strategy](#g035--kalman-updated-hedge-ratio-pair-z-score-strategy) — DUPLICATE (S071)
   - [G036 | Ornstein–Uhlenbeck Pair-Spread Z-Score](#g036--ornsteinuhlenbeck-pair-spread-z-score) — DUPLICATE (S071)
@@ -764,6 +764,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - reported_metrics: none reported
 - notes: Unhedged long-only - unlike S071; closer to a relative-strength rotation between pair legs.
 - sources: [LongOnly/Quantitative-Notebooks — correlation<0.9 gate + min-return leg selection + hold-loser](https://github.com/LongOnly/Quantitative-Notebooks/blob/9041f80c21b4029afdbd044c60f4b8d85473b70d/PairsTrading.ipynb)
+- implementation_results: `src/signals.rs` compute_g033_signals (worktree branch g033_pair_rotation); PEP/KO split-adjusted book, 15 bps/side, next_open primary; dev < 2024-01-01 <= test. FALSIFIED: baseline dev 658 trades, total -0.83, skill -1.23, Sharpe -0.94, PF 0.62; test 296, -0.52, skill -0.63, Sharpe -1.29, PF 0.58. The corr<0.9 gate is open ~always on PEP/KO, so the rule churns ~2 trades/week and costs dominate; all 16 variants negative (spyivv correctly produced 0 trades — legs never decorrelate). The "hold until profitable" nuance is approximated by switch-on-lead-change (stateless masks). Reproduce: `cargo run --release --bin deepthrust -- --strategy g033_pair_rotation`
 
 ### G034 | Kalman Forecast-Error Pair Reversion
 - priority: Medium — The method is explicit, sequential, and daily-adaptable, but the example is one pair and lacks cost/OOS evidence.
