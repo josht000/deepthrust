@@ -113,6 +113,8 @@
     - [S093 | Higher-Low Reversal Entry](#s093--higher-low-reversal-entry) — NOT_DAILY, DEFER
     - [S094 | Bollinger Squeeze Breakout](#s094--bollinger-squeeze-breakout)
     - [S095 | Keltner Channel Breakout](#s095--keltner-channel-breakout) — IMPLEMENTED — DAILY, DELTA
+    - [S094 | Bollinger Squeeze Breakout](#s094--bollinger-squeeze-breakout) — IMPLEMENTED
+    - [S095 | Keltner Channel Breakout](#s095--keltner-channel-breakout)
 - [Family 10 — Candlestick and Bar Patterns](#family-10--candlestick-and-bar-patterns)
     - [S096 | Three-Bar Reversal (Bulkowski)](#s096--three-bar-reversal-bulkowski) — NOT_DAILY, DEFER
     - [S097 | Bullish Engulfing After Down-Streak](#s097--bullish-engulfing-after-down-streak)
@@ -2167,6 +2169,7 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - priority: P4
 - sources: [Quantified Strategies — 200 free backtested strategies](https://www.quantifiedstrategies.com/trading-strategies-free/)
 - notes: Compression cluster member (variant of S065), executed via band-close rather than stop orders. The Be The Puck squeeze rule (BandWidth at its lowest of 125 days, close above the upper band, exit below the 20-day average) beat buy-and-hold Sharpe on only 30/371, the worst of its breakout family. The unused '20-day Donchian confirmation' indicator is removed from the list.
+- implementation_results: Rust in `src/family9.rs` / `src/study.rs`, config `configs/s094_bollinger_squeeze.yaml`; BandWidth(20,2sd) percentile <= 0.10 of the trailing 120 sessions AND a close outside the bands -> signed equal-slot book (1/50 per trade; SPY/QQQ + liquid-top-500 stocks, 5/15 bps/side, 300 bps/yr borrow on shorts), mid-band-cross or 10-session exit, next_open primary + close upper bound. DELTA: stocks use `daily_10years_split` (the tr cache covers only ~1.4k names); no moc_proxy (no minute bars); bottom decile implemented as an inclusive-window percentile rank. Baseline (next_open): DEV 7371 trades, -0.866 log, skill -0.787, Sharpe -1.171, PF 0.886, win 41.3%; TEST 2728, -0.282, skill -0.245, Sharpe -1.196, PF 0.921, win 41.0%. Dev-selected of 40 registered variants: `mult30` (3sd bands) - DEV 552 trades, skill -0.007, Sharpe -0.093, PF 1.112; TEST 184, skill -0.038, Sharpe -0.834, PF 0.834. Every variant's dev skill <= 0: no net edge, consistent with the demotion note. `etf_only` flagged PF 2.1 on just 37 dev trades (insufficient evidence, noise). Reproduce: `cargo run --release -- --strategy s094_bollinger_squeeze --variant mult30`
 - data_needs: ETF daily bars (DP-ETF); daily_10years (D1)
 - review: DEMOTE | source GENERIC
 

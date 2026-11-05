@@ -83,6 +83,8 @@ pub const S089_NAME: &str = crate::family9::S089_NAME;
 pub const S089_TITLE: &str = crate::family9::S089_TITLE;
 pub const S090_NAME: &str = crate::family9::S090_NAME;
 pub const S090_TITLE: &str = crate::family9::S090_TITLE;
+pub const S094_NAME: &str = crate::family9::S094_NAME;
+pub const S094_TITLE: &str = crate::family9::S094_TITLE;
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -1139,6 +1141,32 @@ impl StrategyDefinition for OvernightStrategyDefinition {
     }
 }
 
+struct S094BollingerSqueezeDefinition;
+
+impl StrategyDefinition for S094BollingerSqueezeDefinition {
+    fn name(&self) -> &'static str {
+        S094_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S094_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family9::compute_s094_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family9::s094_trades(panel, sig, cfg, fill)
+    }
+}
+
 static S001_STRATEGY: RsiStrategyDefinition = RsiStrategyDefinition {
     name: NAME,
     title: TITLE,
@@ -1302,7 +1330,8 @@ static S090_STRATEGY: Family9Definition = Family9Definition {
     title: S090_TITLE,
     kind: Family9Kind::KamaBreakout,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 55] = [
+static S094_STRATEGY: S094BollingerSqueezeDefinition = S094BollingerSqueezeDefinition;
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 56] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1358,6 +1387,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 55] = [
     &S089_STRATEGY,
     &S095_STRATEGY,
     &S090_STRATEGY,
+    &S094_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -3042,6 +3072,38 @@ impl<'a> Study<'a> {
                 "- Limitations: close/open daily bars proxy auction fills; volatility scaling of the overnight premium is a research hypothesis, not a result established by the cited momentum study.".into(),
             ];
         }
+        if c.strategy == S094_NAME {
+            return vec![
+                format!(
+                    "- Universe: SPY/QQQ plus the liquid top {} stocks (${:.0}+ close, {} prior bars).",
+                    c.universe_top_n, c.min_price, c.min_history
+                ),
+                format!(
+                    "- Rule: BandWidth({},{:.1}sd) in the bottom {:.0}% of the last {} sessions and a close outside the bands; {} legs{}; exit on a {} cross or after {} sessions.",
+                    c.bb_len,
+                    c.bb_mult,
+                    100.0 * c.decile,
+                    c.width_lookback,
+                    c.leg_mode,
+                    if c.min_hold > 0 {
+                        format!(" with a {}-session minimum hold", c.min_hold)
+                    } else {
+                        String::new()
+                    },
+                    c.exit_mode,
+                    c.max_hold
+                ),
+                format!(
+                    "- Fill: {}; {:.0} bps/side stocks (5 bps ETFs) plus {:.0} bps/yr borrow on short legs; one slot = 1/{} of book.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side,
+                    c.borrow_bps_annual,
+                    c.book_slots
+                ),
+                "- Baselines: equal-weight tradable universe, SMA200 timing, dev-vol-matched, and exposure-matched random timing; `close` fill is the same-close upper bound.".into(),
+                "- Limitations: catalog entry is demoted (compression-cluster control, variant of S065); short legs assume locate availability; stocks use split-adjusted bars.".into(),
+            ];
+        }
         if c.strategy == S019_NAME {
             return vec![
                 format!(
@@ -3416,6 +3478,11 @@ impl<'a> Study<'a> {
                 c.volume_mode,
                 c.sma_window,
                 c.max_hold
+            )
+        } else if c.strategy == S094_NAME {
+            format!(
+                "BB({},{:.1}) width bot{:.0}%/{}d {} exit={}",
+                c.bb_len, c.bb_mult, 100.0 * c.decile, c.width_lookback, c.leg_mode, c.exit_mode
             )
         } else {
             format!(

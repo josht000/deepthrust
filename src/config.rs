@@ -470,6 +470,20 @@ pub struct Config {
     pub rv_max: f64,
     #[serde(default = "d_rv_quiet_lookback")]
     pub rv_quiet_lookback: usize,
+    #[serde(default = "d_bb_len")]
+    pub bb_len: usize,
+    #[serde(default = "d_bb_mult")]
+    pub bb_mult: f64,
+    #[serde(default = "d_width_lookback")]
+    pub width_lookback: usize,
+    #[serde(default)]
+    pub squeeze_lag: usize,
+    #[serde(default)]
+    pub require_first_break: bool,
+    #[serde(default)]
+    pub vol_confirm_mult: f64,
+    #[serde(default)]
+    pub min_hold: usize,
     #[serde(default)]
     pub results_tag: String,
     #[serde(default = "d_macd_fast")]
@@ -1079,6 +1093,15 @@ fn d_rv_gate() -> String {
 }
 fn d_rv_quiet_lookback() -> usize {
     126
+}
+fn d_bb_len() -> usize {
+    20
+}
+fn d_bb_mult() -> f64 {
+    2.0
+}
+fn d_width_lookback() -> usize {
+    120
 }
 
 impl Config {
