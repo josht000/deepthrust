@@ -65,6 +65,8 @@ pub const S024_NAME: &str = crate::family2::S024_NAME;
 pub const S024_TITLE: &str = crate::family2::S024_TITLE;
 pub const S105_NAME: &str = "s105_overnight_carry";
 pub const S105_TITLE: &str = "S105 Volatility-Targeted Overnight Carry";
+pub const S090_NAME: &str = crate::family9::S090_NAME;
+pub const S090_TITLE: &str = crate::family9::S090_TITLE;
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -830,6 +832,45 @@ impl StrategyDefinition for Family6Definition {
     }
 }
 
+struct Family9Definition {
+    name: &'static str,
+    title: &'static str,
+    kind: Family9Kind,
+}
+
+#[derive(Copy, Clone)]
+enum Family9Kind {
+    KamaBreakout,
+}
+
+impl StrategyDefinition for Family9Definition {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn title(&self) -> &'static str {
+        self.title
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        match self.kind {
+            Family9Kind::KamaBreakout => crate::family9::compute_s090_signals(panel, cfg),
+        }
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        match self.kind {
+            Family9Kind::KamaBreakout => crate::family9::s090_trades(panel, sig, cfg, fill),
+        }
+    }
+}
+
 impl StrategyDefinition for OvernightStrategyDefinition {
     fn name(&self) -> &'static str {
         self.name
@@ -975,7 +1016,12 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
+static S090_STRATEGY: Family9Definition = Family9Definition {
+    name: S090_NAME,
+    title: S090_TITLE,
+    kind: Family9Kind::KamaBreakout,
+};
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 41] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1016,6 +1062,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
     &S104_STRATEGY,
     &S056_STRATEGY,
     &S058_STRATEGY,
+    &S090_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -1304,6 +1351,7 @@ impl<'a> Study<'a> {
                 | S050_NAME
                 | S051_NAME
                 | S104_NAME
+                | S090_NAME
         );
         if family4_universe {
             for t in 1..n_rows {
@@ -2606,6 +2654,10 @@ impl<'a> Study<'a> {
                 "Buy a close above a confirmed three-session Darvas box top; confirm pivots only after the required sessions.",
                 "The PIT liquidity-rank cache defines the stock universe; available stock history starts in 2016.",
             )),
+            "s090_kama_breakout" => Some((
+                "Hold a close above a flat-to-rising KAMA and exit on a close back below it; mirrored rules apply to the short-side variants.",
+                "The only cited source is an unverified YouTube video; stock and ETF bars start in 2016; the catalog's long-and-short direction runs long-only first per the shared specification, with short legs as registered variants.",
+            )),
             _ => None,
         };
         if let Some((description, limitations)) = family4 {
@@ -2688,6 +2740,7 @@ impl<'a> Study<'a> {
                 | S047_NAME
                 | S050_NAME
                 | S051_NAME
+                | S090_NAME
         ) {
             title_for(&c.strategy).to_string()
         } else if c.strategy == S104_NAME {

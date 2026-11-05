@@ -1,0 +1,90 @@
+# S090 KAMA Breakout (catalog: demoted; run per notes "standard KAMA(10,2,30) and accept the null")
+# Entry: close > KAMA(10,2,30) AND KAMA(t) > KAMA(t-5) * 0.999; exit: close < KAMA.
+# Universe: SPY, QQQ + liquid top-500 stocks (PIT rank cache). Long-only baseline per
+# the shared spec ("run every strategy LONG-ONLY first"); shorts are variants.
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+sources:
+  - name: etfs
+    data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+    data_suffix: .parquet
+    symbols: SPY,QQQ
+    cost_bps_per_side: 5.0
+  - name: stocks
+    data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+    data_suffix: .parquet
+    symbols: "*"
+    cost_bps_per_side: 15.0
+etf_symbols: SPY,QQQ
+include_stocks: true
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+min_history: 250
+universe_top_n: 500
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-01-01"
+kama_er_len: 10
+kama_fast: 2
+kama_slow: 30
+kama_slope_lookback: 5
+kama_slope_floor: 0.999
+kama_side: long
+kama_gate: none
+vol_window: 20
+rv_gate: none
+rv_max: 0.0
+rv_quiet_lookback: 126
+max_hold: 0
+disaster_stop_atr: 0.0
+atr_len: 14
+borrow_bps_annual: 300.0
+delisting_return: -0.30
+cost_bps_per_side: 15.0
+book_slots: 50
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+
+variants:
+  er5: {kama_er_len: 5}
+  er20: {kama_er_len: 20}
+  er30: {kama_er_len: 30}
+  fast3: {kama_fast: 3}
+  slow20: {kama_slow: 20}
+  slow60: {kama_slow: 60}
+  slope3: {kama_slope_lookback: 3}
+  slope10: {kama_slope_lookback: 10}
+  slope20: {kama_slope_lookback: 20}
+  flat995: {kama_slope_floor: 0.995}
+  flat100: {kama_slope_floor: 1.0}
+  flat101: {kama_slope_floor: 1.001}
+  noslope: {kama_slope_floor: 0.0}
+  close_only: {fills: close}
+  gate_sma200: {kama_gate: sma, sma_window: 200}
+  gate_sma50: {kama_gate: sma, sma_window: 50}
+  rv_quiet126: {rv_gate: quiet, rv_quiet_lookback: 126}
+  rv_quiet252: {rv_gate: quiet, rv_quiet_lookback: 252}
+  rv_cap40: {rv_gate: cap, rv_max: 0.40}
+  rv_cap25: {rv_gate: cap, rv_max: 0.25}
+  hold10: {max_hold: 10}
+  hold20: {max_hold: 20}
+  hold40: {max_hold: 40}
+  stop2atr: {disaster_stop_atr: 2.0}
+  stop3atr: {disaster_stop_atr: 3.0}
+  top100: {universe_top_n: 100}
+  top250: {universe_top_n: 250}
+  top1000: {universe_top_n: 1000}
+  etf_only: {include_stocks: false}
+  stocks_only: {etf_symbols: ""}
+  long_short: {kama_side: long_short}
+  short_only: {kama_side: short}
+  er5_slope10: {kama_er_len: 5, kama_slope_lookback: 10}
+  er20_flat100: {kama_er_len: 20, kama_slope_floor: 1.0}
+  gate_rv: {kama_gate: sma, sma_window: 200, rv_gate: quiet}

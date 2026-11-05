@@ -104,7 +104,7 @@
     - [S087 | 20-Day-EMA Pullback in Uptrend](#s087--20-day-ema-pullback-in-uptrend) — NOT_DAILY, DEFER
     - [S088 | MACD Bullish Cross with Volume](#s088--macd-bullish-cross-with-volume)
     - [S089 | Golden Cross with Slope Filter](#s089--golden-cross-with-slope-filter)
-    - [S090 | KAMA Breakout](#s090--kama-breakout)
+    - [S090 | KAMA Breakout](#s090--kama-breakout) — IMPLEMENTED — DELTA
     - [S091 | Donchian 55 with Chandelier Trail](#s091--donchian-55-with-chandelier-trail)
     - [S093 | Higher-Low Reversal Entry](#s093--higher-low-reversal-entry) — NOT_DAILY, DEFER
     - [S094 | Bollinger Squeeze Breakout](#s094--bollinger-squeeze-breakout)
@@ -2015,6 +2015,8 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - notes: Run once with the standard KAMA(10,2,30) formula and accept the null. The only source is a YouTube marketing claim ($124k on NQ; page empty in review); Be The Puck's Kaufman Adaptive MA beat buy-and-hold Sharpe on 44/372; `KAMA(t) > KAMA(t-5) x 0.999` is an arbitrary slope test.
 - data_needs: daily_10years (D1); ETF daily bars (DP-ETF)
 - review: DEMOTE | source UNVERIFIED
+- implementation_results: Rust in `src/family9.rs` / `src/study.rs`, config `configs/s090_kama_breakout.yaml`; KAMA(10,2,30) entry `close > KAMA AND KAMA(t) > KAMA(t-5) x 0.999`, exit on close < KAMA; SPY+QQQ (5 bps/side) plus liquid top-500 stocks (15 bps/side, PIT liquidity-rank cache, $5+/250-bar rules); next_open primary + close upper bound (no minute bars for moc_proxy); dev < 2024-01-01 <= test. DELTA: the catalog direction is long-and-short but the shared spec runs LONG-ONLY first - short legs are registered variants (`long_short`, `short_only`; mirrored flat-to-falling rules, 300 bps/yr borrow, fixed-weight book); the listed 20-day realized-vol indicator is used only in the rv_* gate variants. Baseline (next_open): DEV 50,412 trades, -0.101 log, skill -0.782, Sharpe -0.03, PF 1.02, win 31.2%; TEST 20,629, -0.069, skill -0.427, Sharpe -0.12, PF 0.99 - the documented null. `etf_only` (SPY+QQQ) is the dev-selected of 36 configurations with the least-negative dev skill: DEV 196 trades, +0.023, skill -0.014, Sharpe +0.77, PF 1.73, win 46.9%; one-shot TEST 98, +0.006, skill -0.002, Sharpe +0.52, PF 1.46. No variant reaches positive dev skill.
+  Reproduce: `target\release\deepthrust.exe --strategy s090_kama_breakout --variant er5,er20,er30,fast3,slow20,slow60,slope3,slope10,slope20,flat995,flat100,flat101,noslope,close_only,gate_sma200,gate_sma50,rv_quiet126,rv_quiet252,rv_cap40,rv_cap25,hold10,hold20,hold40,stop2atr,stop3atr,top100,top250,top1000,etf_only,stocks_only,long_short,short_only,er5_slope10,er20_flat100,gate_rv`
 
 ### S091 | Donchian 55 with Chandelier Trail
 - family: trend and pullback

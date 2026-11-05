@@ -160,7 +160,7 @@ fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Resul
             })
         })
         .collect();
-    let params = serde_json::json!({
+    let mut params = serde_json::json!({
         "variant_overlay": cfg.variant_overlay,
         "sources": source_params,
         "rsi_len": cfg.rsi_len,
@@ -201,6 +201,23 @@ fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Resul
         "rank_min_observations": cfg.rank_min_observations,
         "min_price": cfg.min_price
     });
+    if let serde_json::Value::Object(map) = &mut params {
+        map.extend(serde_json::json!({
+            "kama_er_len": cfg.kama_er_len,
+            "kama_fast": cfg.kama_fast,
+            "kama_slow": cfg.kama_slow,
+            "kama_slope_lookback": cfg.kama_slope_lookback,
+            "kama_slope_floor": cfg.kama_slope_floor,
+            "kama_side": cfg.kama_side,
+            "kama_gate": cfg.kama_gate,
+            "rv_gate": cfg.rv_gate,
+            "rv_max": cfg.rv_max,
+            "rv_quiet_lookback": cfg.rv_quiet_lookback
+        })
+        .as_object()
+        .unwrap()
+        .clone());
+    }
     for fill in cfg.fills_list() {
         let dev = study
             .row(&fill, "dev")
