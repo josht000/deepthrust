@@ -144,6 +144,10 @@ pub struct Config {
     pub min_breadth: usize,
     #[serde(default = "d_decile")]
     pub decile: f64,
+    #[serde(default = "d_accel_measure")]
+    pub accel_measure: String,
+    #[serde(default = "d_accel_gate")]
+    pub accel_gate: bool,
     #[serde(default)]
     pub industry_neutral: bool,
     #[serde(default = "d_rebalance")]
@@ -529,6 +533,12 @@ fn d_min_breadth() -> usize {
 }
 fn d_decile() -> f64 {
     0.10
+}
+fn d_accel_measure() -> String {
+    "diff".into()
+}
+fn d_accel_gate() -> bool {
+    true
 }
 fn d_rebalance() -> String {
     "monthly".into()

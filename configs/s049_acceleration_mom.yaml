@@ -1,0 +1,67 @@
+data_dir:  C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+simfin_dir: C:\data\trading\trading_framework\data\simfin
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+mom_window: 252
+skip_window: 21
+accel_measure: diff
+accel_gate: true
+breadth_mode: decile
+decile: 0.10
+breadth: 50
+min_breadth: 1
+rebalance: weekly
+delisting_return: -0.30
+cost_bps_per_side: 15.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 50
+
+variants:
+  rank: {accel_measure: rank}
+  rank_monthly: {accel_measure: rank, rebalance: monthly}
+  monthly: {rebalance: monthly}
+  nogate: {accel_gate: false}
+  nogate_monthly: {accel_gate: false, rebalance: monthly}
+  ctrl_inv_s028: {accel_measure: r21, accel_gate: false, rebalance: monthly}
+  ctrl_r21w: {accel_measure: r21, accel_gate: false}
+  ctrl_r21g: {accel_measure: r21}
+  s10: {skip_window: 10}
+  s42: {skip_window: 42}
+  s63: {skip_window: 63}
+  l126: {mom_window: 126}
+  l189: {mom_window: 189}
+  l315: {mom_window: 315}
+  l126_s42: {mom_window: 126, skip_window: 42}
+  decile5: {decile: 0.05, book_slots: 25}
+  decile15: {decile: 0.15, book_slots: 75}
+  decile20: {decile: 0.20, book_slots: 100}
+  top10: {breadth_mode: top, breadth: 10, book_slots: 10}
+  top20: {breadth_mode: top, breadth: 20, book_slots: 20}
+  top30: {breadth_mode: top, breadth: 30, book_slots: 30}
+  top100: {breadth_mode: top, breadth: 100, book_slots: 100}
+  u250: {universe_top_n: 250, book_slots: 25}
+  u1000: {universe_top_n: 1000, book_slots: 100}
+  u1500: {universe_top_n: 1500, book_slots: 150}
+  cost0: {cost_bps_per_side: 0}
+  cost5: {cost_bps_per_side: 5}
+  cost10: {cost_bps_per_side: 10}
+  cost25: {cost_bps_per_side: 25}
+  cost50: {cost_bps_per_side: 50}
+  monthly_l126: {rebalance: monthly, mom_window: 126}
+  monthly_decile20: {rebalance: monthly, decile: 0.20, book_slots: 100}
+  monthly_top20: {rebalance: monthly, breadth_mode: top, breadth: 20, book_slots: 20}
+  u1000_monthly: {universe_top_n: 1000, book_slots: 100, rebalance: monthly}
+  l189_s63: {mom_window: 189, skip_window: 63}
