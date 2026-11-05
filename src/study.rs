@@ -696,6 +696,7 @@ enum Family7Kind {
     CopperGoldTilt,
     VolCompression,
     CointegratedPairs,
+    ZweigBreadthThrust,
 }
 
 impl StrategyDefinition for Family7Definition {
@@ -714,6 +715,7 @@ impl StrategyDefinition for Family7Definition {
             Family7Kind::CopperGoldTilt => crate::family7::compute_s102_signals(panel, cfg),
             Family7Kind::VolCompression => crate::family7::compute_s065_signals(panel, cfg),
             Family7Kind::CointegratedPairs => crate::family7::compute_s071_signals(panel, cfg),
+            Family7Kind::ZweigBreadthThrust => crate::family7::compute_s066_signals(panel, cfg),
         }
     }
 
@@ -732,6 +734,7 @@ impl StrategyDefinition for Family7Definition {
             }
             Family7Kind::VolCompression => crate::family7::s065_trades(panel, sig, cfg, fill),
             Family7Kind::CointegratedPairs => crate::family7::s071_trades(panel, sig, cfg, fill),
+            Family7Kind::ZweigBreadthThrust => crate::family7::s066_trades(panel, sig, cfg, fill),
         }
     }
 }
@@ -935,6 +938,11 @@ static S071_STRATEGY: Family7Definition = Family7Definition {
     title: crate::family7::S071_TITLE,
     kind: Family7Kind::CointegratedPairs,
 };
+static S066_STRATEGY: Family7Definition = Family7Definition {
+    name: crate::family7::S066_NAME,
+    title: crate::family7::S066_TITLE,
+    kind: Family7Kind::ZweigBreadthThrust,
+};
 static S052_STRATEGY: Family5Definition = Family5Definition {
     name: crate::family5::S052_NAME,
     title: crate::family5::S052_TITLE,
@@ -975,7 +983,7 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 41] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1007,6 +1015,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
     &S102_STRATEGY,
     &S065_STRATEGY,
     &S071_STRATEGY,
+    &S066_STRATEGY,
     &S052_STRATEGY,
     &S053_STRATEGY,
     &S054_STRATEGY,
@@ -2368,6 +2377,28 @@ impl<'a> Study<'a> {
                 "- Limitations: the pair list is a pre-registered subset, not the paper's full 30-pair appendix; ADF critical values are asymptotic MacKinnon approximations.".into(),
             ];
         }
+        if c.strategy == crate::family7::S066_NAME {
+            return vec![
+                format!(
+                    "- Universe: {} ({} source); breadth universe={} top {}; daily split-adjusted stock bars.",
+                    c.traded_symbol, c.defensive_asset, c.breadth_universe, c.universe_top_n
+                ),
+                format!(
+                    "- Rule: {} breadth osc ({}) below {:.3} within {} sessions then crosses above {:.3} -> long {}; exit on close < SMA({}){}.",
+                    c.breadth_metric,
+                    if c.breadth_metric == "adv_dec" { format!("EMA({})", c.breadth_ema_len) } else { format!("raw %above SMA({})", c.breadth_sma_len) },
+                    c.thrust_low, c.thrust_window, c.thrust_high, c.traded_symbol, c.sma_window,
+                    if c.max_hold > 0 { format!(" or after {} sessions", c.max_hold) } else { String::new() }
+                ),
+                format!(
+                    "- Fill: {}; {} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: SPY close-to-close benchmark plus random-timing exposure matching.".into(),
+                "- Limitations: breadth is computed from the local stock cache (split-adjusted, incl. delisted), not official NYSE A/D; catalog status=demoted (rare signal, source mismatch on universe).".into(),
+            ];
+        }
         if c.strategy == crate::family5::S052_NAME {
             return vec![
                 format!(
@@ -2740,6 +2771,8 @@ impl<'a> Study<'a> {
             format!("rv{}/{}<{:.2} donchian{} x{}", c.rv_short, c.rv_long, c.rv_ratio, c.entry_window, c.exit_extreme_window)
         } else if c.strategy == crate::family7::S071_NAME {
             format!("adf<{:.2} z>{:.1} out {:.2}/{:.2}", c.adf_max_p, c.z_entry, c.z_exit_short, c.z_exit_long)
+        } else if c.strategy == crate::family7::S066_NAME {
+            format!("thrust {} ema{} {:.2}->{:.3} w{} xsma{} ->{}", c.breadth_metric, c.breadth_ema_len, c.thrust_low, c.thrust_high, c.thrust_window, c.sma_window, c.traded_symbol)
         } else if c.strategy == S021_NAME {
             format!(
                 "overnight {} filter={}",

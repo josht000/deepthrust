@@ -83,7 +83,7 @@
     - [S063 | VIX Moving-Average Crossover Regime](#s063--vix-moving-average-crossover-regime)
     - [S064 | Hurst Exponent Regime Switch](#s064--hurst-exponent-regime-switch)
     - [S065 | Realized-Vol Compression Breakout (compression cluster champion candidate)](#s065--realized-vol-compression-breakout-compression-cluster-champion-candidate) — IMPLEMENTED — DAILY, DELTA
-    - [S066 | Zweig Breadth Thrust](#s066--zweig-breadth-thrust)
+    - [S066 | Zweig Breadth Thrust](#s066--zweig-breadth-thrust) — IMPLEMENTED — DAILY, DELTA
     - [S067 | Relative Sector Breadth Rotation](#s067--relative-sector-breadth-rotation) — IMPLEMENTED
     - [S069 | TLT Crash-Hedge Rotation](#s069--tlt-crash-hedge-rotation) — IMPLEMENTED
     - [S070 | QQQ Regime Switches with Real TQQQ History (public rules only)](#s070--qqq-regime-switches-with-real-tqqq-history-public-rules-only) — IMPLEMENTED
@@ -1632,9 +1632,11 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: rare (a handful per decade) — combine with other breadth signals
 - provenance: research-hypothesis
 - status: demoted
+- rust_status: IMPLEMENTED
 - priority: P4
 - sources: [GitHub - phuazz/breadth-thrust-etf (a constituent-breadth thrust, NOT the classic NYSE advance/decline Zweig thrust; its author concludes the S&P 500 is the wrong universe and the signal does not generalise)](https://github.com/phuazz/breadth-thrust-etf); Zweig / Morris classic thresholds (StockCharts; not in the cited repo)
 - notes: The phuazz repo computes '% of constituents above their 50-day MA crossing from below 50% to above 80% within 20 trading days' from point-in-time iShares holdings and Norgate delisted data; on the S&P 500 (CSP1) its tuned config gives Sharpe +0.59 at the 43rd percentile of the random-entry null; energy and financials Sharpe <= 0.09. The catalog's classic Zweig thresholds are not in `sources`. Zweig thrusts are rare (N ~ 3-5 in 2016+). If kept: build breadth from our own universe, test the classic thresholds on pre-2016 data where available; otherwise drop.
+- implementation_results: Rust in `src/family7.rs` / `src/study.rs`, config `configs/s066_zweig_breadth_thrust.yaml`; EMA(10) of the advance ratio (adv/(adv+dec), split-adjusted daily_10years cache incl. delisted, liquid top-500 via liquid_ranks) dips <0.40 within 10 sessions then crosses >0.615 -> long SPY, exit close<SMA(50), 1 bp/side, next_open primary + close upper bound. DELTA: own-universe breadth, not official NYSE A/D; no pre-2016 history. Baseline (SPY): DEV 9 trades, +0.044 log, skill -0.033, Sharpe +0.209; TEST 2 trades, +0.049 - `insufficient evidence` both partitions, engine flags DECAYED and PF>2 (9-trade artifact). Dev-selected of 39 trials: `qqq_loose` (QQQ, high 0.58): DEV 20 trades, +0.279 log, skill +0.105, Sharpe +0.533; TEST 2 trades, +0.058. `looser` (0.45->0.55 in 20d) is the deepest-evidence variant: DEV 60 trades, skill +0.087, Sharpe +0.597; TEST 16, +0.251 log, skill +0.021, Sharpe +1.039. Reproduce: `target/release/deepthrust.exe --strategy s066_zweig_breadth_thrust --variant low35,low45,high55,high58,high60,high625,high65,win5,win15,win20,ema5,ema15,ema20,exit20,exit100,exit150,exit200,alluniv,top300,top1000,top1500,bil,tlt,qqq,iwm,hold126,hold252,cost05,cost2,cost5,loose,looser,tight,phuazz,phuazz65,alluniv_loose,ema5_loose,qqq_loose`
 - data_needs: breadth from own universe (D1); pre-2016 NYSE A/D history (external, optional)
 - review: DEMOTE | source MISMATCH
 
