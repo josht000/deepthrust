@@ -65,6 +65,8 @@ pub const S024_NAME: &str = crate::family2::S024_NAME;
 pub const S024_TITLE: &str = crate::family2::S024_TITLE;
 pub const S105_NAME: &str = "s105_overnight_carry";
 pub const S105_TITLE: &str = "S105 Volatility-Targeted Overnight Carry";
+pub const S097_NAME: &str = crate::family10::S097_NAME;
+pub const S097_TITLE: &str = crate::family10::S097_TITLE;
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -531,6 +533,32 @@ impl StrategyDefinition for ResidualReversalStrategyDefinition {
     }
 }
 
+struct BullishEngulfingStrategyDefinition;
+
+impl StrategyDefinition for BullishEngulfingStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S097_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S097_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family10::compute_s097_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family10::s097_trades(panel, sig, cfg, fill)
+    }
+}
+
 struct CrashProtectionStrategyDefinition;
 
 impl StrategyDefinition for CrashProtectionStrategyDefinition {
@@ -964,6 +992,7 @@ static S013_STRATEGY: RsiStrategyDefinition = RsiStrategyDefinition {
     name: S013_NAME,
     title: S013_TITLE,
 };
+static S097_STRATEGY: BullishEngulfingStrategyDefinition = BullishEngulfingStrategyDefinition;
 static S104_STRATEGY: CrashProtectionStrategyDefinition = CrashProtectionStrategyDefinition;
 static S056_STRATEGY: Family6Definition = Family6Definition {
     name: crate::family6::S056_NAME,
@@ -975,7 +1004,7 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 41] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1013,6 +1042,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
     &S067_STRATEGY,
     &S078_STRATEGY,
     &S013_STRATEGY,
+    &S097_STRATEGY,
     &S104_STRATEGY,
     &S056_STRATEGY,
     &S058_STRATEGY,
@@ -2645,6 +2675,34 @@ impl<'a> Study<'a> {
                 format!("- Limitations: {limitations}"),
             ];
         }
+        if c.strategy == S097_NAME {
+            return vec![
+                format!(
+                    "- Universe: {} candidate symbols; PIT liquidity-rank top {}, {}-session ranks, price >= ${:.2}, >= {} prior bars.",
+                    s.panel.symbols.len(),
+                    c.universe_top_n,
+                    c.rank_window,
+                    c.min_price,
+                    c.min_history
+                ),
+                format!(
+                    "- Rule: {} consecutive down closes then a {} bullish engulfing (bull body engulfs prior bear body) with close > SMA({}); exit {} (window {}) or cap {} sessions.",
+                    c.down_streak,
+                    c.engulf_mode,
+                    c.sma_window,
+                    c.exit_mode,
+                    c.exit_sma,
+                    c.max_hold
+                ),
+                format!(
+                    "- Fill: {}; `next_open` is primary, `close` is the same-close upper bound; {} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: equal-weight liquid-universe buy-and-hold, SMA200 timing, dev-vol-matched, and exposure-matched random timing.".into(),
+                "- Limitations: split-adjusted OHLC (not raw) drives the body-engulf test; status demoted means this run is a candlestick-registry control under the FDR correction, not a promoted edge.".into(),
+            ];
+        }
         let rule = if c.strategy == S006_NAME {
             let stop = if c.disaster_stop_atr == 0.0 {
                 "No stop is applied in this run.".to_string()
@@ -2753,6 +2811,16 @@ impl<'a> Study<'a> {
                 100.0 * c.target_vol,
                 c.max_leverage,
                 100.0 * c.resize_band
+            )
+        } else if c.strategy == S097_NAME {
+            format!(
+                "engulf {} streak{}>sma{} exit{}({}) hold{}",
+                c.engulf_mode,
+                c.down_streak,
+                c.sma_window,
+                c.exit_mode,
+                c.exit_sma,
+                c.max_hold
             )
         } else if c.strategy == S006_NAME {
             format!(

@@ -1,0 +1,62 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_split
+data_suffix: .parquet
+symbols: "*"
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+universe_top_n: 500
+min_price: 5.0
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+down_streak: 3
+engulf_mode: strict
+sma_window: 200
+exit_mode: sma
+exit_sma: 5
+max_hold: 5
+stop_loss: 0.0
+take_profit: 0.0
+delisting_return: -0.30
+cost_bps_per_side: 15.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 50
+
+variants:
+  loose: {engulf_mode: loose}
+  streak2: {down_streak: 2}
+  streak4: {down_streak: 4}
+  streak5: {down_streak: 5}
+  exit_upclose: {exit_mode: up_close}
+  exit_time: {exit_mode: time}
+  exit_sma3: {exit_sma: 3}
+  exit_sma10: {exit_sma: 10}
+  exit_sma20: {exit_sma: 20}
+  hold3: {max_hold: 3}
+  hold8: {max_hold: 8}
+  hold10: {max_hold: 10}
+  nosma: {sma_window: 0}
+  sma50: {sma_window: 50}
+  sma100: {sma_window: 100}
+  top250: {universe_top_n: 250}
+  top1000: {universe_top_n: 1000}
+  top1500: {universe_top_n: 1500}
+  stop5: {stop_loss: 0.05}
+  stop8: {stop_loss: 0.08}
+  target5: {take_profit: 0.05}
+  target10: {take_profit: 0.10}
+  cost5: {cost_bps_per_side: 5.0}
+  cost25: {cost_bps_per_side: 25.0}
+  minpx10: {min_price: 10.0}
+  loose_streak2: {engulf_mode: loose, down_streak: 2}
+  loose_upclose: {engulf_mode: loose, exit_mode: up_close}
+  streak4_upclose: {down_streak: 4, exit_mode: up_close}
+  nosma_loose: {sma_window: 0, engulf_mode: loose}
+  nosma_streak2: {sma_window: 0, down_streak: 2}
+  upclose_hold3: {exit_mode: up_close, max_hold: 3}
+  stop5_target10: {stop_loss: 0.05, take_profit: 0.10}

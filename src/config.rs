@@ -330,6 +330,10 @@ pub struct Config {
     pub cyclical_symbols: String,
     #[serde(default = "d_defensive_symbols")]
     pub defensive_symbols: String,
+    #[serde(default = "d_down_streak")]
+    pub down_streak: usize,
+    #[serde(default = "d_engulf_mode")]
+    pub engulf_mode: String,
     #[serde(default)]
     pub results_tag: String,
     /// Resolved variant name ("baseline" when no overlay is applied).
@@ -730,6 +734,12 @@ fn d_cyclical_symbols() -> String {
 }
 fn d_defensive_symbols() -> String {
     "XLP,XLU".into()
+}
+fn d_down_streak() -> usize {
+    3
+}
+fn d_engulf_mode() -> String {
+    "strict".into()
 }
 
 impl Config {
