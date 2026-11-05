@@ -2231,6 +2231,142 @@ pub fn s036_trades(
     Ok(trades)
 }
 
+/// G097 Baltas-style vol-scaled trend: TSMOM sign over mom_window, weight =
+/// sign * min(pos_cap, target_vol / realized_vol_ann) per asset; month-end
+/// rebalance. Vol estimator via strategy_mode: "rolling" | "ewm" | "yz".
+/// DELTA: TSMOMBaltas2020 is private — approximated by sign of momentum.
+pub fn compute_g097_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let n = panel.dates.len();
+    let ns = panel.symbols.len();
+    let days = rebalance_days(panel, &cfg.rebalance)?;
+    let mut result = blank_rebalance_signals(panel, "baltas_vol");
+    let vw = cfg.vol_window.max(5);
+    let mut vol_ann = vec![vec![f64::NAN; n]; ns];
+    for j in 0..ns {
+        let rets: Vec<f64> = {
+            let mut v = vec![f64::NAN];
+            for t in 1..n {
+                let a = panel.close[j][t];
+                let b = panel.close[j][t - 1];
+                v.push(if a.is_finite() && b.is_finite() && b > 0.0 {
+                    (a / b).ln()
+                } else {
+                    f64::NAN
+                });
+            }
+            v
+        };
+        match cfg.strategy_mode.as_str() {
+            "yz" => {
+                for t in vw..n {
+                    let mut s2 = 0.0;
+                    let mut cnt = 0;
+                    let mut oc_s = 0.0;
+                    let mut co_s = 0.0;
+                    for k in t - vw + 1..=t {
+                        let o = panel.open[j][k];
+                        let h = panel.high[j][k];
+                        let l = panel.low[j][k];
+                        let c = panel.close[j][k];
+                        let pc = panel.close[j][k - 1];
+                        if !(o.is_finite() && h.is_finite() && l.is_finite() && c.is_finite())
+                            || !pc.is_finite()
+                            || o <= 0.0
+                            || h <= 0.0
+                            || l <= 0.0
+                            || c <= 0.0
+                            || pc <= 0.0
+                        {
+                            continue;
+                        }
+                        let oc = (o / pc).ln();
+                        let co = (c / o).ln();
+                        let rs = (h / o).ln() * (h / c).ln() + (l / o).ln() * (l / c).ln();
+                        s2 += rs * 0.383;
+                        oc_s += oc * oc;
+                        co_s += co * co;
+                        cnt += 1;
+                    }
+                    if cnt >= vw / 2 {
+                        let k = 0.34 / (1.34 + (cnt + 1) as f64 / (cnt - 1) as f64);
+                        let var = oc_s / cnt as f64
+                            + k * co_s / cnt as f64
+                            + (1.0 - k) * s2 / cnt as f64;
+                        if var > 0.0 {
+                            vol_ann[j][t] = var.sqrt() * (252.0f64).sqrt();
+                        }
+                    }
+                }
+            }
+            "ewm" => {
+                let lam = 1.0 - 2.0 / (vw as f64 + 1.0);
+                let mut acc = f64::NAN;
+                for t in 0..n {
+                    let r = rets[t];
+                    if r.is_finite() {
+                        acc = if acc.is_nan() { r * r } else { lam * acc + (1.0 - lam) * r * r };
+                    }
+                    if t >= vw && acc.is_finite() && acc > 0.0 {
+                        vol_ann[j][t] = acc.sqrt() * (252.0f64).sqrt();
+                    }
+                }
+            }
+            _ => {
+                for t in vw..n {
+                    let mut s = 0.0;
+                    let mut s2 = 0.0;
+                    let mut cnt = 0;
+                    for k in t - vw + 1..=t {
+                        if rets[k].is_finite() {
+                            s += rets[k];
+                            s2 += rets[k] * rets[k];
+                            cnt += 1;
+                        }
+                    }
+                    if cnt >= vw / 2 && cnt > 1 {
+                        let m = s / cnt as f64;
+                        let var = (s2 - cnt as f64 * m * m) / (cnt - 1) as f64;
+                        if var > 0.0 {
+                            vol_ann[j][t] = var.sqrt() * (252.0f64).sqrt();
+                        }
+                    }
+                }
+            }
+        }
+        result.rsi[j] = vol_ann[j].clone();
+    }
+    let mut weights = vec![vec![0.0; n]; ns];
+    for &day in &days {
+        for j in 0..ns {
+            let mom_end = day;
+            let mom_start = day.saturating_sub(cfg.mom_window);
+            let (a, b) = (panel.close[j][mom_start], panel.close[j][mom_end]);
+            let vol = vol_ann[j][day];
+            if !(a.is_finite() && b.is_finite() && a > 0.0 && vol.is_finite() && vol > 0.0) {
+                continue;
+            }
+            let sign = if b > a {
+                1.0
+            } else if b < a {
+                -1.0
+            } else {
+                0.0
+            };
+            if sign == 0.0 {
+                continue;
+            }
+            let w = sign * cfg.pos_cap.min(cfg.target_vol / vol);
+            if w.abs() >= 0.001 {
+                weights[j][day] = w;
+                result.signal[j][day] = true;
+            }
+        }
+    }
+    result.trade_weights = Some(weights);
+    result.benchmark_returns = benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
