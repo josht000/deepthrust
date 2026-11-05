@@ -1,0 +1,37 @@
+# G070 ATR SuperTrend direction-reversal (Pine default ATR(10)x3).
+# Long-only port of the catalog's long/short spec (engine has no short leg).
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY
+benchmark: SPY
+start_date: "2005-01-01"
+min_history: 250
+atr_len: 10
+st_mult: 3.0
+disaster_stop_atr: 0.0
+cost_bps_per_side: 5.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+n_timing_draws: 500
+seed: 20261101
+book_slots: 15
+
+variants:
+  vbt7: {atr_len: 7}
+  atr14: {atr_len: 14}
+  atr20: {atr_len: 20}
+  atr22: {atr_len: 22}
+  mult2: {st_mult: 2.0}
+  mult2_5: {st_mult: 2.5}
+  mult3_5: {st_mult: 3.5}
+  mult4: {st_mult: 4.0}
+  fast: {atr_len: 7, st_mult: 2.0}
+  slow: {atr_len: 20, st_mult: 4.0}
+  spy_only: {symbols: SPY, book_slots: 1}
+  qqq_only: {symbols: QQQ, book_slots: 1}
+  tlt_only: {symbols: TLT, book_slots: 1}
+  gld_only: {symbols: GLD, book_slots: 1}
+  tight: {atr_len: 7, st_mult: 2.5}
+  loose: {atr_len: 14, st_mult: 3.5}

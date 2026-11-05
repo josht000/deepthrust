@@ -282,6 +282,8 @@ pub struct Config {
     pub stoch_out: f64,
     #[serde(default = "d_chan_mult")]
     pub chan_mult: f64,
+    #[serde(default = "d_st_mult")]
+    pub st_mult: f64,
     #[serde(default = "d_levered_cap")]
     pub levered_cap: f64,
     #[serde(default = "d_z_entry")]
@@ -786,6 +788,9 @@ fn d_stoch_out() -> f64 {
 }
 fn d_chan_mult() -> f64 {
     2.0
+}
+fn d_st_mult() -> f64 {
+    3.0
 }
 
 impl Config {
