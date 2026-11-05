@@ -94,7 +94,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G073 | Three-Day Pullback Above SMA200](#g073--three-day-pullback-above-sma200) — DUPLICATE (S007)
   - [G074 | Turtle Donchian Reversal (26/10)](#g074--turtle-donchian-reversal-2610) — DUPLICATE (S036)
   - [G075 | Adaptive Renko Trend Following with Partial De-Risking](#g075--adaptive-renko-trend-following-with-partial-de-risking)
-  - [G076 | Awesome Oscillator Saucer and Zero-Line Momentum](#g076--awesome-oscillator-saucer-and-zero-line-momentum)
+  - [G076 | Awesome Oscillator Saucer and Zero-Line Momentum](#g076--awesome-oscillator-saucer-and-zero-line-momentum) — IMPLEMENTED
   - [G077 | CTA 1.0 Binary EWM Crossover](#g077--cta-10-binary-ewm-crossover)
   - [G078 | CTA 2.0 Volatility-Scaled EWM Crossover](#g078--cta-20-volatility-scaled-ewm-crossover)
   - [G079 | CTA 3.0 Robust Volatility-Adjusted Oscillator](#g079--cta-30-robust-volatility-adjusted-oscillator)
@@ -1497,6 +1497,13 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - reported_metrics: none reported
 - notes: The same file also runs a MACD moving-average benchmark; that separate rule is listed below.
 - sources: [je-suis-tm/quant-trading — AO 5/34 calculation and saucer/zero-line signal generation](https://github.com/je-suis-tm/quant-trading/blob/611b73f2c3f577ac5b28aaa19ac8c43d3236c7a5/Awesome%20Oscillator%20backtest.py#L55-L127); [je-suis-tm/quant-trading — Portfolio state and fixed-share backtest](https://github.com/je-suis-tm/quant-trading/blob/611b73f2c3f577ac5b28aaa19ac8c43d3236c7a5/Awesome%20Oscillator%20backtest.py#L212-L235)
+- implementation_results: `src/signals.rs` compute_g076_signals (worktree branch g076_awesome_oscillator); pooled 15-ETF TR book, 5 bps/side, next_open primary; dev < 2024-01-01 <= test. Long-only: source's short leg unimplemented — DELTA. Baseline (zero-cross) + 16 variants incl. saucer/either modes.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev PF | test total (log) | test skill | test Sharpe | test PF | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | +0.40 | -0.07 | 0.60 | 1.73 | +0.20 | -0.02 | 1.03 | 1.92 | 588+216 |
+  | saucer (dev pick; insufficient: tlt_only top dev on 46 trades) | +0.51 | -0.02 | 0.75 | 2.35 | +0.16 | +0.04 | 1.25 | 4.58 | 351+121 |
+  NO EDGE: strong raw returns and PF>2 on several configs (saucer 4.58, gld_only 5.71 — small samples) but skill vs random picks is ~0 or negative on every config. Reproduce: `cargo run --release --bin deepthrust -- --strategy g076_awesome_oscillator`; variants `... --variant saucer,either,fast3,fast8,fast13,slow21,slow55,slow89,quick,lazy,spy_only,qqq_only,tlt_only,gld_only,saucer_fast8,either_slow55`
 
 ### G077 | CTA 1.0 Binary EWM Crossover
 - priority: Low — The signal rules are explicit and daily-native, but the examples do not establish cost-aware out-of-sample performance.

@@ -811,6 +811,7 @@ enum Family7Kind {
     GoldSilverRatio,
     VixMaRegime,
     HurstRegime,
+    ZweigBreadthThrust,
 }
 
 impl StrategyDefinition for Family7Definition {
@@ -832,6 +833,7 @@ impl StrategyDefinition for Family7Definition {
             Family7Kind::GoldSilverRatio => crate::family7::compute_s072_signals(panel, cfg),
             Family7Kind::VixMaRegime => crate::family7::compute_s063_signals(panel, cfg),
             Family7Kind::HurstRegime => crate::family7::compute_s064_signals(panel, cfg),
+            Family7Kind::ZweigBreadthThrust => crate::family7::compute_s066_signals(panel, cfg),
         }
     }
 
@@ -853,6 +855,7 @@ impl StrategyDefinition for Family7Definition {
             Family7Kind::GoldSilverRatio => crate::family7::s072_trades(panel, sig, cfg, fill),
             Family7Kind::VixMaRegime => crate::family7::s063_trades(panel, sig, cfg, fill),
             Family7Kind::HurstRegime => crate::family7::s064_trades(panel, sig, cfg, fill),
+            Family7Kind::ZweigBreadthThrust => crate::family7::s066_trades(panel, sig, cfg, fill),
         }
     }
 }
@@ -1074,6 +1077,11 @@ static S064_STRATEGY: Family7Definition = Family7Definition {
     title: crate::family7::S064_TITLE,
     kind: Family7Kind::HurstRegime,
 };
+static S066_STRATEGY: Family7Definition = Family7Definition {
+    name: crate::family7::S066_NAME,
+    title: crate::family7::S066_TITLE,
+    kind: Family7Kind::ZweigBreadthThrust,
+};
 static S052_STRATEGY: Family5Definition = Family5Definition {
     name: crate::family5::S052_NAME,
     title: crate::family5::S052_TITLE,
@@ -1115,7 +1123,7 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     kind: Family6Kind::TopicSentiment,
 };
 static S088_STRATEGY: MacdVolumeCrossStrategyDefinition = MacdVolumeCrossStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 47] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 48] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1152,6 +1160,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 47] = [
     &S071_STRATEGY,
     &S072_STRATEGY,
     &S064_STRATEGY,
+    &S066_STRATEGY,
     &S052_STRATEGY,
     &S053_STRATEGY,
     &S054_STRATEGY,
@@ -2616,6 +2625,28 @@ impl<'a> Study<'a> {
                 "- Limitations: catalog status demoted (research hypothesis; VIX regime is highly correlated with the SMA200 trend gate); flat days earn no cash yield unless a defensive asset is configured; VIX is aligned to panel dates by last-published close.".into(),
             ];
         }
+        if c.strategy == crate::family7::S066_NAME {
+            return vec![
+                format!(
+                    "- Universe: {} ({} source); breadth universe={} top {}; daily split-adjusted stock bars.",
+                    c.traded_symbol, c.defensive_asset, c.breadth_universe, c.universe_top_n
+                ),
+                format!(
+                    "- Rule: {} breadth osc ({}) below {:.3} within {} sessions then crosses above {:.3} -> long {}; exit on close < SMA({}){}.",
+                    c.breadth_metric,
+                    if c.breadth_metric == "adv_dec" { format!("EMA({})", c.breadth_ema_len) } else { format!("raw %above SMA({})", c.breadth_sma_len) },
+                    c.thrust_low, c.thrust_window, c.thrust_high, c.traded_symbol, c.sma_window,
+                    if c.max_hold > 0 { format!(" or after {} sessions", c.max_hold) } else { String::new() }
+                ),
+                format!(
+                    "- Fill: {}; {} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: SPY close-to-close benchmark plus random-timing exposure matching.".into(),
+                "- Limitations: breadth is computed from the local stock cache (split-adjusted, incl. delisted), not official NYSE A/D; catalog status=demoted (rare signal, source mismatch on universe).".into(),
+            ];
+        }
         if c.strategy == crate::family5::S052_NAME {
             return vec![
                 format!(
@@ -3074,6 +3105,8 @@ impl<'a> Study<'a> {
             )
         } else if c.strategy == crate::family7::S064_NAME {
             format!("hurst{} {} {}/{} rsi{}<{}/sma{} dch{}/{}", c.hurst_window, c.rebalance, c.hurst_gate, c.hurst_neutral, c.rsi_len, c.rsi_threshold, c.exit_sma, c.entry_window, c.exit_extreme_window)
+        } else if c.strategy == crate::family7::S066_NAME {
+            format!("thrust {} ema{} {:.2}->{:.3} w{} xsma{} ->{}", c.breadth_metric, c.breadth_ema_len, c.thrust_low, c.thrust_high, c.thrust_window, c.sma_window, c.traded_symbol)
         } else if c.strategy == S021_NAME {
             format!(
                 "overnight {} filter={}",

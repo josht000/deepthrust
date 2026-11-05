@@ -396,6 +396,24 @@ pub struct Config {
     pub donchian_skip_winner: bool,
     #[serde(default)]
     pub mr_stop_atr: f64,
+    #[serde(default = "d_traded_symbol")]
+    pub traded_symbol: String,
+    #[serde(default = "d_breadth_source")]
+    pub breadth_source: String,
+    #[serde(default = "d_breadth_universe")]
+    pub breadth_universe: String,
+    #[serde(default = "d_breadth_metric")]
+    pub breadth_metric: String,
+    #[serde(default = "d_breadth_ema_len")]
+    pub breadth_ema_len: usize,
+    #[serde(default = "d_breadth_sma_len")]
+    pub breadth_sma_len: usize,
+    #[serde(default = "d_thrust_low")]
+    pub thrust_low: f64,
+    #[serde(default = "d_thrust_high")]
+    pub thrust_high: f64,
+    #[serde(default = "d_thrust_window")]
+    pub thrust_window: usize,
     #[serde(default)]
     pub results_tag: String,
     #[serde(default = "d_macd_fast")]
@@ -909,6 +927,33 @@ fn d_volume_mode() -> String {
 }
 fn d_require_macd_positive() -> bool {
     true
+}
+fn d_traded_symbol() -> String {
+    "SPY".into()
+}
+fn d_breadth_source() -> String {
+    "stocks".into()
+}
+fn d_breadth_universe() -> String {
+    "liquid".into()
+}
+fn d_breadth_metric() -> String {
+    "adv_dec".into()
+}
+fn d_breadth_ema_len() -> usize {
+    10
+}
+fn d_breadth_sma_len() -> usize {
+    50
+}
+fn d_thrust_low() -> f64 {
+    0.40
+}
+fn d_thrust_high() -> f64 {
+    0.615
+}
+fn d_thrust_window() -> usize {
+    10
 }
 
 impl Config {

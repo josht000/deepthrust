@@ -142,7 +142,11 @@ fn count_reports_in_window(dates: &[NaiveDate], end: NaiveDate, days: i64) -> us
         .count()
 }
 
-fn load_ranks(panel: &Panel, cfg: &Config, columns: &[usize]) -> Result<Vec<Vec<f64>>, String> {
+pub(crate) fn load_ranks(
+    panel: &Panel,
+    cfg: &Config,
+    columns: &[usize],
+) -> Result<Vec<Vec<f64>>, String> {
     if cfg.rank_cache_dir.trim().is_empty() {
         data::liquidity_ranks(
             panel,

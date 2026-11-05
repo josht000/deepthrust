@@ -26,6 +26,8 @@ pub const S063_NAME: &str = "s063_vix_ma_regime";
 pub const S063_TITLE: &str = "S063 VIX Moving-Average Crossover Regime";
 pub const S064_NAME: &str = "s064_hurst_regime";
 pub const S064_TITLE: &str = "S064 Hurst Exponent Regime Switch";
+pub const S066_NAME: &str = "s066_zweig_breadth_thrust";
+pub const S066_TITLE: &str = "S066 Zweig Breadth Thrust";
 
 fn symbol_index(panel: &Panel, name: &str) -> Result<usize, String> {
     panel
@@ -1749,4 +1751,171 @@ pub fn s064_trades(panel: &Panel, sig: &Signals, cfg: &Config, fill: &str) -> Re
         signal_value: &sig.rsi,
     };
     Ok(crate::engine::swing_trades(panel, &params, cfg, fill))
+}
+
+// ---------------- S066 Zweig breadth thrust ----------------
+
+/// TA-Lib-style EMA: seeds on the SMA of the first `len` finite values, NaN-safe.
+fn ema(series: &[f64], len: usize) -> Vec<f64> {
+    let alpha = 2.0 / (len as f64 + 1.0);
+    let mut out = vec![f64::NAN; series.len()];
+    let mut state = f64::NAN;
+    let mut warm: Vec<f64> = Vec::with_capacity(len);
+    for (t, &x) in series.iter().enumerate() {
+        if !x.is_finite() {
+            continue;
+        }
+        if state.is_nan() {
+            warm.push(x);
+            if warm.len() == len {
+                state = warm.iter().sum::<f64>() / len as f64;
+            }
+        } else {
+            state = alpha * x + (1.0 - alpha) * state;
+        }
+        out[t] = state;
+    }
+    out
+}
+
+// S066: EMA(10) of the own-universe advance ratio thrusts from <thrust_low to
+// >thrust_high within thrust_window sessions -> long the traded symbol; exit on
+// close < SMA(sma_window) (or optional defensive asset / max_hold).
+pub fn compute_s066_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if !matches!(cfg.breadth_universe.as_str(), "liquid" | "all") {
+        return Err(format!(
+            "S066 breadth_universe must be liquid|all, got {}",
+            cfg.breadth_universe
+        ));
+    }
+    if !matches!(cfg.breadth_metric.as_str(), "adv_dec" | "pct_above_sma") {
+        return Err(format!(
+            "S066 breadth_metric must be adv_dec|pct_above_sma, got {}",
+            cfg.breadth_metric
+        ));
+    }
+    let spy = symbol_index(panel, &cfg.traded_symbol)?;
+    let defensive: Option<usize> = if matches!(cfg.defensive_asset.as_str(), "" | "cash" | "flat") {
+        None
+    } else {
+        Some(symbol_index(panel, &cfg.defensive_asset)?)
+    };
+    let n = panel.dates.len();
+    let member_cols: Vec<usize> = (0..panel.symbols.len())
+        .filter(|&j| {
+            j != spy
+                && Some(j) != defensive
+                && cfg
+                    .symbol_sources
+                    .get(&panel.symbols[j])
+                    .map_or(true, |source| source == &cfg.breadth_source)
+        })
+        .collect();
+    if member_cols.is_empty() {
+        return Err(format!(
+            "S066 found no breadth members in source {:?}",
+            cfg.breadth_source
+        ));
+    }
+    let ranks = if cfg.breadth_universe == "liquid" {
+        Some(crate::family5::load_ranks(panel, cfg, &member_cols)?)
+    } else {
+        None
+    };
+    let member = |j: usize, t: usize| -> bool {
+        match &ranks {
+            Some(ranks) => ranks[j][t].is_finite() && ranks[j][t] <= cfg.universe_top_n as f64,
+            None => true,
+        }
+    };
+    // daily breadth ratio series
+    let mut ratio = vec![f64::NAN; n];
+    if cfg.breadth_metric == "pct_above_sma" {
+        let sma: Vec<Vec<f64>> = member_cols
+            .iter()
+            .map(|&j| rolling_mean(&panel.close[j], cfg.breadth_sma_len))
+            .collect();
+        for t in 0..n {
+            let (mut above, mut total) = (0usize, 0usize);
+            for (k, &j) in member_cols.iter().enumerate() {
+                if member(j, t) && panel.close[j][t].is_finite() && sma[k][t].is_finite() {
+                    total += 1;
+                    if panel.close[j][t] > sma[k][t] {
+                        above += 1;
+                    }
+                }
+            }
+            if total >= cfg.min_peers {
+                ratio[t] = above as f64 / total as f64;
+            }
+        }
+    } else {
+        for t in 1..n {
+            let (mut adv, mut dec) = (0usize, 0usize);
+            for &j in &member_cols {
+                let (a, b) = (panel.close[j][t - 1], panel.close[j][t]);
+                if !member(j, t) || !a.is_finite() || a <= 0.0 || !b.is_finite() {
+                    continue;
+                }
+                if b > a {
+                    adv += 1;
+                } else if b < a {
+                    dec += 1;
+                }
+            }
+            if adv + dec >= cfg.min_peers {
+                ratio[t] = adv as f64 / (adv + dec) as f64;
+            }
+        }
+    }
+    let osc = if cfg.breadth_metric == "adv_dec" {
+        ema(&ratio, cfg.breadth_ema_len.max(1))
+    } else {
+        ratio.clone()
+    };
+    let exit_sma = rolling_mean(&panel.close[spy], cfg.sma_window);
+    let mut result = blank_signals(panel, "breadth_thrust_ema");
+    let mut weights = vec![vec![f64::NAN; n]; panel.symbols.len()];
+    let mut holding = false;
+    let mut entry_day = 0usize;
+    for t in 0..n {
+        for j in 0..panel.symbols.len() {
+            let tradable = (j == spy || Some(j) == defensive) && panel.close[j][t].is_finite();
+            result.tradable[j][t] = tradable;
+            result.pool[j][t] = tradable;
+        }
+        result.rsi[spy][t] = osc[t];
+        if !osc[t].is_finite() || !exit_sma[t].is_finite() || !panel.close[spy][t].is_finite() {
+            continue;
+        }
+        let crossed = osc[t] > cfg.thrust_high && t >= 1 && osc[t - 1] <= cfg.thrust_high;
+        let dipped = (t.saturating_sub(cfg.thrust_window.saturating_sub(1))..=t)
+            .any(|u| osc[u].is_finite() && osc[u] < cfg.thrust_low);
+        let thrust = crossed && dipped;
+        if thrust {
+            holding = true;
+            entry_day = t;
+        } else if holding
+            && (panel.close[spy][t] < exit_sma[t]
+                || (cfg.max_hold > 0 && t.saturating_sub(entry_day) >= cfg.max_hold))
+        {
+            holding = false;
+        }
+        weights[spy][t] = if holding { 1.0 } else { 0.0 };
+        if let Some(def) = defensive {
+            weights[def][t] = if holding { 0.0 } else { 1.0 };
+        }
+        result.signal[spy][t] = holding;
+    }
+    result.trade_weights = Some(weights);
+    result.benchmark_returns = benchmark_returns(panel, &cfg.traded_symbol);
+    Ok(result)
+}
+
+pub fn s066_trades(panel: &Panel, sig: &Signals, cfg: &Config, fill: &str) -> Result<Vec<Trade>, String> {
+    let weights = sig
+        .trade_weights
+        .as_ref()
+        .ok_or_else(|| "S066 requires target weights".to_string())?;
+    switch_trades(panel, weights, sig, cfg, fill)
 }
