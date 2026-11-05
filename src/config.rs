@@ -331,6 +331,20 @@ pub struct Config {
     #[serde(default = "d_defensive_symbols")]
     pub defensive_symbols: String,
     #[serde(default)]
+    pub vix_file: String,
+    #[serde(default = "d_vix_ma_short")]
+    pub vix_ma_short: usize,
+    #[serde(default = "d_vix_ma_long")]
+    pub vix_ma_long: usize,
+    #[serde(default = "d_vix_fall_window")]
+    pub vix_fall_window: usize,
+    #[serde(default = "d_risk_symbol")]
+    pub risk_symbol: String,
+    #[serde(default)]
+    pub price_sma_gate: usize,
+    #[serde(default)]
+    pub vix_level_exit: f64,
+    #[serde(default)]
     pub results_tag: String,
     /// Resolved variant name ("baseline" when no overlay is applied).
     #[serde(skip, default = "d_baseline")]
@@ -730,6 +744,18 @@ fn d_cyclical_symbols() -> String {
 }
 fn d_defensive_symbols() -> String {
     "XLP,XLU".into()
+}
+fn d_vix_ma_short() -> usize {
+    20
+}
+fn d_vix_ma_long() -> usize {
+    50
+}
+fn d_vix_fall_window() -> usize {
+    5
+}
+fn d_risk_symbol() -> String {
+    "SPY".into()
 }
 
 impl Config {

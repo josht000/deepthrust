@@ -1,0 +1,62 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY
+benchmark: SPY
+start_date: "2016-01-01"
+vix_file: C:\data\trading\trading_framework\data\pit\market\cboe_volatility\VIX_History.csv
+vix_ma_short: 20
+vix_ma_long: 50
+vix_fall_window: 5
+regime_mode: hysteresis
+risk_symbol: SPY
+defensive_asset: cash
+price_sma_gate: 0
+vix_level_exit: 0.0
+cost_bps_per_side: 1.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+n_timing_draws: 500
+seed: 20261103
+book_slots: 1
+
+variants:
+  ma5_50: {vix_ma_short: 5}
+  ma10_50: {vix_ma_short: 10}
+  ma30_50: {vix_ma_short: 30}
+  ma20_100: {vix_ma_long: 100}
+  ma20_150: {vix_ma_long: 150}
+  ma20_200: {vix_ma_long: 200}
+  ma10_100: {vix_ma_short: 10, vix_ma_long: 100}
+  ma50_200: {vix_ma_short: 50, vix_ma_long: 200}
+  fall0: {vix_fall_window: 0}
+  fall3: {vix_fall_window: 3}
+  fall10: {vix_fall_window: 10}
+  fall21: {vix_fall_window: 21}
+  strict: {regime_mode: strict}
+  strict_fall0: {regime_mode: strict, vix_fall_window: 0}
+  strict_ma10_50: {regime_mode: strict, vix_ma_short: 10}
+  qqq: {symbols: QQQ, risk_symbol: QQQ}
+  iwm: {symbols: IWM, risk_symbol: IWM}
+  dia: {symbols: DIA, risk_symbol: DIA}
+  bil: {symbols: "SPY,BIL", defensive_asset: BIL}
+  shy: {symbols: "SPY,SHY", defensive_asset: SHY}
+  ief: {symbols: "SPY,IEF", defensive_asset: IEF}
+  tlt: {symbols: "SPY,TLT", defensive_asset: TLT}
+  sma200_gate: {price_sma_gate: 200}
+  sma100_gate: {price_sma_gate: 100}
+  cap25: {vix_level_exit: 25}
+  cap30: {vix_level_exit: 30}
+  cap35: {vix_level_exit: 35}
+  vix3m: {vix_file: C:\data\trading\trading_framework\data\pit\market\cboe_volatility\VIX3M_History.csv}
+  vix9d: {vix_file: C:\data\trading\trading_framework\data\pit\market\cboe_volatility\VIX9D_History.csv}
+  close: {fills: close}
+  cost05: {cost_bps_per_side: 0.5}
+  cost2: {cost_bps_per_side: 2.0}
+  cost5: {cost_bps_per_side: 5.0}
+  ma10_50_fall0: {vix_ma_short: 10, vix_fall_window: 0}
+  ma20_100_fall0: {vix_ma_long: 100, vix_fall_window: 0}
+  bil_sma200: {symbols: "SPY,BIL", defensive_asset: BIL, price_sma_gate: 200}
+  qqq_bil: {symbols: "QQQ,BIL", risk_symbol: QQQ, defensive_asset: BIL}
+  strict_bil: {regime_mode: strict, symbols: "SPY,BIL", defensive_asset: BIL}

@@ -696,6 +696,7 @@ enum Family7Kind {
     CopperGoldTilt,
     VolCompression,
     CointegratedPairs,
+    VixMaRegime,
 }
 
 impl StrategyDefinition for Family7Definition {
@@ -714,6 +715,7 @@ impl StrategyDefinition for Family7Definition {
             Family7Kind::CopperGoldTilt => crate::family7::compute_s102_signals(panel, cfg),
             Family7Kind::VolCompression => crate::family7::compute_s065_signals(panel, cfg),
             Family7Kind::CointegratedPairs => crate::family7::compute_s071_signals(panel, cfg),
+            Family7Kind::VixMaRegime => crate::family7::compute_s063_signals(panel, cfg),
         }
     }
 
@@ -732,6 +734,7 @@ impl StrategyDefinition for Family7Definition {
             }
             Family7Kind::VolCompression => crate::family7::s065_trades(panel, sig, cfg, fill),
             Family7Kind::CointegratedPairs => crate::family7::s071_trades(panel, sig, cfg, fill),
+            Family7Kind::VixMaRegime => crate::family7::s063_trades(panel, sig, cfg, fill),
         }
     }
 }
@@ -935,6 +938,11 @@ static S071_STRATEGY: Family7Definition = Family7Definition {
     title: crate::family7::S071_TITLE,
     kind: Family7Kind::CointegratedPairs,
 };
+static S063_STRATEGY: Family7Definition = Family7Definition {
+    name: crate::family7::S063_NAME,
+    title: crate::family7::S063_TITLE,
+    kind: Family7Kind::VixMaRegime,
+};
 static S052_STRATEGY: Family5Definition = Family5Definition {
     name: crate::family5::S052_NAME,
     title: crate::family5::S052_TITLE,
@@ -975,7 +983,7 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 41] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1016,6 +1024,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
     &S104_STRATEGY,
     &S056_STRATEGY,
     &S058_STRATEGY,
+    &S063_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -1846,6 +1855,41 @@ impl<'a> Study<'a> {
                 }
             })
             .collect();
+        if cfg.strategy == crate::family7::S063_NAME {
+            // catalog note: quantify incremental information of the VIX-MA regime
+            // over the plain SMA200 price-trend gate.
+            let mut csv = String::from(
+                "period,days,regime_agree_pct,corr_daily,beta_vs_sma200,alpha_daily_log,strategy_total_log,sma200_total_log\n",
+            );
+            let exposure = &results[0].1.f_day;
+            for (period, mask) in &s.masks {
+                let days: Vec<usize> = (0..n).filter(|&t| mask[t]).collect();
+                let mut agree = 0usize;
+                let (mut xs, mut ys) = (vec![], vec![]);
+                for &t in &days {
+                    let sma_long = t > 0 && idx[t - 1] > sma[t - 1];
+                    if sma_long == (exposure[t] > 0.0) {
+                        agree += 1;
+                    }
+                    xs.push(timing_r[t].max(-0.999_999).ln_1p());
+                    ys.push(strat_r[t].max(-0.999_999).ln_1p());
+                }
+                let (beta, _) = stats::ols(&ys, &xs);
+                let alpha = stats::mean(&ys) - beta * stats::mean(&xs);
+                csv += &format!(
+                    "{},{},{},{},{},{},{},{}\n",
+                    period,
+                    days.len(),
+                    csv_cell(100.0 * agree as f64 / days.len().max(1) as f64),
+                    csv_cell(stats::corr(&ys, &xs)),
+                    csv_cell(beta),
+                    csv_cell(alpha),
+                    csv_cell(ys.iter().sum::<f64>()),
+                    csv_cell(xs.iter().sum::<f64>())
+                );
+            }
+            self.write("vix_vs_sma200_incremental.csv", csv)?;
+        }
         let mut baseline_series: Vec<(String, Vec<f64>)> = Vec::new();
         match cfg.strategy.as_str() {
             S021_NAME => {
@@ -2368,6 +2412,48 @@ impl<'a> Study<'a> {
                 "- Limitations: the pair list is a pre-registered subset, not the paper's full 30-pair appendix; ADF critical values are asymptotic MacKinnon approximations.".into(),
             ];
         }
+        if c.strategy == crate::family7::S063_NAME {
+            return vec![
+                format!(
+                    "- Universe: {} risk asset{}; daily total-return-adjusted Parquet bars plus CBOE VIX history CSV.",
+                    c.risk_symbol,
+                    match c.defensive_asset.trim() {
+                        "" | "cash" | "CASH" => " with flat cash risk-off".to_string(),
+                        name => format!(" rotating to {name}"),
+                    }
+                ),
+                format!(
+                    "- Rule: {} mode; long while VIX MA({}) < MA({}){}; risk-off on the MA({})>MA({}) cross{}{}.",
+                    c.regime_mode,
+                    c.vix_ma_short,
+                    c.vix_ma_long,
+                    if c.vix_fall_window > 0 {
+                        format!(" with VIX < VIX[t-{}] at entry", c.vix_fall_window)
+                    } else {
+                        String::new()
+                    },
+                    c.vix_ma_short,
+                    c.vix_ma_long,
+                    if c.price_sma_gate > 0 {
+                        format!(", gated by close>SMA({})", c.price_sma_gate)
+                    } else {
+                        String::new()
+                    },
+                    if c.vix_level_exit > 0.0 {
+                        format!(", forced flat above VIX {:.0}", c.vix_level_exit)
+                    } else {
+                        String::new()
+                    }
+                ),
+                format!(
+                    "- Fill: {}; {} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: SPY close-to-close, SMA200 timing, dev-vol-matched, and exposure-matched random timing; incremental regression vs SMA200 timing is in vix_vs_sma200_incremental.csv.".into(),
+                "- Limitations: catalog status demoted (research hypothesis; VIX regime is highly correlated with the SMA200 trend gate); flat days earn no cash yield unless a defensive asset is configured; VIX is aligned to panel dates by last-published close.".into(),
+            ];
+        }
         if c.strategy == crate::family5::S052_NAME {
             return vec![
                 format!(
@@ -2740,6 +2826,8 @@ impl<'a> Study<'a> {
             format!("rv{}/{}<{:.2} donchian{} x{}", c.rv_short, c.rv_long, c.rv_ratio, c.entry_window, c.exit_extreme_window)
         } else if c.strategy == crate::family7::S071_NAME {
             format!("adf<{:.2} z>{:.1} out {:.2}/{:.2}", c.adf_max_p, c.z_entry, c.z_exit_short, c.z_exit_long)
+        } else if c.strategy == crate::family7::S063_NAME {
+            format!("vix ma{}/{} fall{} {}", c.vix_ma_short, c.vix_ma_long, c.vix_fall_window, c.regime_mode)
         } else if c.strategy == S021_NAME {
             format!(
                 "overnight {} filter={}",
