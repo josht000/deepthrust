@@ -2284,6 +2284,21 @@ pub fn compute_g067_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
     let defensive = mode.contains("def");
     let lowvol = mode.starts_with("lowvol");
     let vp = mode.contains("vp") || mode == "volparity";
+    let long_only = mode.contains("longonly");
+    let short_only = mode.contains("shortonly");
+    let rsimats: Vec<Vec<f64>> = if cfg.rsi_threshold > 0.0 && cfg.rsi_len > 0 {
+        panel
+            .close
+            .iter()
+            .map(|c| {
+                signals::wilder_rsi(c, cfg.rsi_len)
+                    .unwrap_or_else(|_| vec![f64::NAN; n])
+            })
+            .collect()
+    } else {
+        vec![vec![f64::NAN; n]; ns]
+    };
+    let mut last_flip = vec![0usize; ns];
     let cash_idx = if defensive {
         Some(
             panel
@@ -2342,6 +2357,37 @@ pub fn compute_g067_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                         {
                             s = 0.0;
                         }
+                    }
+                    if cfg.rsi_threshold > 0.0
+                        && rsimats[j][day].is_finite()
+                        && s > 0.0
+                        && rsimats[j][day] < cfg.rsi_threshold
+                    {
+                        s = 0.0;
+                    }
+                    if cfg.rsi_threshold > 0.0
+                        && rsimats[j][day].is_finite()
+                        && s < 0.0
+                        && rsimats[j][day] > 100.0 - cfg.rsi_threshold
+                    {
+                        s = 0.0;
+                    }
+                    if long_only && s < 0.0 {
+                        s = 0.0;
+                    }
+                    if short_only && s > 0.0 {
+                        s = 0.0;
+                    }
+                    if cfg.skip_days > 0
+                        && s != 0.0
+                        && current[j] != 0.0
+                        && s != current[j]
+                        && day.saturating_sub(last_flip[j]) < cfg.skip_days
+                    {
+                        s = current[j];
+                    }
+                    if s != current[j] {
+                        last_flip[j] = day;
                     }
                     current[j] = s;
                 }
