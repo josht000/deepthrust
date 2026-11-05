@@ -450,6 +450,26 @@ pub struct Config {
     pub volume_mult: f64,
     #[serde(default = "d_volume_median_window")]
     pub volume_median_window: usize,
+    #[serde(default = "d_kama_er_len")]
+    pub kama_er_len: usize,
+    #[serde(default = "d_kama_fast")]
+    pub kama_fast: usize,
+    #[serde(default = "d_kama_slow")]
+    pub kama_slow: usize,
+    #[serde(default = "d_kama_slope_lookback")]
+    pub kama_slope_lookback: usize,
+    #[serde(default = "d_kama_slope_floor")]
+    pub kama_slope_floor: f64,
+    #[serde(default = "d_kama_side")]
+    pub kama_side: String,
+    #[serde(default = "d_kama_gate")]
+    pub kama_gate: String,
+    #[serde(default = "d_rv_gate")]
+    pub rv_gate: String,
+    #[serde(default)]
+    pub rv_max: f64,
+    #[serde(default = "d_rv_quiet_lookback")]
+    pub rv_quiet_lookback: usize,
     #[serde(default)]
     pub results_tag: String,
     #[serde(default = "d_macd_fast")]
@@ -1032,6 +1052,33 @@ fn d_volume_mult() -> f64 {
 }
 fn d_volume_median_window() -> usize {
     20
+}
+fn d_kama_er_len() -> usize {
+    10
+}
+fn d_kama_fast() -> usize {
+    2
+}
+fn d_kama_slow() -> usize {
+    30
+}
+fn d_kama_slope_lookback() -> usize {
+    5
+}
+fn d_kama_slope_floor() -> f64 {
+    0.999
+}
+fn d_kama_side() -> String {
+    "long".into()
+}
+fn d_kama_gate() -> String {
+    "none".into()
+}
+fn d_rv_gate() -> String {
+    "none".into()
+}
+fn d_rv_quiet_lookback() -> usize {
+    126
 }
 
 impl Config {
