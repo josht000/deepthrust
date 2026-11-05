@@ -88,7 +88,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G067 | Mount Lucas (MLM) Futures Trend Index - 200d MA + Universe Vol Gate, Monthly Execution](#g067--mount-lucas-mlm-futures-trend-index---200d-ma--universe-vol-gate-monthly-execution)
   - [G068 | Stochastic-Oversold-Exit + RSI-50 Confirmation with Chandelier(22,2) Trailing Exit](#g068--stochastic-oversold-exit--rsi-50-confirmation-with-chandelier222-trailing-exit) — IMPLEMENTED
   - [G069 | 20-Day-High Breakout Trend (Hyperliquid)](#g069--20-day-high-breakout-trend-hyperliquid) — DUPLICATE (S036)
-  - [G070 | ATR SuperTrend Direction-Reversal Strategy](#g070--atr-supertrend-direction-reversal-strategy)
+  - [G070 | ATR SuperTrend Direction-Reversal Strategy](#g070--atr-supertrend-direction-reversal-strategy) — IMPLEMENTED
   - [G071 | Keltner Mid-Channel Pullback-in-Trend EA](#g071--keltner-mid-channel-pullback-in-trend-ea) — DUPLICATE (S087)
   - [G072 | MBBS Three-Speed EWMA CTA Momentum](#g072--mbbs-three-speed-ewma-cta-momentum)
   - [G073 | Three-Day Pullback Above SMA200](#g073--three-day-pullback-above-sma200) — DUPLICATE (S007)
@@ -1386,6 +1386,13 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - reported_metrics: none reported
 - notes: The VectorBT notebook shifts the generated signals forward before portfolio execution.
 - sources: [rahulmr/Pinescript-SuperTrend-Trading-Strategy — ATR SuperTrend direction flips, optional stop, and long/short order logic](https://github.com/rahulmr/Pinescript-SuperTrend-Trading-Strategy/blob/dfe2292e58583690271ddf515a991d84faa70563/supertrend.pinescript#L19-L128); [PacktPublishing/Python-for-Algorithmic-Trading-Cookbook — SuperTrend bands, direction changes, entries/exits, and 1 bp commission; code cells 11–35](https://github.com/PacktPublishing/Python-for-Algorithmic-Trading-Cookbook/blob/b201ffcb44c4a88c2604b94d41e3b2d5ca7c9ba2/06.%20Vector-Based%20Backtesting%20with%20VectorBT/06c_optimizing_the_supertrend_strategy_with_vectorbt_pro.ipynb)
+- implementation_results: `src/signals.rs` compute_g070_signals (worktree branch g070_supertrend); pooled 15-ETF TR book, 5 bps/side, next_open primary; dev < 2024-01-01 <= test. Long-only: source's short leg unimplemented (engine is long-only) — DELTA. Baseline ATR(10)x3 + 16 registered variants.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev PF | dev max DD | test total (log) | test skill | test Sharpe | test PF | test max DD | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|---|---|
+  | baseline | +0.33 | +0.04 (p=0.25) | 0.57 | 1.69 | -10.3% | +0.20 | +0.00 | 1.06 | 2.17 | -5.4% | 414+164 |
+  | atr20 | +0.35 | +0.06 (p=0.20) | 0.56 | 1.68 | -11.3% | +0.24 | +0.01 | 1.23 | 2.47 | -7.8% | 418+158 |
+  Positive dev skill across most variants; atr20 keeps positive skill on both sides. mult2_5 top dev skill (+0.07, 523 trades) sign-flips on test (DECAYED). Test PF > 2 flagged — pooled multi-ETF trend book, signals on completed bars with next_open fills; no leakage found. Reproduce: `cargo run --release --bin deepthrust -- --strategy g070_supertrend`; variants `... --variant vbt7,atr14,atr20,atr22,mult2,mult2_5,mult3_5,mult4,fast,slow,spy_only,qqq_only,tlt_only,gld_only,tight,loose`
 
 ### G071 | Keltner Mid-Channel Pullback-in-Trend EA
 - priority: Medium — Precise pullback-in-trend spec with sensible filters; the bar-midpoint condition and parallel-signal ranging filter are distinctive.
