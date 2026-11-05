@@ -2257,10 +2257,32 @@ pub fn compute_g096_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
         .collect();
     let mut weights = vec![vec![0.0; n]; ns];
     let mut prev_b = vec![1.0 / ns as f64; ns];
+    let mom_mode = cfg.strategy_mode.contains("mom");
+    let sma_gate = cfg.sma_window > 0 && cfg.strategy_mode.contains("sma");
+    let smas: Vec<Vec<f64>> = if sma_gate {
+        panel
+            .close
+            .iter()
+            .map(|c| signals::rolling_mean(c, cfg.sma_window))
+            .collect()
+    } else {
+        vec![]
+    };
+    let mut last_reb = 0usize;
     for &day in &days {
         if day < 2 * w {
             continue;
         }
+        if cfg.skip_days > 0 && day.saturating_sub(last_reb) < cfg.skip_days {
+            for j in 0..ns {
+                if prev_b[j] >= 0.001 {
+                    weights[j][day] = prev_b[j];
+                    result.signal[j][day] = true;
+                }
+            }
+            continue;
+        }
+        last_reb = day;
         // LX1_i = ret[day-w+1..=day], LX2_i = ret[day-2w+1..=day-w]
         let mut mu1 = vec![0.0; ns];
         let mut mu2 = vec![0.0; ns];
@@ -2341,8 +2363,13 @@ pub fn compute_g096_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
             }
             for &j in &active {
                 let t = b[i] * claim[i][j] / row;
-                b_new[i] -= t;
-                b_new[j] += t;
+                if mom_mode {
+                    b_new[i] += t;
+                    b_new[j] -= t;
+                } else {
+                    b_new[i] -= t;
+                    b_new[j] += t;
+                }
             }
         }
         let gross: f64 = b_new.iter().map(|v| v.max(0.0)).sum();
@@ -2351,6 +2378,37 @@ pub fn compute_g096_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
         }
         for j in 0..ns {
             b_new[j] = if ok[j] { b_new[j].max(0.0) / gross } else { 0.0 };
+            if sma_gate
+                && smas[j][day].is_finite()
+                && panel.close[j][day] < smas[j][day]
+            {
+                b_new[j] = 0.0;
+            }
+        }
+        let gated_sum: f64 = b_new.iter().sum();
+        if gated_sum <= 0.0 {
+            for j in 0..ns {
+                b_new[j] = b[j];
+            }
+        } else if (gated_sum - 1.0).abs() > 1e-9 {
+            for v in &mut b_new {
+                *v /= gated_sum;
+            }
+        }
+        if cfg.breadth > 0 && cfg.breadth < ns {
+            let mut order: Vec<usize> = (0..ns).filter(|&j| b_new[j] > 0.0).collect();
+            order.sort_by(|&a, &b| b_new[b].total_cmp(&b_new[a]));
+            for (rank, j) in order.into_iter().enumerate() {
+                if rank >= cfg.breadth {
+                    b_new[j] = 0.0;
+                }
+            }
+            let g2: f64 = b_new.iter().sum();
+            if g2 > 0.0 {
+                for v in &mut b_new {
+                    *v /= g2;
+                }
+            }
         }
         if cfg.pos_cap < 1.0 {
             for _ in 0..3 {
