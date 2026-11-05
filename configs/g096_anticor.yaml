@@ -1,0 +1,35 @@
+# G096 ANTICOR: daily wealth transfer via cross-autocorrelation between each
+# stock's recent w-day return block and other stocks' prior w-day block.
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,GLD,TLT,IEF,DBC,UUP
+benchmark: SPY
+start_date: "2005-01-01"
+min_history: 70
+lookback: 30
+rebalance: daily
+cost_bps_per_side: 5.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 20
+
+variants:
+  w10: {lookback: 10}
+  w20: {lookback: 20}
+  w40: {lookback: 40}
+  w60: {lookback: 60}
+  w90: {lookback: 90}
+  weekly: {rebalance: weekly}
+  monthly: {rebalance: monthly}
+  sectors: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11}
+  equity: {symbols: "SPY,QQQ,IWM,DIA,EFA,EEM,RSP,EWJ", book_slots: 8}
+  bonds_gold: {symbols: "TLT,IEF,SHY,AGG,LQD,HYG,GLD,BIL", book_slots: 8}
+  mixed8: {symbols: "SPY,QQQ,TLT,GLD,DBC,EEM,IEF,UUP", book_slots: 8}
+  sectors_w20: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, lookback: 20}
+  sectors_weekly: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly}
+  cost10: {cost_bps_per_side: 10.0}
+  cost20: {cost_bps_per_side: 20.0}
+  cost0: {cost_bps_per_side: 0.0}

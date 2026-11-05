@@ -2231,6 +2231,138 @@ pub fn s036_trades(
     Ok(trades)
 }
 
+/// G096 ANTICOR: two consecutive w-length log-return blocks; weight flows from
+/// stocks whose recent gains were "predicted" by other stocks' prior moves
+/// toward the lagging predictors (long-only simplex, daily rebalance).
+pub fn compute_g096_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let w = cfg.lookback.max(5);
+    let n = panel.dates.len();
+    let ns = panel.symbols.len();
+    let days = rebalance_days(panel, &cfg.rebalance)?;
+    let mut result = blank_rebalance_signals(panel, "anticor");
+    let ret: Vec<Vec<f64>> = (0..ns)
+        .map(|j| {
+            let mut v = vec![f64::NAN];
+            v.extend((1..n).map(|t| {
+                let a = panel.close[j][t];
+                let b = panel.close[j][t - 1];
+                if a.is_finite() && b.is_finite() && b > 0.0 {
+                    (a / b).ln()
+                } else {
+                    f64::NAN
+                }
+            }));
+            v
+        })
+        .collect();
+    let mut weights = vec![vec![0.0; n]; ns];
+    let mut prev_b = vec![1.0 / ns as f64; ns];
+    for &day in &days {
+        if day < 2 * w {
+            continue;
+        }
+        // LX1_i = ret[day-w+1..=day], LX2_i = ret[day-2w+1..=day-w]
+        let mut mu1 = vec![0.0; ns];
+        let mut mu2 = vec![0.0; ns];
+        let mut ok = vec![false; ns];
+        let mut x1 = vec![vec![0.0; w]; ns];
+        let mut x2 = vec![vec![0.0; w]; ns];
+        for j in 0..ns {
+            let mut s1 = 0.0;
+            let mut s2 = 0.0;
+            let mut good = true;
+            for k in 0..w {
+                let r1 = ret[j][day - w + 1 + k];
+                let r2 = ret[j][day - 2 * w + 1 + k];
+                if !r1.is_finite() || !r2.is_finite() {
+                    good = false;
+                    break;
+                }
+                x1[j][k] = r1;
+                x2[j][k] = r2;
+                s1 += r1;
+                s2 += r2;
+            }
+            if good {
+                ok[j] = true;
+                mu1[j] = s1 / w as f64;
+                mu2[j] = s2 / w as f64;
+            }
+        }
+        let active: Vec<usize> = (0..ns).filter(|&j| ok[j]).collect();
+        if active.len() < 3 {
+            continue;
+        }
+        // cross-correlation LC[i][j] = corr(x1_i, x2_j); claim = max(0, mu_i-mu_j)*max(0,LC)
+        let mut b = vec![0.0; ns];
+        for &i in &active {
+            b[i] = prev_b[i];
+        }
+        let mut claim = vec![vec![0.0; ns]; ns];
+        for &i in &active {
+            let sd1: f64 = {
+                let mean = mu1[i];
+                (x1[i].iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (w - 1) as f64).sqrt()
+            };
+            if sd1 <= 0.0 {
+                continue;
+            }
+            for &j in &active {
+                if i == j {
+                    continue;
+                }
+                let diff = mu1[i] - mu1[j];
+                if diff <= 0.0 {
+                    continue;
+                }
+                let mean2 = mu2[j];
+                let sd2: f64 = (x2[j]
+                    .iter()
+                    .map(|v| (v - mean2).powi(2))
+                    .sum::<f64>()
+                    / (w - 1) as f64)
+                    .sqrt();
+                if sd2 <= 0.0 {
+                    continue;
+                }
+                let cov: f64 = (0..w)
+                    .map(|k| (x1[i][k] - mu1[i]) * (x2[j][k] - mean2))
+                    .sum::<f64>()
+                    / (w - 1) as f64;
+                let lc = cov / (sd1 * sd2);
+                claim[i][j] = diff * lc.max(0.0);
+            }
+        }
+        let mut b_new = b.clone();
+        for &i in &active {
+            let row: f64 = claim[i].iter().sum();
+            if row <= 0.0 {
+                continue;
+            }
+            for &j in &active {
+                let t = b[i] * claim[i][j] / row;
+                b_new[i] -= t;
+                b_new[j] += t;
+            }
+        }
+        let gross: f64 = b_new.iter().map(|v| v.max(0.0)).sum();
+        if gross <= 0.0 {
+            continue;
+        }
+        for j in 0..ns {
+            let wj = if ok[j] { b_new[j].max(0.0) / gross } else { 0.0 };
+            prev_b[j] = wj;
+            if wj >= 0.001 {
+                weights[j][day] = wj;
+                result.signal[j][day] = true;
+            }
+        }
+    }
+    result.trade_weights = Some(weights);
+    result.benchmark_returns = benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

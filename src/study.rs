@@ -71,6 +71,8 @@ pub const S024_NAME: &str = crate::family2::S024_NAME;
 pub const S024_TITLE: &str = crate::family2::S024_TITLE;
 pub const S105_NAME: &str = "s105_overnight_carry";
 pub const S105_TITLE: &str = "S105 Volatility-Targeted Overnight Carry";
+pub const G096_NAME: &str = "g096_anticor";
+pub const G096_TITLE: &str = "G096 ANTICOR Anti-Correlation Wealth Transfer";
 pub const S088_NAME: &str = crate::family9::S088_NAME;
 pub const S088_TITLE: &str = crate::family9::S088_TITLE;
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
@@ -134,6 +136,32 @@ impl StrategyDefinition for DoubleSevenStrategyDefinition {
 
     fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         Ok(signals::compute_double7_signals(panel, cfg))
+    }
+}
+
+struct G096StrategyDefinition;
+
+impl StrategyDefinition for G096StrategyDefinition {
+    fn name(&self) -> &'static str {
+        G096_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        G096_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family4::compute_g096_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
     }
 }
 
@@ -987,6 +1015,7 @@ static S003_STRATEGY: RsiStrategyDefinition = RsiStrategyDefinition {
     title: S003_TITLE,
 };
 static S006_STRATEGY: DoubleSevenStrategyDefinition = DoubleSevenStrategyDefinition;
+static G096_STRATEGY: G096StrategyDefinition = G096StrategyDefinition;
 static S019_STRATEGY: GapAndGoStrategyDefinition = GapAndGoStrategyDefinition;
 static S021_STRATEGY: OvernightStrategyDefinition = OvernightStrategyDefinition {
     name: S021_NAME,
@@ -1115,7 +1144,7 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     kind: Family6Kind::TopicSentiment,
 };
 static S088_STRATEGY: MacdVolumeCrossStrategyDefinition = MacdVolumeCrossStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 47] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 48] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1163,6 +1192,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 47] = [
     &S058_STRATEGY,
     &S063_STRATEGY,
     &S088_STRATEGY,
+    &G096_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
