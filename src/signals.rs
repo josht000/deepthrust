@@ -3078,6 +3078,12 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
         } else {
             vec![f64::NAN; n]
         };
+        let rsi_v = if cfg.rsi_threshold > 0.0 && cfg.rsi_len > 0 {
+            wilder_rsi(close, cfg.rsi_len).unwrap_or_else(|_| vec![f64::NAN; n])
+        } else {
+            vec![f64::NAN; n]
+        };
+        let use_rsi = cfg.rsi_threshold > 0.0;
         signal.push(
             (0..n)
                 .map(|t| {
@@ -3086,10 +3092,21 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                         && trend[t] == 1
                         && trend[t - 1] == -1
                         && (!use_gate || (sma[t].is_finite() && close[t] > sma[t]))
+                        && (!use_rsi || (rsi_v[t].is_finite() && rsi_v[t] > cfg.rsi_threshold))
                 })
                 .collect(),
         );
-        exit_now.push((0..n).map(|t| trend[t] == -1).collect());
+        exit_now.push(
+            (0..n)
+                .map(|t| {
+                    if cfg.exit_mode == "sma" {
+                        sma[t].is_finite() && close[t] < sma[t]
+                    } else {
+                        trend[t] == -1
+                    }
+                })
+                .collect(),
+        );
         tradable.push(trad);
         trend_all.push(trend.iter().map(|&v| v as f64).collect());
         if cfg.disaster_stop_atr > 0.0 {

@@ -62,3 +62,15 @@ variants:
   atr20_g200_spy: {atr_len: 20, gate: sma200, sma_window: 200, symbols: SPY, book_slots: 1}
   atr20_g200_m25: {atr_len: 20, gate: sma200, sma_window: 200, st_mult: 2.5}
   atr20_g200_m35: {atr_len: 20, gate: sma200, sma_window: 200, st_mult: 3.5}
+  xsma_g200: {gate: sma200, sma_window: 200, exit_mode: sma}
+  atr20_xsma_g200: {atr_len: 20, gate: sma200, sma_window: 200, exit_mode: sma}
+  atr16_xsma_g200: {atr_len: 16, gate: sma200, sma_window: 200, exit_mode: sma}
+  xsma100_g200: {gate: sma200, sma_window: 200, exit_mode: sma, st_mult: 2.5}
+  rsi50: {rsi_len: 14, rsi_threshold: 50.0}
+  rsi55: {rsi_len: 14, rsi_threshold: 55.0}
+  rsi60: {rsi_len: 14, rsi_threshold: 60.0}
+  atr20_rsi50: {atr_len: 20, rsi_len: 14, rsi_threshold: 50.0}
+  atr16_g200_rsi50: {atr_len: 16, gate: sma200, sma_window: 200, rsi_len: 14, rsi_threshold: 50.0}
+  atr16_g200_xsma: {atr_len: 16, gate: sma200, sma_window: 200, exit_mode: sma}
+  atr16_g200_xsma_r50: {atr_len: 16, gate: sma200, sma_window: 200, exit_mode: sma, rsi_len: 14, rsi_threshold: 50.0}
+  atr16_g200_stop2: {atr_len: 16, gate: sma200, sma_window: 200, disaster_stop_atr: 2.0}
