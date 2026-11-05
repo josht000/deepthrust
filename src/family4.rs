@@ -708,6 +708,33 @@ pub fn s050_trades(
 }
 
 pub(crate) fn rebalance_days(panel: &Panel, frequency: &str) -> Result<Vec<usize>, String> {
+    if let Some(dom) = frequency.strip_prefix("dom") {
+        let dom: u32 = dom
+            .parse()
+            .map_err(|_| format!("unsupported rebalance frequency {frequency:?}"))?;
+        let mut days = Vec::new();
+        let mut month: Vec<usize> = Vec::new();
+        for i in 0..panel.dates.len() {
+            let d = panel.dates[i];
+            if i + 1 < panel.dates.len()
+                && panel.dates[i + 1].year() == d.year()
+                && panel.dates[i + 1].month() == d.month()
+            {
+                month.push(i);
+                continue;
+            }
+            month.push(i);
+            let picked = month
+                .iter()
+                .find(|&&t| panel.dates[t].day() >= dom)
+                .or_else(|| month.last());
+            if let Some(&t) = picked {
+                days.push(t);
+            }
+            month.clear();
+        }
+        return Ok(days);
+    }
     if !matches!(frequency, "monthly" | "weekly" | "daily") {
         return Err(format!("unsupported rebalance frequency {frequency:?}"));
     }
@@ -2229,6 +2256,78 @@ pub fn s036_trades(
         (a.entry_idx, &panel.symbols[a.sym_idx]).cmp(&(b.entry_idx, &panel.symbols[b.sym_idx]))
     });
     Ok(trades)
+}
+
+/// G067 MLM-style trend index: per contract +1 if close > SMA(sma_window) else -1,
+/// equal weight. Signals fire only on dom rebalance days and only when the
+/// universe-mean 20d realized vol exceeds vol_gate; gate-fail days hold prior weights.
+/// Futures universe proxied by liquid TR ETFs (no grains/cattle legs — DELTA).
+pub fn compute_g067_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if cfg.sma_window == 0 {
+        return Err("G067 requires positive sma_window".into());
+    }
+    const VOL_LEN: usize = 20;
+    let n = panel.dates.len();
+    let ns = panel.symbols.len();
+    let smas: Vec<Vec<f64>> = panel
+        .close
+        .iter()
+        .map(|c| signals::rolling_mean(c, cfg.sma_window))
+        .collect();
+    let days = rebalance_days(panel, &cfg.rebalance)?;
+    let mut result = blank_rebalance_signals(panel, "mlm_sma200");
+    result.rsi = smas.clone();
+    let mut weights = vec![vec![0.0; n]; ns];
+    let mut current = vec![0.0f64; ns];
+    for &day in &days {
+        let (mut vsum, mut vk) = (0.0, 0usize);
+        for j in 0..ns {
+            if day < VOL_LEN {
+                continue;
+            }
+            let (mut m, mut m2, mut k) = (0.0, 0.0, 0usize);
+            for t in day + 1 - VOL_LEN..=day {
+                let (a, b) = (panel.close[j][t], panel.close[j][t - 1]);
+                if a.is_finite() && b.is_finite() {
+                    let r = a / b - 1.0;
+                    m += r;
+                    m2 += r * r;
+                    k += 1;
+                }
+            }
+            if k >= VOL_LEN {
+                let var = (m2 - m * m / k as f64) / (k as f64 - 1.0);
+                if var > 0.0 {
+                    vsum += (var * cfg.periods_per_year as f64).sqrt();
+                    vk += 1;
+                }
+            }
+        }
+        let gate_open = vk > 0 && (cfg.vol_gate <= 0.0 || vsum / vk as f64 > cfg.vol_gate);
+        if gate_open {
+            for j in 0..ns {
+                if smas[j][day].is_finite() && panel.close[j][day].is_finite() {
+                    current[j] = if panel.close[j][day] > smas[j][day] {
+                        1.0
+                    } else {
+                        -1.0
+                    };
+                }
+            }
+        }
+        let active: f64 = current.iter().map(|v| (*v).abs()).sum();
+        if active > 0.0 {
+            for j in 0..ns {
+                if current[j] != 0.0 {
+                    weights[j][day] = current[j] / active;
+                    result.signal[j][day] = true;
+                }
+            }
+        }
+    }
+    result.trade_weights = Some(weights);
+    result.benchmark_returns = benchmark_returns(panel, "SPY");
+    Ok(result)
 }
 
 #[cfg(test)]

@@ -1,0 +1,40 @@
+# G067 MLM-style trend index: +1/-1 per contract vs SMA200, equal weight,
+# day-25 monthly execution, universe-mean 20d vol gate.
+# Futures legs proxied by TR ETFs; no grains/cattle proxies exist (DELTA).
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,EFA,EEM,TLT,IEF,UUP,GLD,SLV,CPER,USO,GSG,DBC
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2005-01-01"
+min_history: 220
+sma_window: 200
+rebalance: dom25
+vol_gate: 0.15
+periods_per_year: 252
+borrow_bps_annual: 25.0
+cost_bps_per_side: 5.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 12
+
+variants:
+  sma100: {sma_window: 100}
+  sma150: {sma_window: 150}
+  sma250: {sma_window: 250}
+  sma50: {sma_window: 50}
+  dom1: {rebalance: dom1}
+  dom15: {rebalance: dom15}
+  monthend: {rebalance: monthly}
+  no_gate: {vol_gate: 0.0}
+  gate10: {vol_gate: 0.10}
+  gate20: {vol_gate: 0.20}
+  gate25: {vol_gate: 0.25}
+  gate10_sma150: {vol_gate: 0.10, sma_window: 150}
+  gate20_sma250: {vol_gate: 0.20, sma_window: 250}
+  no_gate_dom1: {vol_gate: 0.0, rebalance: dom1}
+  no_gate_end: {vol_gate: 0.0, rebalance: monthly}
