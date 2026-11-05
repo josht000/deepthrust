@@ -115,7 +115,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G094 | Simple-Moving-Average MACD Oscillator Crossover](#g094--simple-moving-average-macd-oscillator-crossover) — DUPLICATE (S089)
   - [G095 | Singular-Spectrum-Analysis Trend Signal](#g095--singular-spectrum-analysis-trend-signal)
 - [Momentum, Rotation and Cross-Sectional Factors](#momentum-rotation-and-cross-sectional-factors) (21)
-  - [G096 | ANTICOR Anti-Correlation Wealth Transfer](#g096--anticor-anti-correlation-wealth-transfer)
+  - [G096 | ANTICOR Anti-Correlation Wealth Transfer](#g096--anticor-anti-correlation-wealth-transfer) — IMPLEMENTED
   - [G097 | Baltas 2020 Trend Signal with Realized-Volatility Scaling](#g097--baltas-2020-trend-signal-with-realized-volatility-scaling)
   - [G098 | Moskowitz-Style Time-Series Momentum on Futures](#g098--moskowitz-style-time-series-momentum-on-futures) — IMPLEMENTED
   - [G099 | Online Portfolio Selection Algorithm Zoo (OLMAR/PAMR/CWMR/RMR/ANTICOR/CORN/UP/ONS...)](#g099--online-portfolio-selection-algorithm-zoo-olmarpamrcwmrrmranticorcornupons)
@@ -1854,6 +1854,13 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - external_refs: Borodin, El-Yaniv & Gogan, 'Can we learn to beat the best stock' (ANTICOR)
 - notes: Also implemented in other OLPS repos; merge sources if another clone has it.
 - sources: [MXGao-A/TradeRules — ANTICOR implementation](https://github.com/MXGao-A/TradeRules/blob/964e04a11d65bc66e8ef88ae115cb08bc006c080/pgportfolio/tdagent/algorithms/anticor1.py); [MXGao-A/TradeRules — variant](https://github.com/MXGao-A/TradeRules/blob/964e04a11d65bc66e8ef88ae115cb08bc006c080/pgportfolio/tdagent/algorithms/anticor2.py)
+- implementation_results: `src/family4.rs` compute_g096_signals (worktree branch g096_anticor); 20-asset TR ETF book, w=30 dual blocks, simplex weights, 5 bps/side, daily rebalance baseline; dev < 2024-01-01 <= test. Baseline + 16 variants.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev PF | test total (log) | test skill | test Sharpe | test PF | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline (daily, 20ETF) | +0.12 | -0.84 | 0.19 | 0.86 | +0.50 | -0.00 | 0.96 | 0.84 | 2917+1325 |
+  | sectors_weekly (top robust) | +0.93 | +0.09 | 0.60 | 1.31 | +0.30 | +0.06 | 0.93 | 1.07 | 956+385 |
+  MILD EDGE: weekly ANTICOR on the 11-sector book keeps positive skill on both partitions; daily cadence churns the edge to dust (baseline dev skill -0.84). equity dev +0.10 decays to ~0 on test. Reproduce: `cargo run --release --bin deepthrust -- --strategy g096_anticor`; variants `... --variant w10,w20,w40,w60,w90,weekly,monthly,sectors,equity,bonds_gold,mixed8,sectors_w20,sectors_weekly,cost10,cost20,cost0`
 
 ### G097 | Baltas 2020 Trend Signal with Realized-Volatility Scaling
 - priority: Medium — Risk estimator and signal are reproducible at the notebook-call level, but private code and gross returns limit confidence.
