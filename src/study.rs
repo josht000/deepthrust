@@ -65,6 +65,8 @@ pub const S024_NAME: &str = crate::family2::S024_NAME;
 pub const S024_TITLE: &str = crate::family2::S024_TITLE;
 pub const S105_NAME: &str = "s105_overnight_carry";
 pub const S105_TITLE: &str = "S105 Volatility-Targeted Overnight Carry";
+pub const S089_NAME: &str = crate::family9::S089_NAME;
+pub const S089_TITLE: &str = crate::family9::S089_TITLE;
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -202,6 +204,7 @@ struct LowVolatilityStrategyDefinition;
 struct VolumeBreakoutStrategyDefinition;
 
 struct DarvasBoxStrategyDefinition;
+struct GoldenCrossSlopeStrategyDefinition;
 
 struct FirstPullbackStrategyDefinition;
 
@@ -332,6 +335,30 @@ impl StrategyDefinition for DarvasBoxStrategyDefinition {
         fill: &str,
     ) -> Result<Vec<Trade>, String> {
         crate::family4::s051_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for GoldenCrossSlopeStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S089_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S089_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family9::compute_s089_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family9::s089_trades(panel, sig, cfg, fill)
     }
 }
 
@@ -975,7 +1002,8 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
+static S089_STRATEGY: GoldenCrossSlopeStrategyDefinition = GoldenCrossSlopeStrategyDefinition;
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 41] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1016,6 +1044,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
     &S104_STRATEGY,
     &S056_STRATEGY,
     &S058_STRATEGY,
+    &S089_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -1303,6 +1332,7 @@ impl<'a> Study<'a> {
                 | S047_NAME
                 | S050_NAME
                 | S051_NAME
+                | S089_NAME
                 | S104_NAME
         );
         if family4_universe {
@@ -2606,6 +2636,10 @@ impl<'a> Study<'a> {
                 "Buy a close above a confirmed three-session Darvas box top; confirm pivots only after the required sessions.",
                 "The PIT liquidity-rank cache defines the stock universe; available stock history starts in 2016.",
             )),
+            "s089_golden_cross_slope" => Some((
+                "Buy the configured fast/slow SMA golden cross only while the slow SMA rises over the slope lookback; exit on the death cross or the configured alternate exit.",
+                "Catalog status is demoted (regime overlay); run standalone per task. The PIT liquidity-rank cache gates the stock sleeve; ETF bars are total-return and stock bars are split+dividend adjusted, all from 2016.",
+            )),
             _ => None,
         };
         if let Some((description, limitations)) = family4 {
@@ -2688,6 +2722,7 @@ impl<'a> Study<'a> {
                 | S047_NAME
                 | S050_NAME
                 | S051_NAME
+                | S089_NAME
         ) {
             title_for(&c.strategy).to_string()
         } else if c.strategy == S104_NAME {

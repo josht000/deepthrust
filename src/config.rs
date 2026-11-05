@@ -330,6 +330,26 @@ pub struct Config {
     pub cyclical_symbols: String,
     #[serde(default = "d_defensive_symbols")]
     pub defensive_symbols: String,
+    #[serde(default = "d_s089_fast_window")]
+    pub s089_fast_window: usize,
+    #[serde(default = "d_s089_slow_window")]
+    pub s089_slow_window: usize,
+    #[serde(default = "d_s089_slope_lookback")]
+    pub s089_slope_lookback: usize,
+    #[serde(default)]
+    pub s089_slope_min: f64,
+    #[serde(default = "d_s089_require_slope")]
+    pub s089_require_slope: bool,
+    #[serde(default)]
+    pub s089_fast_slope: usize,
+    #[serde(default)]
+    pub s089_vol_mult: f64,
+    #[serde(default = "d_s089_vol_window")]
+    pub s089_vol_window: usize,
+    #[serde(default = "d_s089_exit_mode")]
+    pub s089_exit_mode: String,
+    #[serde(default)]
+    pub s089_max_hold: usize,
     #[serde(default)]
     pub results_tag: String,
     /// Resolved variant name ("baseline" when no overlay is applied).
@@ -730,6 +750,24 @@ fn d_cyclical_symbols() -> String {
 }
 fn d_defensive_symbols() -> String {
     "XLP,XLU".into()
+}
+fn d_s089_fast_window() -> usize {
+    50
+}
+fn d_s089_slow_window() -> usize {
+    200
+}
+fn d_s089_slope_lookback() -> usize {
+    20
+}
+fn d_s089_require_slope() -> bool {
+    true
+}
+fn d_s089_vol_window() -> usize {
+    20
+}
+fn d_s089_exit_mode() -> String {
+    "cross".into()
 }
 
 impl Config {

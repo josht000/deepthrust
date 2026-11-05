@@ -103,7 +103,7 @@
 - [Family 9 — Trend and Pullback Systems (Stocks)](#family-9--trend-and-pullback-systems-stocks)
     - [S087 | 20-Day-EMA Pullback in Uptrend](#s087--20-day-ema-pullback-in-uptrend) — NOT_DAILY, DEFER
     - [S088 | MACD Bullish Cross with Volume](#s088--macd-bullish-cross-with-volume)
-    - [S089 | Golden Cross with Slope Filter](#s089--golden-cross-with-slope-filter)
+    - [S089 | Golden Cross with Slope Filter](#s089--golden-cross-with-slope-filter) — IMPLEMENTED — DAILY, DELTA
     - [S090 | KAMA Breakout](#s090--kama-breakout)
     - [S091 | Donchian 55 with Chandelier Trail](#s091--donchian-55-with-chandelier-trail)
     - [S093 | Higher-Low Reversal Entry](#s093--higher-low-reversal-entry) — NOT_DAILY, DEFER
@@ -1997,6 +1997,15 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - notes: Use as a regime OVERLAY (long-only gate on/off) in the champions' test rather than a standalone strategy. Trading Garden golden cross (S&P): 33 trades 1963-today, 78.8% win, CAGR 11.8%, max drawdown 19.9%/25.5% (best risk profile in its table) but only 13 trades since 2000 (~4-5 SPY events in 2016+); Be The Puck beat buy-and-hold Sharpe on 106/371 (best of the trend rules). The slope filter is a second parameter. As a standalone it has too few events; as a regime gate it is credible.
 - data_needs: ETF total-return daily series (DP-ETF); daily_10years (D1)
 - review: DEMOTE (overlay) | source GENERIC
+- rust_status: IMPLEMENTED (standalone study; catalog status stays demoted/overlay)
+- implementation_results: `src/family9.rs` (`s089_golden_cross_slope`), 37 named variants; universe = 17 index/sector ETFs (etf_tr) + liquid top-500 PIT stocks (daily_10years_tr + liquid_ranks); stocks 15 bps/side, ETFs 5 bps/side; `next_open` primary fill, `close` upper bound; dev < 2024-01-01 <= test. DELTA: catalog demotes S089 to a regime overlay — run standalone per task; "buy at close of t" mapped to next_open primary per the shared execution spec; stock universe is the PIT liquidity-rank top-500, not an index-membership table. The 20-day rising-SMA200 filter is net-negative vs the `noslope` control (dev skill -0.115 vs -0.073; test -0.090 vs -0.046). `f100` (SMA100/SMA200 cross) is the dev-selected winner and the only positive-dev-skill variant; per-trade PF > 2 throughout comes from ~300-day holds plus 227 censored end-of-sample winners, not account-level PF.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | +0.65 | -0.11 (p=0.73) | 0.60 | -35% | +0.31 | -0.09 (p=0.88) | 0.83 | -19% | 1,994 |
+  | f100 | +0.91 | +0.14 (p=0.34) | 0.70 | -37% | +0.42 | +0.01 | 1.05 | -19% | 1,663 |
+
+  Reproduce: `cargo run --release -- --strategy s089_golden_cross_slope --variant f100,noslope`
 
 ### S090 | KAMA Breakout
 - family: trend and pullback
