@@ -498,6 +498,10 @@ pub struct Config {
     pub stop_atr_mult: f64,
     #[serde(default = "d_max_rsi")]
     pub max_rsi: f64,
+    #[serde(default = "d_down_streak")]
+    pub down_streak: usize,
+    #[serde(default = "d_engulf_mode")]
+    pub engulf_mode: String,
     #[serde(default)]
     pub results_tag: String,
     #[serde(default = "d_macd_fast")]
@@ -1157,6 +1161,12 @@ fn d_stop_atr_mult() -> f64 {
 }
 fn d_max_rsi() -> f64 {
     101.0
+}
+fn d_down_streak() -> usize {
+    3
+}
+fn d_engulf_mode() -> String {
+    "strict".into()
 }
 
 impl Config {

@@ -117,7 +117,7 @@
     - [S095 | Keltner Channel Breakout](#s095--keltner-channel-breakout)
 - [Family 10 — Candlestick and Bar Patterns](#family-10--candlestick-and-bar-patterns)
     - [S096 | Three-Bar Reversal (Bulkowski)](#s096--three-bar-reversal-bulkowski) — NOT_DAILY, DEFER
-    - [S097 | Bullish Engulfing After Down-Streak](#s097--bullish-engulfing-after-down-streak)
+    - [S097 | Bullish Engulfing After Down-Streak](#s097--bullish-engulfing-after-down-streak) — IMPLEMENTED — DAILY, DELTA
     - [S098 | Hammer at Lower Bollinger Band](#s098--hammer-at-lower-bollinger-band) — NOT_DAILY, DEFER
     - [S099 | Outside-Day Key Reversal at 200-SMA](#s099--outside-day-key-reversal-at-200-sma)
     - [S100 | Three White Soldiers Continuation](#s100--three-white-soldiers-continuation) — IMPLEMENTED — DAILY, DELTA
@@ -2229,6 +2229,7 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 
 ### S097 | Bullish Engulfing After Down-Streak
 - family: candlestick patterns
+- ohlcv_status: DAILY, DELTA
 - concept: A bullish engulfing candle (session body engulfs the prior bearish body) after 3+ down closes marks capitulation followed by aggressive buying — conditioned on the streak to avoid random engulfing noise.
 - universe: liquid stocks
 - direction: long
@@ -2239,11 +2240,20 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: several per week across the universe
 - provenance: research-hypothesis
 - status: demoted
+- rust_status: IMPLEMENTED
 - priority: P4
 - sources: [Quantified Strategies — 200 free backtested strategies](https://www.quantifiedstrategies.com/trading-strategies-free/)
 - notes: Candlestick registry member (S096-S100), tested under a family-wise (FDR) correction; compare with S030 (streak) without the pattern ('the desk question is always whether the pattern label adds information beyond the raw window'). Be The Puck's engulfing switch beat buy-and-hold Sharpe on 45/372 and returned +4.4%/yr on the S&P 500 index vs +8.9%. The 3-down-closes-then-engulf condition is mostly S030/S007 with a candlestick overlay. The strict engulfing definition is primary; test the loose variant (close above prior close, open below prior open).
 - data_needs: daily_10years (D1)
 - review: DEMOTE | source GENERIC
+- implementation_results: `src/family10.rs` / `src/study.rs`, config `configs/s097_bullish_engulfing.yaml`; PIT liquid top-500 stocks, split-adjusted OHLC, 15 bps/side, next_open primary + close upper bound; dev < 2024-01-01 <= test. DELTA: "down closes" = close < prior close (streak ends t-1, prior bar also required bearish); `loose` = close > prior close AND open < prior open with bullish body kept; delisting -30%. No variant reaches positive dev skill; `cost5` is top dev skill (+0.001) but is a cost-ladder cell, not a strategy change - best strategy variant is `top250` shown below; `streak5`/`streak4_upclose` flip test skill positive (DECAYED sign artifact, skill ~0).
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev+test) | PF dev/test |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | baseline | -0.060 | -0.094 | -0.33 | -8.2% | -0.032 | -0.041 | -0.47 | -4.8% | 3,376 | 0.87/0.87 |
+  | top250 | -0.000 | -0.021 | +0.00 | -4.6% | -0.012 | -0.018 | -0.30 | -2.9% | 1,764 | 0.99/0.90 |
+
+  Reproduce: `target\release\deepthrust.exe --strategy s097_bullish_engulfing`; all 32 variants `target\release\deepthrust.exe --strategy s097_bullish_engulfing --variant loose,streak2,streak4,streak5,exit_upclose,exit_time,exit_sma3,exit_sma10,exit_sma20,hold3,hold8,hold10,nosma,sma50,sma100,top250,top1000,top1500,stop5,stop8,target5,target10,cost5,cost25,minpx10,loose_streak2,loose_upclose,streak4_upclose,nosma_loose,nosma_streak2,upclose_hold3,stop5_target10`; dev-selected `target\release\deepthrust.exe --strategy s097_bullish_engulfing --variant top250`.
 
 ### S098 | Hammer at Lower Bollinger Band
 - family: candlestick patterns
