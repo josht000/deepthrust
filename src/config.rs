@@ -290,6 +290,16 @@ pub struct Config {
     pub oversold_in: f64,
     #[serde(default = "d_oversold_out")]
     pub oversold_out: f64,
+    #[serde(default = "d_ewma_fast")]
+    pub ewma_fast: String,
+    #[serde(default = "d_ewma_slow")]
+    pub ewma_slow: String,
+    #[serde(default = "d_resp_scale")]
+    pub resp_scale: f64,
+    #[serde(default = "d_resp_exp")]
+    pub resp_exp: f64,
+    #[serde(default = "d_sig_vol_window")]
+    pub sig_vol_window: usize,
     #[serde(default = "d_levered_cap")]
     pub levered_cap: f64,
     #[serde(default = "d_z_entry")]
@@ -800,6 +810,21 @@ fn d_vix_fall_window() -> usize {
 }
 fn d_risk_symbol() -> String {
     "SPY".into()
+}
+fn d_ewma_fast() -> String {
+    "8,16,32".into()
+}
+fn d_ewma_slow() -> String {
+    "24,48,96".into()
+}
+fn d_resp_scale() -> f64 {
+    0.89
+}
+fn d_resp_exp() -> f64 {
+    4.0
+}
+fn d_sig_vol_window() -> usize {
+    252
 }
 
 impl Config {

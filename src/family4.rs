@@ -2231,6 +2231,181 @@ pub fn s036_trades(
     Ok(trades)
 }
 
+/// G072 MBBS three-speed EWMA CTA: per asset, EWMA(fast)-EWMA(slow) trend for each
+/// of the ewma_fast/ewma_slow span pairs, each normalized by its trailing
+/// sig_vol_window stdev, mixed equally, then sign-preserving response
+/// resp_scale * sign(s)|s|^resp_exp. volparity (or equal) weights scaled to
+/// target_vol on vol_window covariance, capped by max_leverage.
+pub fn compute_g072_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let fast: Vec<usize> = crate::config::split_csv(&cfg.ewma_fast)
+        .iter()
+        .filter_map(|v| v.parse().ok())
+        .collect();
+    let slow: Vec<usize> = crate::config::split_csv(&cfg.ewma_slow)
+        .iter()
+        .filter_map(|v| v.parse().ok())
+        .collect();
+    if fast.is_empty() || fast.len() != slow.len() || cfg.vol_window < 2 {
+        return Err("G072 requires matched ewma_fast/ewma_slow spans and vol_window >= 2".into());
+    }
+    if !matches!(cfg.strategy_mode.as_str(), "volparity" | "equal") {
+        return Err(format!("unknown G072 strategy_mode {:?}", cfg.strategy_mode));
+    }
+    let n = panel.dates.len();
+    let ns = panel.symbols.len();
+    let mut mixed = vec![vec![f64::NAN; n]; ns];
+    let mut vols = vec![vec![f64::NAN; n]; ns];
+    for j in 0..ns {
+        let close = &panel.close[j];
+        let mut acc = vec![0.0; n];
+        for k in 0..fast.len() {
+            let ef = signals::ewm(close, 2.0 / (fast[k] as f64 + 1.0), fast[k]);
+            let es = signals::ewm(close, 2.0 / (slow[k] as f64 + 1.0), slow[k]);
+            let raw: Vec<f64> = (0..n).map(|t| ef[t] - es[t]).collect();
+            for t in 0..n {
+                if t + 1 < cfg.sig_vol_window || !raw[t].is_finite() {
+                    continue;
+                }
+                let win = &raw[t + 1 - cfg.sig_vol_window..=t];
+                if win.iter().any(|v| !v.is_finite()) {
+                    continue;
+                }
+                let m: f64 = win.iter().sum::<f64>() / cfg.sig_vol_window as f64;
+                let var: f64 = win.iter().map(|v| (v - m) * (v - m)).sum::<f64>()
+                    / (cfg.sig_vol_window as f64 - 1.0);
+                if var > 0.0 {
+                    acc[t] += raw[t] / var.sqrt();
+                }
+            }
+        }
+        mixed[j] = acc
+            .iter()
+            .map(|v| {
+                if v.is_finite() && *v != 0.0 {
+                    *v / fast.len() as f64
+                } else {
+                    f64::NAN
+                }
+            })
+            .collect();
+        let mut m = 0.0;
+        let mut m2 = 0.0;
+        let mut k = 0usize;
+        for t in 0..n {
+            let r = if t > 0 && close[t].is_finite() && close[t - 1].is_finite() {
+                Some(close[t] / close[t - 1] - 1.0)
+            } else {
+                None
+            };
+            if let Some(r) = r {
+                m += r;
+                m2 += r * r;
+                k += 1;
+            }
+            if k > cfg.vol_window {
+                let t0 = t - cfg.vol_window;
+                let r0 = close[t0] / close[t0 - 1] - 1.0;
+                if r0.is_finite() {
+                    m -= r0;
+                    m2 -= r0 * r0;
+                }
+                k -= 1;
+            }
+            if k == cfg.vol_window {
+                let var = (m2 - m * m / k as f64) / (k as f64 - 1.0);
+                vols[j][t] = if var > 0.0 { var.sqrt() } else { f64::NAN };
+            }
+        }
+    }
+    let days = rebalance_days(panel, &cfg.rebalance)?;
+    let mut result = blank_rebalance_signals(panel, "mbbs_ewma");
+    result.rsi = mixed.clone();
+    let mut weights = vec![vec![0.0; n]; ns];
+    for &day in &days {
+        let mut w = vec![0.0f64; ns];
+        for j in 0..ns {
+            let s = mixed[j][day];
+            if !s.is_finite() || vols[j][day].is_nan() {
+                continue;
+            }
+            let clipped = s.clamp(-1.0, 1.0);
+            let pos = cfg.resp_scale * clipped.signum() * clipped.abs().powf(cfg.resp_exp);
+            w[j] = if cfg.strategy_mode == "equal" {
+                pos
+            } else {
+                (pos / vols[j][day]).clamp(-1000.0, 1000.0)
+            };
+        }
+        let gross: f64 = w.iter().map(|v| (*v).abs()).sum();
+        if gross <= 0.0 {
+            continue;
+        }
+        for v in &mut w {
+            *v /= gross;
+        }
+        if cfg.target_vol > 0.0 {
+            let lo = day.saturating_sub(cfg.vol_window - 1);
+            let mut mean = vec![0.0; ns];
+            let mut cnt = vec![0usize; ns];
+            for j in 0..ns {
+                for t in lo..=day {
+                    let r = if t > 0 && panel.close[j][t].is_finite() && panel.close[j][t - 1].is_finite() {
+                        Some(panel.close[j][t] / panel.close[j][t - 1] - 1.0)
+                    } else {
+                        None
+                    };
+                    if let Some(r) = r {
+                        mean[j] += r;
+                        cnt[j] += 1;
+                    }
+                }
+                if cnt[j] > 0 {
+                    mean[j] /= cnt[j] as f64;
+                }
+            }
+            let mut port_var = 0.0;
+            for a in 0..ns {
+                for b in 0..ns {
+                    if w[a] == 0.0 || w[b] == 0.0 {
+                        continue;
+                    }
+                    let (mut cov, mut k) = (0.0, 0usize);
+                    for t in lo..=day {
+                        if t == 0 {
+                            continue;
+                        }
+                        let (ca, pa) = (panel.close[a][t], panel.close[a][t - 1]);
+                        let (cb, pb) = (panel.close[b][t], panel.close[b][t - 1]);
+                        if ca.is_finite() && pa.is_finite() && cb.is_finite() && pb.is_finite() {
+                            cov += (ca / pa - 1.0 - mean[a]) * (cb / pb - 1.0 - mean[b]);
+                            k += 1;
+                        }
+                    }
+                    if k >= 2 {
+                        port_var += w[a] * w[b] * cov / (k as f64 - 1.0);
+                    }
+                }
+            }
+            if port_var > 0.0 {
+                let port_vol = (port_var * cfg.periods_per_year as f64).sqrt();
+                let scale = (cfg.target_vol / port_vol).min(cfg.max_leverage);
+                for v in &mut w {
+                    *v *= scale;
+                }
+            }
+        }
+        for (j, v) in w.iter().enumerate() {
+            if v.abs() >= 0.001 {
+                weights[j][day] = *v;
+                result.signal[j][day] = true;
+            }
+        }
+    }
+    result.trade_weights = Some(weights);
+    result.benchmark_returns = benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

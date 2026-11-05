@@ -8,7 +8,7 @@ pub type Mat = Vec<Vec<f64>>;
 pub type Mask = Vec<Vec<bool>>;
 
 /// pandas `ewm(alpha, adjust=False, min_periods)` mean of a series (NaN inputs are skipped and output NaN).
-fn ewm(x: &[f64], alpha: f64, min_periods: usize) -> Vec<f64> {
+pub fn ewm(x: &[f64], alpha: f64, min_periods: usize) -> Vec<f64> {
     let mut out = vec![f64::NAN; x.len()];
     let (mut state, mut seen) = (f64::NAN, 0usize);
     for (i, &v) in x.iter().enumerate() {
