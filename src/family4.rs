@@ -2350,7 +2350,32 @@ pub fn compute_g096_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
             continue;
         }
         for j in 0..ns {
-            let wj = if ok[j] { b_new[j].max(0.0) / gross } else { 0.0 };
+            b_new[j] = if ok[j] { b_new[j].max(0.0) / gross } else { 0.0 };
+        }
+        if cfg.pos_cap < 1.0 {
+            for _ in 0..3 {
+                let excess: f64 = b_new
+                    .iter()
+                    .map(|v| (v - cfg.pos_cap).max(0.0))
+                    .sum();
+                if excess <= 0.0 {
+                    break;
+                }
+                let room: f64 = b_new
+                    .iter()
+                    .map(|v| (cfg.pos_cap - v).max(0.0))
+                    .sum();
+                for v in &mut b_new {
+                    if *v > cfg.pos_cap {
+                        *v = cfg.pos_cap;
+                    } else if room > 0.0 {
+                        *v += excess * (cfg.pos_cap - *v) / room;
+                    }
+                }
+            }
+        }
+        for j in 0..ns {
+            let wj = b_new[j];
             prev_b[j] = wj;
             if wj >= 0.001 {
                 weights[j][day] = wj;

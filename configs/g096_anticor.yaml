@@ -33,3 +33,17 @@ variants:
   cost10: {cost_bps_per_side: 10.0}
   cost20: {cost_bps_per_side: 20.0}
   cost0: {cost_bps_per_side: 0.0}
+  sectors_w15: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 15}
+  sectors_w25: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 25}
+  sectors_w35: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 35}
+  sectors_w45: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 45}
+  sectors_monthly: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: monthly}
+  equity_weekly: {symbols: "SPY,QQQ,IWM,DIA,EFA,EEM,RSP,EWJ", book_slots: 8, rebalance: weekly}
+  mixed8_weekly: {symbols: "SPY,QQQ,TLT,GLD,DBC,EEM,IEF,UUP", book_slots: 8, rebalance: weekly}
+  bonds_weekly: {symbols: "TLT,IEF,SHY,AGG,LQD,HYG,GLD,BIL", book_slots: 8, rebalance: weekly}
+  sw_cap20: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, pos_cap: 0.20}
+  sw_cap25: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, pos_cap: 0.25}
+  sw_cap30: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, pos_cap: 0.30}
+  w25_weekly: {lookback: 25, rebalance: weekly}
+  w35_weekly: {lookback: 35, rebalance: weekly}
+  sw_cost10: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, cost_bps_per_side: 10.0}
