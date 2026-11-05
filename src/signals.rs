@@ -2935,6 +2935,92 @@ pub fn s017_trades(
     Ok(trades)
 }
 
+/// G076 Awesome Oscillator: AO = SMA(ao_fast) - SMA(ao_slow) of median price.
+/// "zero" mode: enter on AO flip to >0, exit on flip to <=0.
+/// "saucer" mode: enter on saucer trigger (bearish bar, prior 2 bullish, AO
+/// rising, last two AO < 0); exit on AO > 0 flip down... long-only either way.
+/// "either": union of both entries.
+pub fn compute_g076_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let mut ao_all = Vec::with_capacity(panel.symbols.len());
+    let mut signal = Vec::with_capacity(panel.symbols.len());
+    let mut exit_now = Vec::with_capacity(panel.symbols.len());
+    let mut tradable = Vec::with_capacity(panel.symbols.len());
+    for j in 0..panel.symbols.len() {
+        let n = panel.close[j].len();
+        let med: Vec<f64> = (0..n)
+            .map(|t| (panel.high[j][t] + panel.low[j][t]) / 2.0)
+            .collect();
+        let fast = rolling_mean(&med, cfg.ao_fast);
+        let slow = rolling_mean(&med, cfg.ao_slow);
+        let ao: Vec<f64> = (0..n).map(|t| fast[t] - slow[t]).collect();
+        let close = &panel.close[j];
+        let open = &panel.open[j];
+        let saucer_ok = |t: usize| -> bool {
+            t >= 2
+                && close[t] < open[t]
+                && close[t - 1] > open[t - 1]
+                && close[t - 2] > open[t - 2]
+                && ao[t] > ao[t - 1]
+                && ao[t - 1] > ao[t - 2]
+                && ao[t] < 0.0
+                && ao[t - 1] < 0.0
+        };
+        let mut history = 0usize;
+        let trad: Vec<bool> = close
+            .iter()
+            .map(|value| {
+                if value.is_finite() {
+                    history += 1;
+                }
+                value.is_finite() && history >= cfg.min_history
+            })
+            .collect();
+        signal.push(
+            (0..n)
+                .map(|t| {
+                    if t == 0 || !trad[t] || !ao[t].is_finite() || !ao[t - 1].is_finite() {
+                        return false;
+                    }
+                    let zero_cross = ao[t - 1] <= 0.0 && ao[t] > 0.0;
+                    match cfg.strategy_mode.as_str() {
+                        "saucer" => saucer_ok(t),
+                        "either" => zero_cross || saucer_ok(t),
+                        _ => zero_cross,
+                    }
+                })
+                .collect(),
+        );
+        exit_now.push(
+            (0..n)
+                .map(|t| {
+                    t > 0
+                        && ao[t].is_finite()
+                        && ao[t - 1].is_finite()
+                        && ao[t - 1] > 0.0
+                        && ao[t] <= 0.0
+                })
+                .collect(),
+        );
+        tradable.push(trad);
+        ao_all.push(ao);
+    }
+    Ok(Signals {
+        rsi: ao_all,
+        indicator_name: "AO".into(),
+        signal,
+        exit_now,
+        add_signal: None,
+        atr: None,
+        stop_pct: None,
+        pool: tradable.clone(),
+        tradable,
+        trade_weights: None,
+        entry_mat: None,
+        exit_mat: None,
+        benchmark_returns: None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
