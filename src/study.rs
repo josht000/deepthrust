@@ -1114,6 +1114,47 @@ impl StrategyDefinition for Family6Definition {
     }
 }
 
+struct Family10Definition {
+    name: &'static str,
+    title: &'static str,
+    kind: Family10Kind,
+}
+
+#[derive(Copy, Clone)]
+enum Family10Kind {
+    YieldCurveRotation,
+}
+
+impl StrategyDefinition for Family10Definition {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn title(&self) -> &'static str {
+        self.title
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        match self.kind {
+            Family10Kind::YieldCurveRotation => crate::family10::compute_s103_signals(panel, cfg),
+        }
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        match self.kind {
+            Family10Kind::YieldCurveRotation => {
+                crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+            }
+        }
+    }
+}
+
 impl StrategyDefinition for OvernightStrategyDefinition {
     fn name(&self) -> &'static str {
         self.name
@@ -1331,7 +1372,12 @@ static S090_STRATEGY: Family9Definition = Family9Definition {
     kind: Family9Kind::KamaBreakout,
 };
 static S094_STRATEGY: S094BollingerSqueezeDefinition = S094BollingerSqueezeDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 56] = [
+static S103_STRATEGY: Family10Definition = Family10Definition {
+    name: crate::family10::S103_NAME,
+    title: crate::family10::S103_TITLE,
+    kind: Family10Kind::YieldCurveRotation,
+};
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 57] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1388,6 +1434,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 56] = [
     &S095_STRATEGY,
     &S090_STRATEGY,
     &S094_STRATEGY,
+    &S103_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -2778,6 +2825,25 @@ impl<'a> Study<'a> {
                 "- Limitations: CPER is a copper futures ETF (roll effects embedded); the momentum control variant drops the copper signal entirely.".into(),
             ];
         }
+        if c.strategy == crate::family10::S103_NAME {
+            return vec![
+                format!(
+                    "- Universe: {} vs {}; daily total-return-adjusted Parquet bars.",
+                    c.financial_symbol, c.utility_symbol
+                ),
+                format!(
+                    "- Rule: {} rebalance on FRED DGS10/DGS2 (mode={}); {}-day yield changes, dead band {:.2} pp ({}); XLF-leg when the vote favours steepening, else XLU-leg.",
+                    c.rebalance, c.signal_mode, c.rate_change_window, c.rate_dead_band, c.band_mode
+                ),
+                format!(
+                    "- Fill: {}; {} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: SPY close-to-close benchmark plus random-timing exposure matching.".into(),
+                "- Limitations: FRED reference-date yields are treated as known at that close; the separate-legs vote is one reading of the catalog's ambiguous bull/bear-steepening note.".into(),
+            ];
+        }
         if c.strategy == crate::family7::S065_NAME {
             return vec![
                 format!(
@@ -3416,6 +3482,8 @@ impl<'a> Study<'a> {
             format!("rsi{}[{:.0},{:.0}] tqqq@{:.1}x else qqq/sma{}", c.rsi_len, c.oversold_in, c.oversold_out, c.levered_cap, c.sma_window)
         } else if c.strategy == crate::family7::S102_NAME {
             format!("copper/gold {} -> {}|{}", c.signal_mode, c.cyclical_symbols, c.defensive_symbols)
+        } else if c.strategy == crate::family10::S103_NAME {
+            format!("yc {} {} chg{} band{:.2} -> {}|{}", c.rebalance, c.signal_mode, c.rate_change_window, c.rate_dead_band, c.financial_symbol, c.utility_symbol)
         } else if c.strategy == crate::family7::S065_NAME {
             format!("rv{}/{}<{:.2} donchian{} x{}", c.rv_short, c.rv_long, c.rv_ratio, c.entry_window, c.exit_extreme_window)
         } else if c.strategy == crate::family7::S071_NAME {

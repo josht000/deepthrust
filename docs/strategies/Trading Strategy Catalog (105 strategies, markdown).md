@@ -123,7 +123,7 @@
     - [S100 | Three White Soldiers Continuation](#s100--three-white-soldiers-continuation)
 - [Family 11 — Miscellaneous Structural Edge](#family-11--miscellaneous-structural-edge)
     - [S102 | Copper/Gold Ratio Equity Tilt (CPER/GLD ratio, both in cache)](#s102--coppergold-ratio-equity-tilt-cpergld-ratio-both-in-cache) — IMPLEMENTED
-    - [S103 | Yield-Curve Financials/Utilities Rotation](#s103--yield-curve-financialsutilities-rotation)
+    - [S103 | Yield-Curve Financials/Utilities Rotation](#s103--yield-curve-financialsutilities-rotation) — IMPLEMENTED — DELTA, DEMOTED
     - [S104 | High-Beta/Momentum Crash Protection (overlay comparison on S041)](#s104--high-betamomentum-crash-protection-overlay-comparison-on-s041) — IMPLEMENTED
     - [S105 | Volatility-Targeted Overnight Carry](#s105--volatility-targeted-overnight-carry) — IMPLEMENTED
   - [Appendix - Source index](#appendix--source-index)
@@ -2345,6 +2345,13 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - parameter_variants: decision cadence {monthly with dead band primary; weekly}; signal {10Y and 2Y changes separately primary; slope change}
 - data_needs: FRED T10Y2Y, DGS10, DGS2 (DP-FRED); XLF, XLU (DP-ETF)
 - review: DEMOTE | source GENERIC
+- implementation_results: Rust in `src/family10.rs` / `src/study.rs`, config `configs/s103_yield_curve_rotation.yaml`; monthly rotation XLF vs XLU driven by FRED DGS10/DGS2 (`data/pit/market/fred/`, fetched by `tools/fetch_fred_rates.py`), 21-day banded yield-change votes, 1 bp/side; 44 variants. DELTA: catalog left the dead-band size and the separate-legs combination unspecified — baseline uses 0.10 pp and a slope-vote + 10Y-level-vote score with "else XLU" binary band (`hold` hysteresis is a registered variant). Demoted entry: run as a falsification study; dev trades are 95 monthly periods (<100 but = the catalog's 8-year monthly-rebalance alternative).
+
+  | variant | dev total / skill / Sharpe / max DD | test total / skill / Sharpe / max DD | trades (dev+test) |
+  |---|---|---|---|
+  | baseline | +1.07 / +0.36 / 0.76 / -36.2% | +0.42 / -0.00 / 1.06 / -19.2% | 95+34 |
+  | slope_hold (dev pick) | +1.26 / +0.55 / 0.86 / -36.2% | +0.26 / -0.16 / 0.62 / -20.7% | 95+34 |
+  Reproduce: `target\release\deepthrust.exe --strategy s103_yield_curve_rotation --variant slope_hold` reruns baseline and the dev-selected variant; all 44 names are in the yaml `variants:` block. Dev skill did not survive to test (DECAYED); consistent with the DEMOTE verdict the yield-curve signal is not validated.
 
 ### S104 | High-Beta/Momentum Crash Protection (overlay comparison on S041)
 - family: structural edge

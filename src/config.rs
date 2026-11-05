@@ -511,6 +511,20 @@ pub struct Config {
     pub symbol_cost_bps: BTreeMap<String, f64>,
     #[serde(skip)]
     pub symbol_sources: BTreeMap<String, String>,
+    #[serde(default)]
+    pub fred_dir: String,
+    #[serde(default = "d_rate_change_window")]
+    pub rate_change_window: usize,
+    #[serde(default)]
+    pub rate_dead_band: f64,
+    #[serde(default)]
+    pub level_threshold: f64,
+    #[serde(default = "d_band_mode")]
+    pub band_mode: String,
+    #[serde(default = "d_financial_symbol")]
+    pub financial_symbol: String,
+    #[serde(default = "d_utility_symbol")]
+    pub utility_symbol: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1102,6 +1116,18 @@ fn d_bb_mult() -> f64 {
 }
 fn d_width_lookback() -> usize {
     120
+}
+fn d_rate_change_window() -> usize {
+    21
+}
+fn d_financial_symbol() -> String {
+    "XLF".into()
+}
+fn d_utility_symbol() -> String {
+    "XLU".into()
+}
+fn d_band_mode() -> String {
+    "binary".into()
 }
 
 impl Config {
