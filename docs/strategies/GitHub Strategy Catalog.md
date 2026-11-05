@@ -120,7 +120,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G098 | Moskowitz-Style Time-Series Momentum on Futures](#g098--moskowitz-style-time-series-momentum-on-futures) — IMPLEMENTED
   - [G099 | Online Portfolio Selection Algorithm Zoo (OLMAR/PAMR/CWMR/RMR/ANTICOR/CORN/UP/ONS...)](#g099--online-portfolio-selection-algorithm-zoo-olmarpamrcwmrrmranticorcornupons)
   - [G100 | QARMII 252-Day Binary Momentum Portfolio](#g100--qarmii-252-day-binary-momentum-portfolio) — IMPLEMENTED
-  - [G101 | Quadratic Dip-Depth Sizing Formula on VTI/QQQ (SGOV cash park)](#g101--quadratic-dip-depth-sizing-formula-on-vtiqqq-sgov-cash-park)
+  - [G101 | Quadratic Dip-Depth Sizing Formula on VTI/QQQ (SGOV cash park)](#g101--quadratic-dip-depth-sizing-formula-on-vtiqqq-sgov-cash-park) — IMPLEMENTED
   - [G102 | Top-50 S&P500 12-Month Momentum Portfolio (with HQM low-quality-momentum filter variant)](#g102--top-50-sp500-12-month-momentum-portfolio-with-hqm-low-quality-momentum-filter-variant) — DUPLICATE (S041)
   - [G103 | Top-One Positive-Slope Momentum Rotation](#g103--top-one-positive-slope-momentum-rotation) — DUPLICATE (S043)
   - [G104 | 232-Session-Lagged Industry-Relative Momentum Factor](#g104--232-session-lagged-industry-relative-momentum-factor)
@@ -1943,6 +1943,13 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - reported_metrics: none reported
 - notes: ai-value-chain.example.md is a plain monthly DCA on a curated watchlist - no edge, logged not recorded.
 - sources: [FarzamHejaziK/claude-investment-assistant — dip formula](https://github.com/FarzamHejaziK/claude-investment-assistant/blob/9607f6b52214f20e340c1c27491766b78b7acc78/strategies/dip-buying.example.md)
+- implementation_results: `src/family4.rs` compute_g101_signals (worktree branch g101_dip_sizing); daily rebalance, per-leg target min(1,(5d+d²)/100), remainder BIL, 5 bps/side; dev < 2024-01-01 <= test. DELTA: VOO/QQQ/BIL substituted for VTI/QQQ/SGOV. Baseline + 16 variants.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev PF | test total (log) | test skill | test Sharpe | test PF | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | +0.52 | -0.35 | 0.47 | 1.07 | +0.34 | -0.06 | 0.97 | 1.10 | 4669+1729 |
+  | weekly (top dev) | +0.63 | -0.28 | 0.56 | 1.35 | +0.31 | -0.09 | 0.89 | 1.52 | 952+359 |
+  NO EDGE: positive absolute returns but negative skill vs random allocation on every config — dip-depth sizing underperforms a random allocation of the same book. Reproduce: `cargo run --release --bin deepthrust -- --strategy g101_dip_sizing`; variants `... --variant high20,high100,high150,high252,a2,a8,a3,b0_5,b2,linear,gentle,aggressive,qqq_only,spy_qqq,shy_cash,weekly`
 
 ### G102 | Top-50 S&P500 12-Month Momentum Portfolio (with HQM low-quality-momentum filter variant)
 - priority: Medium — Crossref to S041 (12-1 cross-sectional momentum); the HQM multi-horizon filter is a practical quality gate worth registering as a variant.

@@ -1,0 +1,120 @@
+data_suffix: .parquet
+etf_symbols: SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,TLT,IEF,GLD,EFA,EEM
+include_stocks: true
+universe_top_n: 500
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+min_history: 260
+start_date: "2016-01-01"
+setup_mode: nr7_or_inside
+direction: both
+exit_mode: time
+gate: none
+lookback: 7
+atr_len: 14
+setup_atr_ratio: 0.0
+order_validity: 1
+max_hold: 2
+gap_reward_risk: 2.0
+borrow_bps_annual: 300.0
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+cost_bps_per_side: 15.0
+fills: stop
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261104
+book_slots: 50
+
+sources:
+  - name: etfs
+    data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+    data_suffix: .parquet
+    symbols: SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,TLT,IEF,GLD,EFA,EEM
+    cost_bps_per_side: 5.0
+  - name: stocks
+    data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+    data_suffix: .parquet
+    symbols: "*"
+    cost_bps_per_side: 15.0
+
+variants:
+  # registered: setup choice {NR7 or inside day; NR7 only; inside day only}
+  nr7_only: {setup_mode: nr7}
+  inside_only: {setup_mode: inside}
+  # registered: exit choice {2-session flatten; first profitable close; opposite break; stop + 2R target (ex-S039)}
+  fpc: {exit_mode: first_profitable_close}
+  fpc_h3: {exit_mode: first_profitable_close, max_hold: 3}
+  fpc_h5: {exit_mode: first_profitable_close, max_hold: 5}
+  opp_break: {exit_mode: opposite_break}
+  opp_break5: {exit_mode: opposite_break, max_hold: 5}
+  stop_target: {exit_mode: stop_target}
+  stop_target_h5: {exit_mode: stop_target, max_hold: 5}
+  stop_target_r15: {exit_mode: stop_target, gap_reward_risk: 1.5}
+  stop_target_r3: {exit_mode: stop_target, gap_reward_risk: 3.0}
+  # direction {long and short}
+  long_only: {direction: long}
+  short_only: {direction: short}
+  # hold {2-5 sessions}
+  hold3: {max_hold: 3}
+  hold5: {max_hold: 5}
+  # order lifetime
+  valid2: {order_validity: 2}
+  # NR window
+  nr5: {lookback: 5}
+  nr9: {lookback: 9}
+  nr14: {lookback: 14}
+  # setup x registered exit combos
+  nr7_fpc: {setup_mode: nr7, exit_mode: first_profitable_close}
+  inside_fpc: {setup_mode: inside, exit_mode: first_profitable_close}
+  nr7_opp_break: {setup_mode: nr7, exit_mode: opposite_break}
+  inside_opp_break: {setup_mode: inside, exit_mode: opposite_break}
+  nr7_stop_target: {setup_mode: nr7, exit_mode: stop_target}
+  inside_stop_target: {setup_mode: inside, exit_mode: stop_target}
+  # direction x registered exit combos
+  long_fpc: {direction: long, exit_mode: first_profitable_close}
+  long_opp_break: {direction: long, exit_mode: opposite_break}
+  long_stop_target: {direction: long, exit_mode: stop_target}
+  short_stop_target: {direction: short, exit_mode: stop_target}
+  # regime / compression filters
+  gate_sma200: {gate: sma, sma_window: 200}
+  gate_sma50: {gate: sma, sma_window: 50}
+  atr05: {setup_atr_ratio: 0.5}
+  atr075: {setup_atr_ratio: 0.75}
+  atr10: {setup_atr_ratio: 1.0}
+  # universe
+  top250: {universe_top_n: 250}
+  top1000: {universe_top_n: 1000}
+  etf_only: {include_stocks: false, book_slots: 20}
+  # filter combos
+  nr7_atr05: {setup_mode: nr7, setup_atr_ratio: 0.5}
+  gate_fpc: {gate: sma, exit_mode: first_profitable_close}
+  long_atr05: {direction: long, setup_atr_ratio: 0.5}
+  # cost sensitivity on the stock side (sources override is whole-key)
+  cost_stocks5:
+    sources:
+      - name: etfs
+        data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+        data_suffix: .parquet
+        symbols: SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,TLT,IEF,GLD,EFA,EEM
+        cost_bps_per_side: 5.0
+      - name: stocks
+        data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+        data_suffix: .parquet
+        symbols: "*"
+        cost_bps_per_side: 5.0
+  cost_stocks40:
+    sources:
+      - name: etfs
+        data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+        data_suffix: .parquet
+        symbols: SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,TLT,IEF,GLD,EFA,EEM
+        cost_bps_per_side: 5.0
+      - name: stocks
+        data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+        data_suffix: .parquet
+        symbols: "*"
+        cost_bps_per_side: 40.0

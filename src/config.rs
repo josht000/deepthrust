@@ -368,6 +368,10 @@ pub struct Config {
     pub price_sma_gate: usize,
     #[serde(default)]
     pub vix_level_exit: f64,
+    #[serde(default = "d_setup_mode")]
+    pub setup_mode: String,
+    #[serde(default)]
+    pub setup_atr_ratio: f64,
     #[serde(default)]
     pub results_tag: String,
     /// Resolved variant name ("baseline" when no overlay is applied).
@@ -810,6 +814,9 @@ fn d_vix_fall_window() -> usize {
 }
 fn d_risk_symbol() -> String {
     "SPY".into()
+}
+fn d_setup_mode() -> String {
+    "nr7_or_inside".into()
 }
 
 impl Config {

@@ -54,7 +54,7 @@
 - [Family 4 — Momentum, Breakout, and Rotation](#family-4--momentum-breakout-and-rotation)
     - [S033 | 52-Week-High Breakout (Donchian-style)](#s033--52-week-high-breakout-donchian-style) — IMPLEMENTED — DAILY, DELTA
     - [S036 | Donchian Breakout, Turtle Systems 1 and 2](#s036--donchian-breakout-turtle-systems-1-and-2) — IMPLEMENTED — DELTA
-    - [S038 | NR7 / Inside-Day Breakout](#s038--nr7--inside-day-breakout)
+    - [S038 | NR7 / Inside-Day Breakout](#s038--nr7--inside-day-breakout) — IMPLEMENTED
     - [S040 | Volume-Confirmed 20-Day-High Breakout](#s040--volume-confirmed-20-day-high-breakout) — IMPLEMENTED
     - [S041 | 12-1 Cross-Sectional Momentum](#s041--12-1-cross-sectional-momentum) — IMPLEMENTED
     - [S042 | Sector Momentum Rotation](#s042--sector-momentum-rotation) — IMPLEMENTED
@@ -1012,6 +1012,16 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - parameter_variants: setup {NR7 or inside day; NR7 only; inside day only}; exit {2-session flatten primary; first profitable close; opposite break; stop + 2R target (ex-S039)}
 - merged_from: S039
 - data_needs: daily_10years (D1); ETF daily bars (DP-ETF)
+- rust_status: IMPLEMENTED
+- implementation_delta: DELTA — the "liquid stocks and ETFs" universe is the liquidity-rank top-500 rule plus a fixed 20-ETF sleeve, not index membership; stock bars start 2016-01-04; daily bars cannot order same-session events, so opposite-side/stop exits are evaluated from the session after entry and the stop_target notional cap is not modeled at research scale.
+- implementation_results: Rust in `src/family4.rs` / `src/study.rs`, config `configs/s038_nr7_breakout.yaml`; falsification FAILS — no variant reaches positive net PF (the best cost-side run is PF 0.994 at 5 bps/side stocks), consistent with the demoted status.
+  | portfolio | variant | partition | total log | trend log | random-pick baselines (log; p) | skill (log) | skill vs random U / pool (log) | bias (log) | skill % | skill p | Sharpe | PF | max DD | win % | trades |
+  |---|---|---|---:|---:|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | baseline | `baseline` | DEV | -1.966 | +0.705 | U -1.931 (p=+0.739); pool -1.929 (p=+0.741) | -2.671 | U -0.035; pool -0.037 | +0.000 | n/a | +1.000 | -1.541 | +0.825 | -87.3% | +44.8% | 141684 |
+  | baseline | `baseline` | TEST | -0.905 | +0.412 | U -0.903 (p=+0.517); pool -0.902 (p=+0.530) | -1.317 | U -0.002; pool -0.003 | +0.000 | n/a | +1.000 | -2.143 | +0.797 | -60.0% | +45.1% | 57473 |
+  | DEV-selected | `etf_only` | DEV | -0.062 | +0.159 | U -0.068 (p=+0.413); pool -0.070 (p=+0.389) | -0.221 | U +0.006; pool +0.008 | +0.000 | n/a | +0.998 | -0.171 | +0.890 | -15.8% | +48.6% | 5122 |
+  | DEV-selected | `etf_only` | TEST | -0.078 | +0.100 | U -0.054 (p=+0.893); pool -0.053 (p=+0.905) | -0.178 | U -0.025; pool -0.025 | +0.000 | n/a | +1.000 | -0.763 | +0.776 | -8.4% | +47.4% | 2062 |
+  Reproduce: full matrix `cargo run --release -- --strategy s038_nr7_breakout --variant nr7_only,inside_only,fpc,fpc_h3,fpc_h5,opp_break,opp_break5,stop_target,stop_target_h5,stop_target_r15,stop_target_r3,long_only,short_only,hold3,hold5,valid2,nr5,nr9,nr14,nr7_fpc,inside_fpc,nr7_opp_break,inside_opp_break,nr7_stop_target,inside_stop_target,long_fpc,long_opp_break,long_stop_target,short_stop_target,gate_sma200,gate_sma50,atr05,atr075,atr10,top250,top1000,etf_only,nr7_atr05,gate_fpc,long_atr05,cost_stocks5,cost_stocks40`; DEV-selected winner `cargo run --release -- --strategy s038_nr7_breakout --variant etf_only`.
 - review: RESOLVED
 
 ### S040 | Volume-Confirmed 20-Day-High Breakout

@@ -35,6 +35,8 @@ pub const S036_NAME: &str = "s036_turtle_donchian";
 pub const S036_TITLE: &str = "S036 Donchian Breakout, Turtle Systems 1 and 2";
 pub const S040_NAME: &str = "s040_volume_breakout";
 pub const S040_TITLE: &str = "S040 Volume-Confirmed Breakout";
+pub const S038_NAME: &str = "s038_nr7_breakout";
+pub const S038_TITLE: &str = "S038 NR7 / Inside-Day Breakout";
 pub const S043_NAME: &str = "s043_etf_multi_asset_momentum";
 pub const S043_TITLE: &str = "S043 ETF Multi-Asset Momentum Rotation";
 pub const S044_NAME: &str = "s044_efficiente5";
@@ -207,6 +209,8 @@ struct VolumeBreakoutStrategyDefinition;
 
 struct TurtleDonchianStrategyDefinition;
 
+struct Nr7BreakoutStrategyDefinition;
+
 struct DarvasBoxStrategyDefinition;
 
 struct FirstPullbackStrategyDefinition;
@@ -338,6 +342,30 @@ impl StrategyDefinition for TurtleDonchianStrategyDefinition {
         fill: &str,
     ) -> Result<Vec<Trade>, String> {
         crate::family4::s036_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for Nr7BreakoutStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S038_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S038_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family4::compute_s038_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::s038_trades(panel, sig, cfg, fill)
     }
 }
 
@@ -944,6 +972,7 @@ static S033_STRATEGY: BreakoutStrategyDefinition = BreakoutStrategyDefinition;
 static S032_STRATEGY: HighProximityStrategyDefinition = HighProximityStrategyDefinition;
 static S035_STRATEGY: LowVolatilityStrategyDefinition = LowVolatilityStrategyDefinition;
 static S040_STRATEGY: VolumeBreakoutStrategyDefinition = VolumeBreakoutStrategyDefinition;
+static S038_STRATEGY: Nr7BreakoutStrategyDefinition = Nr7BreakoutStrategyDefinition;
 static S050_STRATEGY: FirstPullbackStrategyDefinition = FirstPullbackStrategyDefinition;
 static S043_STRATEGY: MultiAssetMomentumStrategyDefinition = MultiAssetMomentumStrategyDefinition;
 static S044_STRATEGY: EfficienteFiveStrategyDefinition = EfficienteFiveStrategyDefinition;
@@ -1049,7 +1078,7 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 44] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 45] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1059,6 +1088,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 44] = [
     &S032_STRATEGY,
     &S033_STRATEGY,
     &S035_STRATEGY,
+    &S038_STRATEGY,
     &S040_STRATEGY,
     &S043_STRATEGY,
     &S044_STRATEGY,
@@ -1243,7 +1273,10 @@ impl<'a> Study<'a> {
         };
         let mut symbol_bars = Vec::new();
         for source in &sources {
-            if cfg.strategy == S033_NAME && !cfg.include_stocks && source.name == "stocks" {
+            if matches!(cfg.strategy.as_str(), S033_NAME | S038_NAME)
+                && !cfg.include_stocks
+                && source.name == "stocks"
+            {
                 continue;
             }
             let source_symbols = crate::config::split_csv(&source.symbols);
@@ -1373,6 +1406,7 @@ impl<'a> Study<'a> {
         let family4_universe = matches!(
             cfg.strategy.as_str(),
             S036_NAME
+                | S038_NAME
                 | S040_NAME
                 | S041_NAME
                 | S042_NAME
@@ -2764,6 +2798,10 @@ impl<'a> Study<'a> {
                 "Enter on an N-day Donchian breakout with a mandatory 2N stop (Wilder ATR, alpha=1/20) and a shorter opposite-channel or chandelier exit; System 1 skips a breakout when the previous real-or-shadow breakout resolved as a win.",
                 "ETF total-return bars start in 2016; unit sizing is a fixed equity fraction per unit (no compounding equity, no pyramiding, no correlation limits); the System 1 ledger ignores fresh breakouts while a position or shadow is open; the long-short scenario assumes borrow at the configured annual rate.",
             )),
+            "s038_nr7_breakout" => Some((
+                "After an NR7 or inside-day setup, next-session stop orders at the setup bar's high and low enter the first break; exits flatten on time, opposite-side break, or stop-plus-target rules.",
+                "Daily bars approximate intraday stop ordering; same-session opposite-side exits start at the session after entry. The stop_target notional cap is not modeled at research scale; the stock universe is the liquidity-rank top-N rule, not index membership, and bars start in 2016.",
+            )),
             "s040_volume_breakout" => Some((
                 "Buy confirmed rolling-high breakouts with ATR-distance and volume filters; exit by stop, target, or time.",
                 "Daily stock bars start in 2016; S&P constituent intervals come from a public GitHub aggregation, not an official S&P source.",
@@ -2877,6 +2915,7 @@ impl<'a> Study<'a> {
         let strategy = if matches!(
             c.strategy.as_str(),
             S036_NAME
+                | S038_NAME
                 | S040_NAME
                 | S041_NAME
                 | S042_NAME
