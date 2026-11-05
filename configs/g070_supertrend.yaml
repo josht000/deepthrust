@@ -9,6 +9,8 @@ min_history: 250
 atr_len: 10
 st_mult: 3.0
 disaster_stop_atr: 0.0
+gate: none
+sma_window: 200
 cost_bps_per_side: 5.0
 fills: next_open,close
 partition_split_date: "2024-01-01"
@@ -35,3 +37,28 @@ variants:
   gld_only: {symbols: GLD, book_slots: 1}
   tight: {atr_len: 7, st_mult: 2.5}
   loose: {atr_len: 14, st_mult: 3.5}
+  gate50: {gate: sma200, sma_window: 50}
+  gate100: {gate: sma200, sma_window: 100}
+  gate200: {gate: sma200, sma_window: 200}
+  atr20_gate200: {atr_len: 20, gate: sma200, sma_window: 200}
+  atr20_gate100: {atr_len: 20, gate: sma200, sma_window: 100}
+  atr14_gate100: {atr_len: 14, gate: sma200, sma_window: 100}
+  atr22_gate200: {atr_len: 22, gate: sma200, sma_window: 200}
+  stop1: {disaster_stop_atr: 1.0}
+  stop15: {disaster_stop_atr: 1.5}
+  stop2: {disaster_stop_atr: 2.0}
+  stop3: {disaster_stop_atr: 3.0}
+  atr20_stop2: {atr_len: 20, disaster_stop_atr: 2.0}
+  atr20_g200_stop2: {atr_len: 20, gate: sma200, sma_window: 200, disaster_stop_atr: 2.0}
+  loose_gate200: {atr_len: 14, st_mult: 3.5, gate: sma200, sma_window: 200}
+  tight_gate100: {atr_len: 7, st_mult: 2.5, gate: sma200, sma_window: 100}
+  atr12_g200: {atr_len: 12, gate: sma200, sma_window: 200}
+  atr16_g200: {atr_len: 16, gate: sma200, sma_window: 200}
+  atr18_g200: {atr_len: 18, gate: sma200, sma_window: 200}
+  atr20_g150: {atr_len: 20, gate: sma200, sma_window: 150}
+  atr20_g250: {atr_len: 20, gate: sma200, sma_window: 250}
+  g200_mult25: {gate: sma200, sma_window: 200, st_mult: 2.5}
+  g200_mult35: {gate: sma200, sma_window: 200, st_mult: 3.5}
+  atr20_g200_spy: {atr_len: 20, gate: sma200, sma_window: 200, symbols: SPY, book_slots: 1}
+  atr20_g200_m25: {atr_len: 20, gate: sma200, sma_window: 200, st_mult: 2.5}
+  atr20_g200_m35: {atr_len: 20, gate: sma200, sma_window: 200, st_mult: 3.5}

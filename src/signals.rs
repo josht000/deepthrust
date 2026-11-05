@@ -3021,6 +3021,7 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
     let mut signal = Vec::with_capacity(panel.symbols.len());
     let mut exit_now = Vec::with_capacity(panel.symbols.len());
     let mut tradable = Vec::with_capacity(panel.symbols.len());
+    let mut atr_all = Vec::with_capacity(panel.symbols.len());
     for j in 0..panel.symbols.len() {
         let high = &panel.high[j];
         let low = &panel.low[j];
@@ -3071,14 +3072,29 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                 value.is_finite() && history >= cfg.min_history
             })
             .collect();
+        let use_gate = cfg.gate.starts_with("sma");
+        let sma = if use_gate {
+            rolling_mean(close, cfg.sma_window)
+        } else {
+            vec![f64::NAN; n]
+        };
         signal.push(
             (0..n)
-                .map(|t| t > 0 && trad[t] && trend[t] == 1 && trend[t - 1] == -1)
+                .map(|t| {
+                    t > 0
+                        && trad[t]
+                        && trend[t] == 1
+                        && trend[t - 1] == -1
+                        && (!use_gate || (sma[t].is_finite() && close[t] > sma[t]))
+                })
                 .collect(),
         );
         exit_now.push((0..n).map(|t| trend[t] == -1).collect());
         tradable.push(trad);
         trend_all.push(trend.iter().map(|&v| v as f64).collect());
+        if cfg.disaster_stop_atr > 0.0 {
+            atr_all.push(atr);
+        }
     }
     Ok(Signals {
         rsi: trend_all,
@@ -3086,7 +3102,11 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
         signal,
         exit_now,
         add_signal: None,
-        atr: None,
+        atr: if cfg.disaster_stop_atr > 0.0 {
+            Some(atr_all)
+        } else {
+            None
+        },
         stop_pct: None,
         pool: tradable.clone(),
         tradable,
