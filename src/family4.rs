@@ -2266,7 +2266,7 @@ pub fn compute_g067_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
     if cfg.sma_window == 0 {
         return Err("G067 requires positive sma_window".into());
     }
-    const VOL_LEN: usize = 20;
+    let vol_len = cfg.vol_window.max(5);
     let n = panel.dates.len();
     let ns = panel.symbols.len();
     let smas: Vec<Vec<f64>> = panel
@@ -2279,14 +2279,30 @@ pub fn compute_g067_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
     result.rsi = smas.clone();
     let mut weights = vec![vec![0.0; n]; ns];
     let mut current = vec![0.0f64; ns];
+    let mut vols = vec![0.0f64; ns];
+    let mode = cfg.strategy_mode.as_str();
+    let defensive = mode.contains("def");
+    let lowvol = mode.starts_with("lowvol");
+    let vp = mode.contains("vp") || mode == "volparity";
+    let cash_idx = if defensive {
+        Some(
+            panel
+                .symbols
+                .iter()
+                .position(|s| s == &cfg.defensive_asset)
+                .ok_or("G067 defensive mode needs defensive_asset in panel")?,
+        )
+    } else {
+        None
+    };
     for &day in &days {
         let (mut vsum, mut vk) = (0.0, 0usize);
         for j in 0..ns {
-            if day < VOL_LEN {
+            if day < vol_len {
                 continue;
             }
             let (mut m, mut m2, mut k) = (0.0, 0.0, 0usize);
-            for t in day + 1 - VOL_LEN..=day {
+            for t in day + 1 - vol_len..=day {
                 let (a, b) = (panel.close[j][t], panel.close[j][t - 1]);
                 if a.is_finite() && b.is_finite() {
                     let r = a / b - 1.0;
@@ -2295,15 +2311,17 @@ pub fn compute_g067_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                     k += 1;
                 }
             }
-            if k >= VOL_LEN {
+            if k >= vol_len {
                 let var = (m2 - m * m / k as f64) / (k as f64 - 1.0);
                 if var > 0.0 {
-                    vsum += (var * cfg.periods_per_year as f64).sqrt();
+                    vols[j] = (var * cfg.periods_per_year as f64).sqrt();
+                    vsum += vols[j];
                     vk += 1;
                 }
             }
         }
-        let gate_open = vk > 0 && (cfg.vol_gate <= 0.0 || vsum / vk as f64 > cfg.vol_gate);
+        let above = vk > 0 && vsum / vk as f64 > cfg.vol_gate;
+        let gate_open = vk > 0 && (cfg.vol_gate <= 0.0 || (above ^ lowvol));
         if gate_open {
             for j in 0..ns {
                 if smas[j][day].is_finite() && panel.close[j][day].is_finite() {
@@ -2314,12 +2332,27 @@ pub fn compute_g067_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                     };
                 }
             }
+        } else if let Some(cash) = cash_idx {
+            weights[cash][day] = 1.0;
+            result.signal[cash][day] = true;
+            continue;
         }
-        let active: f64 = current.iter().map(|v| (*v).abs()).sum();
+        let scale = |j: usize| -> f64 {
+            if vp && vols[j] > 0.0 {
+                1.0 / vols[j]
+            } else {
+                1.0
+            }
+        };
+        let active: f64 = current
+            .iter()
+            .enumerate()
+            .map(|(j, v)| v.abs() * scale(j))
+            .sum();
         if active > 0.0 {
             for j in 0..ns {
                 if current[j] != 0.0 {
-                    weights[j][day] = current[j] / active;
+                    weights[j][day] = current[j] * scale(j) / active;
                     result.signal[j][day] = true;
                 }
             }

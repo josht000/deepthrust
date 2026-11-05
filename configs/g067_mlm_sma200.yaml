@@ -12,6 +12,9 @@ min_history: 220
 sma_window: 200
 rebalance: dom25
 vol_gate: 0.15
+vol_window: 20
+defensive_asset: IEF
+strategy_mode: ""
 periods_per_year: 252
 borrow_bps_annual: 25.0
 cost_bps_per_side: 5.0
@@ -38,3 +41,24 @@ variants:
   gate20_sma250: {vol_gate: 0.20, sma_window: 250}
   no_gate_dom1: {vol_gate: 0.0, rebalance: dom1}
   no_gate_end: {vol_gate: 0.0, rebalance: monthly}
+  vw10: {vol_window: 10}
+  vw15: {vol_window: 15}
+  vw30: {vol_window: 30}
+  vw42: {vol_window: 42}
+  vw63: {vol_window: 63}
+  gate17: {vol_gate: 0.17}
+  gate18: {vol_gate: 0.18}
+  gate22: {vol_gate: 0.22}
+  gate30: {vol_gate: 0.30}
+  def_g20s250: {vol_gate: 0.20, sma_window: 250, strategy_mode: defensive}
+  vp_g20s250: {vol_gate: 0.20, sma_window: 250, strategy_mode: volparity}
+  defvp_g20s250: {vol_gate: 0.20, sma_window: 250, strategy_mode: defvp}
+  lowvol_g20s250: {vol_gate: 0.20, sma_window: 250, strategy_mode: lowvol}
+  lowvol_def_g20s250: {vol_gate: 0.20, sma_window: 250, strategy_mode: lowvol_def}
+  sma300_g20: {sma_window: 300, vol_gate: 0.20}
+  g20s250_dom15: {vol_gate: 0.20, sma_window: 250, rebalance: dom15}
+  g20s250_dom1: {vol_gate: 0.20, sma_window: 250, rebalance: dom1}
+  g20s250_monthend: {vol_gate: 0.20, sma_window: 250, rebalance: monthly}
+  vw30_g20s250: {vol_window: 30, vol_gate: 0.20, sma_window: 250}
+  vw15_g20s250: {vol_window: 15, vol_gate: 0.20, sma_window: 250}
+  vw10_g20s250: {vol_window: 10, vol_gate: 0.20, sma_window: 250}
