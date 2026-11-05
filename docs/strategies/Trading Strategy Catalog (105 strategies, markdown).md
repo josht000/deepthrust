@@ -105,7 +105,7 @@
     - [S088 | MACD Bullish Cross with Volume](#s088--macd-bullish-cross-with-volume)
     - [S089 | Golden Cross with Slope Filter](#s089--golden-cross-with-slope-filter)
     - [S090 | KAMA Breakout](#s090--kama-breakout)
-    - [S091 | Donchian 55 with Chandelier Trail](#s091--donchian-55-with-chandelier-trail)
+    - [S091 | Donchian 55 with Chandelier Trail](#s091--donchian-55-with-chandelier-trail) — IMPLEMENTED — DELTA
     - [S093 | Higher-Low Reversal Entry](#s093--higher-low-reversal-entry) — NOT_DAILY, DEFER
     - [S094 | Bollinger Squeeze Breakout](#s094--bollinger-squeeze-breakout)
     - [S095 | Keltner Channel Breakout](#s095--keltner-channel-breakout)
@@ -2034,6 +2034,7 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - notes: Exit variant of the Donchian family (S036, speed 55): the 3 x ATR(22) chandelier is ~6-9% below the high for equities, tight relative to the volatility of 55-day swings, and induces churn; Be The Puck's Chandelier Exit beat buy-and-hold on 74/372. Run as `S036 --speed 55 --exit chandelier` and compare with the 20-day-low and 2N exits. Kagels has no chandelier rule (catalog's own).
 - data_needs: ETF total-return daily series (DP-ETF)
 - review: RESOLVED
+- implementation_results: **IMPLEMENTED — DELTA.** Rust in `src/family9.rs` (registered in `src/study.rs`), config `configs/s091_donchian55_chandelier.yaml`; 20-ETF total-return book (`etf_tr`), 5 bps/side, next_open primary + close upper bound, dev < 2024-01-01 <= test, 40 registered variants. DELTA: baseline is long-only (shared spec runs long-only first; `ls` is the registered long-short experiment) and exits on the chandelier alone per the exit field — the note's "run as S036 --exit chandelier" implies the S036 mandatory 2N stop, registered here as `stop2n`. Baseline (next_open): DEV 461 trades, +0.819 log, skill -0.480, Sharpe 0.47, PF 1.44, win 46.9%, maxDD -53.0%; TEST 173 trades, +0.662, skill -0.272, Sharpe 0.86, PF 1.60, win 44.5%; test beats SPY buy-hold by >10% but trails the EW-ETF trend in both periods. `core` (9-ETF universe) is the dev-selection on skill (+0.312, p=0.21); TEST 87 trades, skill -0.295 -> DECAYED. `chan55` dev PF 3.08 flagged; short legs lose (ls -2.18 / short -2.98 dev log). Reproduce: `target/release/deepthrust.exe --strategy s091_donchian55_chandelier --variant chan20,chan10,chan55,stop2n,stop3n,chan20_stop2n,chand2,chand25,chand35,chand4,chand5,atr10,atr14,atr20,atr30,atr44,e20,e40,e63,e100,e120,ls,short,ls_borrow300,ls_borrow1000,filter,filter_pnl,failsafe55,risk05,risk20,cap025,cap100,unit,n10,n14,n40,cost10,close_fill,core,wide`
 
 ### S093 | Higher-Low Reversal Entry
 - family: trend and pullback

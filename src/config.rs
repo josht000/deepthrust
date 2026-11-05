@@ -332,6 +332,22 @@ pub struct Config {
     pub defensive_symbols: String,
     #[serde(default)]
     pub results_tag: String,
+    #[serde(default)]
+    pub turtle_last_trade_filter: bool,
+    #[serde(default = "d_turtle_filter_outcome")]
+    pub turtle_filter_outcome: String,
+    #[serde(default = "d_turtle_exit_mode")]
+    pub turtle_exit_mode: String,
+    #[serde(default = "d_turtle_chandelier_len")]
+    pub turtle_chandelier_len: usize,
+    #[serde(default = "d_turtle_chandelier_mult")]
+    pub turtle_chandelier_mult: f64,
+    #[serde(default = "d_turtle_risk_pct")]
+    pub turtle_risk_pct: f64,
+    #[serde(default = "d_turtle_max_position_weight")]
+    pub turtle_max_position_weight: f64,
+    #[serde(default)]
+    pub turtle_failsafe_window: usize,
     /// Resolved variant name ("baseline" when no overlay is applied).
     #[serde(skip, default = "d_baseline")]
     pub variant: String,
@@ -730,6 +746,24 @@ fn d_cyclical_symbols() -> String {
 }
 fn d_defensive_symbols() -> String {
     "XLP,XLU".into()
+}
+fn d_turtle_filter_outcome() -> String {
+    "stop".into()
+}
+fn d_turtle_exit_mode() -> String {
+    "chandelier".into()
+}
+fn d_turtle_chandelier_len() -> usize {
+    22
+}
+fn d_turtle_chandelier_mult() -> f64 {
+    3.0
+}
+fn d_turtle_risk_pct() -> f64 {
+    0.01
+}
+fn d_turtle_max_position_weight() -> f64 {
+    0.5
 }
 
 impl Config {
