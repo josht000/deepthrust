@@ -1,0 +1,84 @@
+start_date: "2016-01-01"
+data_suffix: .parquet
+symbols: SPY,QQQ,IWM,TLT,IEF,GLD,USO,UUP,GSG,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY
+benchmark: SPY
+min_history: 60
+entry_window: 20
+exit_window: 10
+atr_len: 20
+disaster_stop_atr: 2.0
+strategy_mode: long
+turtle_last_trade_filter: true
+turtle_filter_outcome: stop
+turtle_exit_mode: channel
+turtle_chandelier_len: 22
+turtle_chandelier_mult: 3.0
+turtle_risk_pct: 0.01
+turtle_max_position_weight: 0.5
+turtle_failsafe_window: 0
+borrow_bps_annual: 30.0
+delisting_return: -0.30
+cost_bps_per_side: 5.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 12
+
+sources:
+  - name: etfs
+    data_dir: ..\trading_framework\data\cache\etf_tr
+    data_suffix: .parquet
+    symbols: SPY,QQQ,IWM,TLT,IEF,GLD,USO,UUP,GSG,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY
+    cost_bps_per_side: 5.0
+
+variants:
+  s2: {entry_window: 55, exit_window: 20, turtle_last_trade_filter: false}
+  s2_filter: {entry_window: 55, exit_window: 20}
+  nofilter: {turtle_last_trade_filter: false}
+  filter_pnl: {turtle_filter_outcome: pnl}
+  failsafe55: {turtle_failsafe_window: 55}
+  chandelier: {turtle_exit_mode: chandelier}
+  chandelier_s2: {turtle_exit_mode: chandelier, entry_window: 55, exit_window: 20, turtle_last_trade_filter: false}
+  chandelier_ls: {turtle_exit_mode: chandelier, strategy_mode: long_short}
+  ls: {strategy_mode: long_short}
+  ls_s2: {strategy_mode: long_short, entry_window: 55, exit_window: 20, turtle_last_trade_filter: false}
+  ls_nofilter: {strategy_mode: long_short, turtle_last_trade_filter: false}
+  ls_s2_chandelier: {strategy_mode: long_short, entry_window: 55, exit_window: 20, turtle_last_trade_filter: false, turtle_exit_mode: chandelier}
+  e10: {entry_window: 10}
+  e10_e5: {entry_window: 10, exit_window: 5}
+  e30: {entry_window: 30}
+  e30_e15: {entry_window: 30, exit_window: 15}
+  e40_e20: {entry_window: 40, exit_window: 20}
+  e63_e21: {entry_window: 63, exit_window: 21}
+  exit5: {exit_window: 5}
+  exit15: {exit_window: 15}
+  exit20: {exit_window: 20}
+  stop10: {disaster_stop_atr: 1.0}
+  stop15: {disaster_stop_atr: 1.5}
+  stop25: {disaster_stop_atr: 2.5}
+  stop30: {disaster_stop_atr: 3.0}
+  atr10: {atr_len: 10}
+  atr14: {atr_len: 14}
+  atr40: {atr_len: 40}
+  risk05: {turtle_risk_pct: 0.005}
+  risk20: {turtle_risk_pct: 0.02}
+  cap025: {turtle_max_position_weight: 0.25}
+  cap100: {turtle_max_position_weight: 1.0}
+  borrow300: {strategy_mode: long_short, borrow_bps_annual: 300.0}
+  borrow1000: {strategy_mode: long_short, borrow_bps_annual: 1000.0}
+  core:
+    sources:
+      - name: etfs
+        data_dir: ..\trading_framework\data\cache\etf_tr
+        data_suffix: .parquet
+        symbols: SPY,QQQ,IWM,TLT,IEF,GLD,USO,UUP,GSG
+        cost_bps_per_side: 5.0
+  wide:
+    sources:
+      - name: etfs
+        data_dir: ..\trading_framework\data\cache\etf_tr
+        data_suffix: .parquet
+        symbols: "*"
+        cost_bps_per_side: 5.0

@@ -31,6 +31,8 @@ pub const S033_NAME: &str = "s033_52w_breakout";
 pub const S033_TITLE: &str = "S033 52-Week-High Breakout";
 pub const S035_NAME: &str = "s035_low_volatility";
 pub const S035_TITLE: &str = "S035 Low-Volatility Anomaly Portfolio";
+pub const S036_NAME: &str = "s036_turtle_donchian";
+pub const S036_TITLE: &str = "S036 Donchian Breakout, Turtle Systems 1 and 2";
 pub const S040_NAME: &str = "s040_volume_breakout";
 pub const S040_TITLE: &str = "S040 Volume-Confirmed Breakout";
 pub const S043_NAME: &str = "s043_etf_multi_asset_momentum";
@@ -201,6 +203,8 @@ struct LowVolatilityStrategyDefinition;
 
 struct VolumeBreakoutStrategyDefinition;
 
+struct TurtleDonchianStrategyDefinition;
+
 struct DarvasBoxStrategyDefinition;
 
 struct FirstPullbackStrategyDefinition;
@@ -308,6 +312,30 @@ impl StrategyDefinition for VolumeBreakoutStrategyDefinition {
         fill: &str,
     ) -> Result<Vec<Trade>, String> {
         crate::family4::s040_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for TurtleDonchianStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S036_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S036_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family4::compute_s036_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::s036_trades(panel, sig, cfg, fill)
     }
 }
 
@@ -901,6 +929,7 @@ static S017_STRATEGY: NightTradingStrategyDefinition = NightTradingStrategyDefin
 static S023_STRATEGY: PostEarningsDriftStrategyDefinition = PostEarningsDriftStrategyDefinition;
 static S024_STRATEGY: ExDividendCaptureStrategyDefinition = ExDividendCaptureStrategyDefinition;
 static S051_STRATEGY: DarvasBoxStrategyDefinition = DarvasBoxStrategyDefinition;
+static S036_STRATEGY: TurtleDonchianStrategyDefinition = TurtleDonchianStrategyDefinition;
 static S010_STRATEGY: Family8Definition = Family8Definition {
     name: crate::family8::S010_NAME,
     title: crate::family8::S010_TITLE,
@@ -991,7 +1020,7 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 42] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 43] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1009,6 +1038,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 42] = [
     &S042_STRATEGY,
     &S050_STRATEGY,
     &S051_STRATEGY,
+    &S036_STRATEGY,
     &S047_STRATEGY,
     &S075_STRATEGY,
     &S017_STRATEGY,
@@ -1312,7 +1342,8 @@ impl<'a> Study<'a> {
         let mut b_day = vec![0.0; n_rows];
         let family4_universe = matches!(
             cfg.strategy.as_str(),
-            S040_NAME
+            S036_NAME
+                | S040_NAME
                 | S041_NAME
                 | S042_NAME
                 | S043_NAME
@@ -2679,6 +2710,10 @@ impl<'a> Study<'a> {
             ];
         }
         let family4 = match c.strategy.as_str() {
+            "s036_turtle_donchian" => Some((
+                "Enter on an N-day Donchian breakout with a mandatory 2N stop (Wilder ATR, alpha=1/20) and a shorter opposite-channel or chandelier exit; System 1 skips a breakout when the previous real-or-shadow breakout resolved as a win.",
+                "ETF total-return bars start in 2016; unit sizing is a fixed equity fraction per unit (no compounding equity, no pyramiding, no correlation limits); the System 1 ledger ignores fresh breakouts while a position or shadow is open; the long-short scenario assumes borrow at the configured annual rate.",
+            )),
             "s040_volume_breakout" => Some((
                 "Buy confirmed rolling-high breakouts with ATR-distance and volume filters; exit by stop, target, or time.",
                 "Daily stock bars start in 2016; S&P constituent intervals come from a public GitHub aggregation, not an official S&P source.",
@@ -2791,7 +2826,8 @@ impl<'a> Study<'a> {
         let (c, s) = (self.cfg, self.state());
         let strategy = if matches!(
             c.strategy.as_str(),
-            S040_NAME
+            S036_NAME
+                | S040_NAME
                 | S041_NAME
                 | S042_NAME
                 | S043_NAME

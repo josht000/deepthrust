@@ -224,6 +224,22 @@ pub struct Config {
     pub analog_count: usize,
     #[serde(default = "d_borrow_bps_annual")]
     pub borrow_bps_annual: f64,
+    #[serde(default)]
+    pub turtle_last_trade_filter: bool,
+    #[serde(default = "d_turtle_filter_outcome")]
+    pub turtle_filter_outcome: String,
+    #[serde(default = "d_turtle_exit_mode")]
+    pub turtle_exit_mode: String,
+    #[serde(default = "d_turtle_chandelier_len")]
+    pub turtle_chandelier_len: usize,
+    #[serde(default = "d_turtle_chandelier_mult")]
+    pub turtle_chandelier_mult: f64,
+    #[serde(default = "d_turtle_risk_pct")]
+    pub turtle_risk_pct: f64,
+    #[serde(default = "d_turtle_max_position_weight")]
+    pub turtle_max_position_weight: f64,
+    #[serde(default)]
+    pub turtle_failsafe_window: usize,
     #[serde(default = "d_factor_design")]
     pub factor_design: String,
     #[serde(default = "d_earnings_window_sessions")]
@@ -610,6 +626,24 @@ fn d_analog_count() -> usize {
 }
 fn d_borrow_bps_annual() -> f64 {
     300.0
+}
+fn d_turtle_filter_outcome() -> String {
+    "stop".into()
+}
+fn d_turtle_exit_mode() -> String {
+    "channel".into()
+}
+fn d_turtle_chandelier_len() -> usize {
+    22
+}
+fn d_turtle_chandelier_mult() -> f64 {
+    3.0
+}
+fn d_turtle_risk_pct() -> f64 {
+    0.01
+}
+fn d_turtle_max_position_weight() -> f64 {
+    0.5
 }
 fn d_factor_design() -> String {
     "S045a".into()
