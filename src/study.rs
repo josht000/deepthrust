@@ -89,6 +89,8 @@ pub const S100_NAME: &str = crate::family10::S100_NAME;
 pub const S100_TITLE: &str = crate::family10::S100_TITLE;
 pub const S097_NAME: &str = crate::family10::S097_NAME;
 pub const S097_TITLE: &str = crate::family10::S097_TITLE;
+pub const S099_NAME: &str = crate::family10::S099_NAME;
+pub const S099_TITLE: &str = crate::family10::S099_TITLE;
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -1185,6 +1187,32 @@ impl StrategyDefinition for Family10Definition {
     }
 }
 
+struct OutsideDayReversalStrategyDefinition;
+
+impl StrategyDefinition for OutsideDayReversalStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S099_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S099_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family10::compute_s099_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family10::s099_trades(panel, sig, cfg, fill)
+    }
+}
+
 impl StrategyDefinition for OvernightStrategyDefinition {
     fn name(&self) -> &'static str {
         self.name
@@ -1436,7 +1464,8 @@ static S103_STRATEGY: Family10Definition = Family10Definition {
 };
 static S100_STRATEGY: ThreeWhiteSoldiersStrategyDefinition =
     ThreeWhiteSoldiersStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 59] = [
+static S099_STRATEGY: OutsideDayReversalStrategyDefinition = OutsideDayReversalStrategyDefinition;
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 60] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1496,6 +1525,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 59] = [
     &S094_STRATEGY,
     &S103_STRATEGY,
     &S100_STRATEGY,
+    &S099_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -1799,6 +1829,7 @@ impl<'a> Study<'a> {
                 | S088_NAME
                 | S091_NAME
                 | S089_NAME
+                | S099_NAME
                 | S104_NAME
                 | crate::family9::S095_NAME
                 | S090_NAME
@@ -3356,6 +3387,10 @@ impl<'a> Study<'a> {
                 "After N rising green candles opening inside the prior body with rising volume and a close above the SMA gate, buy the signal close (or next open); exit on a close below the pattern stop, the target, or the session cap.",
                 "Demoted catalog entry run as a falsification test; 'long' candle size is unquantified in the source so the baseline needs only close > open (min_body_* variants tighten it); the tradable universe is restricted to the total-return cache, which covers every name that ever enters the top-500 liquidity ranks.",
             )),
+            "s099_outside_day_reversal" => Some((
+                "Buy green outside days following a down close while the close sits within the configured distance of the long SMA; exit on a reversal-low break, a cross above the exit SMA, or time.",
+                "The PIT liquidity-rank cache defines the stock universe; stock bars start in 2016; the reversal-low exit is evaluated on closes, not intraday.",
+            )),
             _ => None,
         };
         if let Some((description, limitations)) = family4 {
@@ -3513,6 +3548,7 @@ impl<'a> Study<'a> {
                 | S051_NAME
                 | S089_NAME
                 | S090_NAME
+                | S099_NAME
         ) {
             title_for(&c.strategy).to_string()
         } else if c.strategy == S091_NAME {

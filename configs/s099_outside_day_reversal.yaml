@@ -1,0 +1,69 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_split
+data_suffix: .parquet
+symbols: "*"
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-01-01"
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+sma_window: 200
+sma_distance: 0.01
+sma_side: any
+require_outside: true
+require_green_close: true
+require_prior_down: true
+exit_sma: 10
+max_hold: 8
+rel_vol_min: 0.0
+vol_window: 20
+min_range_pct: 0.0
+delisting_return: -0.30
+cost_bps_per_side: 15.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+
+variants:
+  dist05: {sma_distance: 0.005}
+  dist15: {sma_distance: 0.015}
+  dist20: {sma_distance: 0.02}
+  dist30: {sma_distance: 0.03}
+  dist50: {sma_distance: 0.05}
+  sma100: {sma_window: 100}
+  sma150: {sma_window: 150}
+  sma250: {sma_window: 250}
+  exit_sma5: {exit_sma: 5}
+  exit_sma20: {exit_sma: 20}
+  hold4: {max_hold: 4}
+  hold5: {max_hold: 5}
+  hold10: {max_hold: 10}
+  hold15: {max_hold: 15}
+  u100: {universe_top_n: 100}
+  u250: {universe_top_n: 250}
+  u1000: {universe_top_n: 1000}
+  u1500: {universe_top_n: 1500}
+  below_sma: {sma_side: below}
+  above_sma: {sma_side: above}
+  no_outside: {require_outside: false}
+  no_green: {require_green_close: false}
+  no_priordown: {require_prior_down: false}
+  vol15: {rel_vol_min: 1.5}
+  vol20: {rel_vol_min: 2.0}
+  range20: {min_range_pct: 0.02}
+  range30: {min_range_pct: 0.03}
+  cost10: {cost_bps_per_side: 10.0}
+  cost30: {cost_bps_per_side: 30.0}
+  below_sma_dist20: {sma_side: below, sma_distance: 0.02}
+  above_sma_dist20: {sma_side: above, sma_distance: 0.02}
+  dist20_vol15: {sma_distance: 0.02, rel_vol_min: 1.5}
+  dist20_u1000: {sma_distance: 0.02, universe_top_n: 1000}
+  dist30_vol15: {sma_distance: 0.03, rel_vol_min: 1.5}
+  hold5_dist20: {max_hold: 5, sma_distance: 0.02}
+  vol15_range20: {rel_vol_min: 1.5, min_range_pct: 0.02}

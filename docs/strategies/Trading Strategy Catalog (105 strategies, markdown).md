@@ -119,7 +119,7 @@
     - [S096 | Three-Bar Reversal (Bulkowski)](#s096--three-bar-reversal-bulkowski) — NOT_DAILY, DEFER
     - [S097 | Bullish Engulfing After Down-Streak](#s097--bullish-engulfing-after-down-streak) — IMPLEMENTED — DAILY, DELTA
     - [S098 | Hammer at Lower Bollinger Band](#s098--hammer-at-lower-bollinger-band) — NOT_DAILY, DEFER
-    - [S099 | Outside-Day Key Reversal at 200-SMA](#s099--outside-day-key-reversal-at-200-sma)
+    - [S099 | Outside-Day Key Reversal at 200-SMA](#s099--outside-day-key-reversal-at-200-sma) — IMPLEMENTED
     - [S100 | Three White Soldiers Continuation](#s100--three-white-soldiers-continuation) — IMPLEMENTED — DAILY, DELTA
 - [Family 11 — Miscellaneous Structural Edge](#family-11--miscellaneous-structural-edge)
     - [S102 | Copper/Gold Ratio Equity Tilt (CPER/GLD ratio, both in cache)](#s102--coppergold-ratio-equity-tilt-cpergld-ratio-both-in-cache) — IMPLEMENTED
@@ -2289,6 +2289,7 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - priority: P4
 - sources: [Quantified Strategies — 200 free backtested strategies](https://www.quantifiedstrategies.com/trading-strategies-free/)
 - notes: Candlestick registry member. Classical key reversal is a new low followed by a close above the prior close; this outside-day variant plus 'within 1% of SMA200' is rare and arbitrary. Measure the signal frequency first (the earlier 'several per month across a universe' is unverified) and drop if there are fewer than 100 events in the dev period. 200-SMA proximity is a free parameter.
+- implementation_results: Rust in `src/family10.rs` / `src/study.rs`, config `configs/s099_outside_day_reversal.yaml`; PIT liquid top-500 universe (`daily_10years_split` + `liquid_ranks`), 15 bps/side, `next_open` primary + `close` upper bound; dev < 2024-01-01 <= test. Signal frequency confirmed: 1,005 dev / 426 test events (~12 per month, clears the >=100 dev gate). Baseline: DEV -1.050 log, skill -1.686, Sharpe -0.478, PF 0.780, win 51.0%; TEST -0.879, skill -1.048, Sharpe -1.261, PF 0.684, win 47.4%. All 36 registered variants have negative dev skill; dev-selected `vol15` (signal-day volume >= 1.5x the 20-session mean): DEV 112 trades, -0.296 log, skill -0.445, Sharpe -0.207, PF 0.705; TEST 57 trades, -0.643, skill -0.600, Sharpe -1.571, PF 0.393, win 33.3%. No edge anywhere on the grid; the DEMOTE verdict stands. Reproduce: `target\release\deepthrust.exe --strategy s099_outside_day_reversal --variant dist05,dist15,dist20,dist30,dist50,sma100,sma150,sma250,exit_sma5,exit_sma20,hold4,hold5,hold10,hold15,u100,u250,u1000,u1500,below_sma,above_sma,no_outside,no_green,no_priordown,vol15,vol20,range20,range30,cost10,cost30,below_sma_dist20,above_sma_dist20,dist20_vol15,dist20_u1000,dist30_vol15,hold5_dist20,vol15_range20`.
 - data_needs: daily_10years (D1)
 - review: DEMOTE | source GENERIC
 

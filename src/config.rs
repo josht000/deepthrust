@@ -502,6 +502,20 @@ pub struct Config {
     pub down_streak: usize,
     #[serde(default = "d_engulf_mode")]
     pub engulf_mode: String,
+    #[serde(default = "d_sma_distance")]
+    pub sma_distance: f64,
+    #[serde(default = "d_sma_side")]
+    pub sma_side: String,
+    #[serde(default = "d_true")]
+    pub require_outside: bool,
+    #[serde(default = "d_true")]
+    pub require_green_close: bool,
+    #[serde(default = "d_true")]
+    pub require_prior_down: bool,
+    #[serde(default)]
+    pub rel_vol_min: f64,
+    #[serde(default)]
+    pub min_range_pct: f64,
     #[serde(default)]
     pub results_tag: String,
     #[serde(default = "d_macd_fast")]
@@ -1083,6 +1097,12 @@ fn d_s089_vol_window() -> usize {
 }
 fn d_s089_exit_mode() -> String {
     "cross".into()
+}
+fn d_sma_distance() -> f64 {
+    0.01
+}
+fn d_sma_side() -> String {
+    "any".into()
 }
 fn d_true() -> bool {
     true
