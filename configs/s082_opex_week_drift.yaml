@@ -1,0 +1,58 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,QQQ,IWM
+benchmark: SPY
+start_date: "2008-01-01"
+entry_offset: -1
+exit_offset: 1
+opex_mode: all
+regime_mode: none
+sma_window: 200
+cost_bps_per_side: 1.0
+fills: close,next_open
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 3
+
+variants:
+  exit0: {exit_offset: 0}
+  exit2: {exit_offset: 2}
+  exit3: {exit_offset: 3}
+  exit4: {exit_offset: 4}
+  exit5: {exit_offset: 5}
+  entry2: {entry_offset: -2}
+  entry3: {entry_offset: -3}
+  entry5: {entry_offset: -5}
+  entry8: {entry_offset: -8}
+  entry2_exit0: {entry_offset: -2, exit_offset: 0}
+  entry3_exit0: {entry_offset: -3, exit_offset: 0}
+  entry5_exit0: {entry_offset: -5, exit_offset: 0}
+  entry2_exit3: {entry_offset: -2, exit_offset: 3}
+  entry3_exit3: {entry_offset: -3, exit_offset: 3}
+  quad: {opex_mode: quad}
+  non_quad: {opex_mode: non_quad}
+  quad_exit3: {opex_mode: quad, exit_offset: 3}
+  non_quad_exit0: {opex_mode: non_quad, exit_offset: 0}
+  above_sma: {regime_mode: above_sma}
+  below_sma: {regime_mode: below_sma}
+  prior_up: {regime_mode: prior_month_up}
+  prior_down: {regime_mode: prior_month_down}
+  above_sma50: {regime_mode: above_sma, sma_window: 50}
+  prior_up_exit3: {regime_mode: prior_month_up, exit_offset: 3}
+  spy_only: {symbols: SPY, book_slots: 1}
+  qqq: {symbols: QQQ, benchmark: QQQ, book_slots: 1}
+  iwm: {symbols: IWM, benchmark: IWM, book_slots: 1}
+  dia: {symbols: DIA, benchmark: DIA, book_slots: 1}
+  rsp: {symbols: RSP, book_slots: 1}
+  all_indexes: {symbols: "SPY,QQQ,IWM,DIA", book_slots: 4}
+  spy_qqq: {symbols: "SPY,QQQ", book_slots: 2}
+  all_quad: {symbols: "SPY,QQQ,IWM,DIA", book_slots: 4, opex_mode: quad}
+  sector_add: {symbols: "SPY,QQQ,IWM,XLK,XLF,XLV,XLE,XLP", book_slots: 8}
+  cost025: {cost_bps_per_side: 0.25}
+  cost05: {cost_bps_per_side: 0.5}
+  cost2: {cost_bps_per_side: 2.0}
+  cost5: {cost_bps_per_side: 5.0}
+  next_open: {fills: next_open}
+  all_next_open: {symbols: "SPY,QQQ,IWM,DIA", book_slots: 4, fills: next_open}

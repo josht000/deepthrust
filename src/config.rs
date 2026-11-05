@@ -320,6 +320,8 @@ pub struct Config {
     pub weakness_threshold: f64,
     #[serde(default = "d_weekday")]
     pub weekday: i64,
+    #[serde(default = "d_opex_mode")]
+    pub opex_mode: String,
     #[serde(default = "d_entry_mode")]
     pub entry_mode: String,
     #[serde(default = "d_topic_mode")]
@@ -715,6 +717,9 @@ fn d_weakness_threshold() -> f64 {
 }
 fn d_weekday() -> i64 {
     1
+}
+fn d_opex_mode() -> String {
+    "all".into()
 }
 fn d_entry_mode() -> String {
     "close".into()
