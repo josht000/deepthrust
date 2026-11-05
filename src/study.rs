@@ -43,6 +43,8 @@ pub const S046_NAME: &str = "s046_market_state_industry_rotation";
 pub const S046_TITLE: &str = "S046 Industry Rotation via Market-State Similarity";
 pub const S047_NAME: &str = "s047_absolute_dual_momentum";
 pub const S047_TITLE: &str = "S047 Absolute / Dual Momentum";
+pub const S048_NAME: &str = crate::family4::S048_NAME;
+pub const S048_TITLE: &str = crate::family4::S048_TITLE;
 pub const S050_NAME: &str = "s050_first_pullback";
 pub const S050_TITLE: &str = "S050 First Pullback After Breakout";
 pub const S013_NAME: &str = "s013_tlt_mean_reversion";
@@ -214,6 +216,8 @@ struct CharacteristicBlendStrategyDefinition;
 struct MarketStateIndustryStrategyDefinition;
 
 struct DualMomentumStrategyDefinition;
+
+struct ValideaSectorMomentumStrategyDefinition;
 
 impl StrategyDefinition for BreakoutStrategyDefinition {
     fn name(&self) -> &'static str {
@@ -476,6 +480,30 @@ impl StrategyDefinition for DualMomentumStrategyDefinition {
         fill: &str,
     ) -> Result<Vec<Trade>, String> {
         crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for ValideaSectorMomentumStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S048_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S048_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family4::compute_s048_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::s048_trades(panel, sig, cfg, fill)
     }
 }
 
@@ -888,6 +916,8 @@ static S044_STRATEGY: EfficienteFiveStrategyDefinition = EfficienteFiveStrategyD
 static S045_STRATEGY: CharacteristicBlendStrategyDefinition = CharacteristicBlendStrategyDefinition;
 static S046_STRATEGY: MarketStateIndustryStrategyDefinition = MarketStateIndustryStrategyDefinition;
 static S047_STRATEGY: DualMomentumStrategyDefinition = DualMomentumStrategyDefinition;
+static S048_STRATEGY: ValideaSectorMomentumStrategyDefinition =
+    ValideaSectorMomentumStrategyDefinition;
 static S041_STRATEGY: CrossSectionalMomentumStrategyDefinition =
     CrossSectionalMomentumStrategyDefinition;
 static S075_STRATEGY: ResidualReversalStrategyDefinition = ResidualReversalStrategyDefinition;
@@ -975,7 +1005,7 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 41] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -994,6 +1024,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
     &S050_STRATEGY,
     &S051_STRATEGY,
     &S047_STRATEGY,
+    &S048_STRATEGY,
     &S075_STRATEGY,
     &S017_STRATEGY,
     &S023_STRATEGY,
@@ -1301,6 +1332,7 @@ impl<'a> Study<'a> {
                 | S044_NAME
                 | S045_NAME
                 | S047_NAME
+                | S048_NAME
                 | S050_NAME
                 | S051_NAME
                 | S104_NAME
@@ -2598,6 +2630,10 @@ impl<'a> Study<'a> {
                 "Run the configured absolute-momentum, GEM dual-momentum, or SMA-gate mode with its defensive-asset rule.",
                 "ETF total-return history starts in 2016; BIL is the cash proxy and no pre-2007 FRED splice is available.",
             )),
+            "s048_validea_sector_mom" => Some((
+                "Rank sector ETFs by the blended 1M+3M momentum signal and rebalance the selected top-k basket on the configured schedule.",
+                "Sector total-return bars start in 2016; the baseline universe is the ten SPDR sectors with full 2016+ history (XLC excluded, listed 2018-06); Validea's published track record uses a hindsight-selected rebalancing period, not a disclosed rule.",
+            )),
             "s050_first_pullback" => Some((
                 "After a rolling-high breakout, enter the first configured pullback near its short moving average; exit on breakout confirmation, the moving-average rule, or time.",
                 "Earnings avoidance uses SimFin Publish Date as a realized-event proxy, not a PIT scheduled-announcement calendar; stock bars start in 2016.",
@@ -2686,6 +2722,7 @@ impl<'a> Study<'a> {
                 | S045_NAME
                 | S046_NAME
                 | S047_NAME
+                | S048_NAME
                 | S050_NAME
                 | S051_NAME
         ) {
