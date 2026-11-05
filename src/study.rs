@@ -85,6 +85,8 @@ pub const S090_NAME: &str = crate::family9::S090_NAME;
 pub const S090_TITLE: &str = crate::family9::S090_TITLE;
 pub const S094_NAME: &str = crate::family9::S094_NAME;
 pub const S094_TITLE: &str = crate::family9::S094_TITLE;
+pub const S100_NAME: &str = crate::family10::S100_NAME;
+pub const S100_TITLE: &str = crate::family10::S100_TITLE;
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -1208,6 +1210,32 @@ impl StrategyDefinition for S094BollingerSqueezeDefinition {
     }
 }
 
+struct ThreeWhiteSoldiersStrategyDefinition;
+
+impl StrategyDefinition for ThreeWhiteSoldiersStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S100_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S100_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family10::compute_s100_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family10::s100_trades(panel, sig, cfg, fill)
+    }
+}
+
 static S001_STRATEGY: RsiStrategyDefinition = RsiStrategyDefinition {
     name: NAME,
     title: TITLE,
@@ -1377,7 +1405,9 @@ static S103_STRATEGY: Family10Definition = Family10Definition {
     title: crate::family10::S103_TITLE,
     kind: Family10Kind::YieldCurveRotation,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 57] = [
+static S100_STRATEGY: ThreeWhiteSoldiersStrategyDefinition =
+    ThreeWhiteSoldiersStrategyDefinition;
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 58] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1435,6 +1465,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 57] = [
     &S090_STRATEGY,
     &S094_STRATEGY,
     &S103_STRATEGY,
+    &S100_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -1741,6 +1772,7 @@ impl<'a> Study<'a> {
                 | S104_NAME
                 | crate::family9::S095_NAME
                 | S090_NAME
+                | S100_NAME
         );
         if family4_universe {
             for t in 1..n_rows {
@@ -3290,6 +3322,10 @@ impl<'a> Study<'a> {
                 "Hold a close above a flat-to-rising KAMA and exit on a close back below it; mirrored rules apply to the short-side variants.",
                 "The only cited source is an unverified YouTube video; stock and ETF bars start in 2016; the catalog's long-and-short direction runs long-only first per the shared specification, with short legs as registered variants.",
             )),
+            "s100_three_white_soldiers" => Some((
+                "After N rising green candles opening inside the prior body with rising volume and a close above the SMA gate, buy the signal close (or next open); exit on a close below the pattern stop, the target, or the session cap.",
+                "Demoted catalog entry run as a falsification test; 'long' candle size is unquantified in the source so the baseline needs only close > open (min_body_* variants tighten it); the tradable universe is restricted to the total-return cache, which covers every name that ever enters the top-500 liquidity ranks.",
+            )),
             _ => None,
         };
         if let Some((description, limitations)) = family4 {
@@ -3551,6 +3587,11 @@ impl<'a> Study<'a> {
             format!(
                 "BB({},{:.1}) width bot{:.0}%/{}d {} exit={}",
                 c.bb_len, c.bb_mult, 100.0 * c.decile, c.width_lookback, c.leg_mode, c.exit_mode
+            )
+        } else if c.strategy == S100_NAME {
+            format!(
+                "soldiers x{} sma{} vol={} stop={} hold{}",
+                c.soldier_len, c.sma_window, c.volume_mode, c.stop_mode, c.max_hold
             )
         } else {
             format!(
