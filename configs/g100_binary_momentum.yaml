@@ -1,0 +1,47 @@
+# G100 QARMII 252-day binary momentum: monthly sign(252d return) per asset,
+# vol-parity weights scaled to a 10% vol target on 180d covariance (max 4x).
+# Long/short faithful to source (weighted_rebalance_trades supports signed weights).
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,EFA,EEM,IWM,RSP,AGG,TLT,IEF,LQD,HYG,EMB,GLD,SLV,GSG,DBC,USO,CPER,VNQ,IYR,UUP
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2005-01-01"
+min_history: 252
+mom_window: 252
+rebalance: monthly
+strategy_mode: volparity
+vol_window: 180
+target_vol: 0.10
+max_leverage: 4.0
+periods_per_year: 252
+borrow_bps_annual: 25.0
+cost_bps_per_side: 10.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 20
+
+variants:
+  equal: {strategy_mode: equal}
+  mom63: {mom_window: 63}
+  mom126: {mom_window: 126}
+  mom189: {mom_window: 189}
+  mom315: {mom_window: 315}
+  weekly: {rebalance: weekly}
+  vol90: {vol_window: 90}
+  vol252: {vol_window: 252}
+  tv05: {target_vol: 0.05}
+  tv15: {target_vol: 0.15}
+  tv20: {target_vol: 0.20}
+  no_lev: {target_vol: 0.0}
+  cap2x: {max_leverage: 2.0}
+  eq63: {strategy_mode: equal, mom_window: 63}
+  eq126: {strategy_mode: equal, mom_window: 126}
+  eq_tv15: {strategy_mode: equal, target_vol: 0.15}
+  eq_no_lev: {strategy_mode: equal, target_vol: 0.0}
+  mom378: {mom_window: 378}
+  eq378: {strategy_mode: equal, mom_window: 378}

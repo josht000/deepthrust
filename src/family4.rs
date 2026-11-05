@@ -2231,6 +2231,126 @@ pub fn s036_trades(
     Ok(trades)
 }
 
+/// G100 QARMII binary 252-day momentum: per asset, sign(trailing mom_window return)
+/// each rebalance day; vol-parity (baseline) or equal weights normalized to 1x gross,
+/// then scaled to target_vol using the trailing vol_window covariance (max_leverage cap).
+pub fn compute_g100_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if cfg.mom_window == 0 || cfg.vol_window < 2 {
+        return Err("G100 requires positive mom_window and vol_window >= 2".into());
+    }
+    if !matches!(cfg.strategy_mode.as_str(), "volparity" | "equal") {
+        return Err(format!("unknown G100 strategy_mode {:?}", cfg.strategy_mode));
+    }
+    let n = panel.dates.len();
+    let ns = panel.symbols.len();
+    let rets = momentum_matrix(panel, cfg.mom_window, cfg.min_history);
+    let dr: Vec<Vec<f64>> = (0..ns)
+        .map(|j| {
+            (0..n)
+                .map(|t| {
+                    if t > 0 && panel.close[j][t].is_finite() && panel.close[j][t - 1].is_finite()
+                    {
+                        panel.close[j][t] / panel.close[j][t - 1] - 1.0
+                    } else {
+                        f64::NAN
+                    }
+                })
+                .collect()
+        })
+        .collect();
+    let days = rebalance_days(panel, &cfg.rebalance)?;
+    let mut result = blank_rebalance_signals(panel, "binary_momentum");
+    result.rsi = rets.clone();
+    let mut weights = vec![vec![0.0; n]; ns];
+    for &day in &days {
+        let lo = day.saturating_sub(cfg.vol_window - 1);
+        let mut w = vec![0.0f64; ns];
+        for j in 0..ns {
+            let r = rets[j][day];
+            if !r.is_finite() {
+                continue;
+            }
+            let sign = if r > 0.0 { 1.0 } else { -1.0 };
+            w[j] = if cfg.strategy_mode == "equal" {
+                sign
+            } else {
+                let (mut m, mut m2, mut k) = (0.0, 0.0, 0usize);
+                for t in lo..=day {
+                    if dr[j][t].is_finite() {
+                        m += dr[j][t];
+                        m2 += dr[j][t] * dr[j][t];
+                        k += 1;
+                    }
+                }
+                if k < cfg.vol_window {
+                    continue;
+                }
+                let var = (m2 - m * m / k as f64) / (k as f64 - 1.0);
+                if var <= 0.0 {
+                    continue;
+                }
+                sign / var.sqrt()
+            };
+        }
+        let gross: f64 = w.iter().map(|v| v.abs()).sum();
+        if gross <= 0.0 {
+            continue;
+        }
+        for v in &mut w {
+            *v /= gross;
+        }
+        if cfg.target_vol > 0.0 {
+            let mut mean = vec![0.0; ns];
+            let mut cnt = vec![0usize; ns];
+            for j in 0..ns {
+                for t in lo..=day {
+                    if dr[j][t].is_finite() {
+                        mean[j] += dr[j][t];
+                        cnt[j] += 1;
+                    }
+                }
+                if cnt[j] > 0 {
+                    mean[j] /= cnt[j] as f64;
+                }
+            }
+            let mut port_var = 0.0;
+            for a in 0..ns {
+                for b in 0..ns {
+                    if w[a] == 0.0 || w[b] == 0.0 {
+                        continue;
+                    }
+                    let (mut cov, mut k) = (0.0, 0usize);
+                    for t in lo..=day {
+                        if dr[a][t].is_finite() && dr[b][t].is_finite() {
+                            cov += (dr[a][t] - mean[a]) * (dr[b][t] - mean[b]);
+                            k += 1;
+                        }
+                    }
+                    if k >= 2 {
+                        port_var += w[a] * w[b] * cov / (k as f64 - 1.0);
+                    }
+                }
+            }
+            if port_var > 0.0 {
+                let port_vol = (port_var * cfg.periods_per_year as f64).sqrt();
+                let scale = (cfg.target_vol / port_vol).min(cfg.max_leverage);
+                for v in &mut w {
+                    *v *= scale;
+                }
+            }
+        }
+        for (j, v) in w.iter().enumerate() {
+            if *v != 0.0 {
+                weights[j][day] = *v;
+                result.signal[j][day] = true;
+            }
+        }
+    }
+    result.trade_weights = Some(weights);
+    result.benchmark_returns = benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
