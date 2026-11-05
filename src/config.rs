@@ -330,6 +330,12 @@ pub struct Config {
     pub cyclical_symbols: String,
     #[serde(default = "d_defensive_symbols")]
     pub defensive_symbols: String,
+    #[serde(default = "d_setup_mode")]
+    pub setup_mode: String,
+    #[serde(default = "d_direction")]
+    pub direction: String,
+    #[serde(default)]
+    pub setup_atr_ratio: f64,
     #[serde(default)]
     pub results_tag: String,
     /// Resolved variant name ("baseline" when no overlay is applied).
@@ -730,6 +736,12 @@ fn d_cyclical_symbols() -> String {
 }
 fn d_defensive_symbols() -> String {
     "XLP,XLU".into()
+}
+fn d_setup_mode() -> String {
+    "nr7_or_inside".into()
+}
+fn d_direction() -> String {
+    "both".into()
 }
 
 impl Config {

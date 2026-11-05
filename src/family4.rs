@@ -2127,3 +2127,364 @@ mod tests {
         );
     }
 }
+
+// S038: NR7 / inside-day compression breakout. A setup session (narrowest range
+// of the configured lookback, or an inside day) arms stop orders at the setup
+// bar's high and low for the next order_validity session(s).
+pub fn compute_s038_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if cfg.lookback < 2 {
+        return Err(format!("S038 lookback must be >= 2, got {}", cfg.lookback));
+    }
+    if !matches!(cfg.setup_mode.as_str(), "nr7_or_inside" | "nr7" | "inside") {
+        return Err(format!("unknown S038 setup_mode {:?}", cfg.setup_mode));
+    }
+    if !matches!(cfg.direction.as_str(), "both" | "long" | "short") {
+        return Err(format!("unknown S038 direction {:?}", cfg.direction));
+    }
+    if !matches!(
+        cfg.exit_mode.as_str(),
+        "time" | "first_profitable_close" | "opposite_break" | "stop_target"
+    ) {
+        return Err(format!("unknown S038 exit_mode {:?}", cfg.exit_mode));
+    }
+    if !matches!(cfg.gate.as_str(), "none" | "sma") {
+        return Err(format!("unknown S038 gate {:?}", cfg.gate));
+    }
+    if cfg.max_hold == 0 || cfg.order_validity == 0 {
+        return Err("S038 max_hold and order_validity must be greater than zero".into());
+    }
+    if cfg.setup_atr_ratio < 0.0 || !cfg.setup_atr_ratio.is_finite() {
+        return Err("S038 setup_atr_ratio must be finite and nonnegative".into());
+    }
+    let etf_symbols = crate::config::split_csv(&cfg.etf_symbols);
+    if etf_symbols.is_empty() {
+        return Err("S038 requires etf_symbols to identify the ETF universe".into());
+    }
+    let mut is_etf = vec![false; panel.symbols.len()];
+    let mut matched = 0usize;
+    for (column, symbol) in panel.symbols.iter().enumerate() {
+        if etf_symbols.contains(symbol) {
+            is_etf[column] = true;
+            matched += 1;
+        }
+    }
+    if matched != etf_symbols.len() {
+        let missing: Vec<_> = etf_symbols
+            .iter()
+            .filter(|symbol| !panel.symbols.contains(symbol))
+            .cloned()
+            .collect();
+        return Err(format!(
+            "S038 ETF symbols missing from panel: {}",
+            missing.join(",")
+        ));
+    }
+    let stock_columns: Vec<_> = (0..panel.symbols.len())
+        .filter(|column| !is_etf[*column])
+        .collect();
+    let ranks = if cfg.include_stocks && !stock_columns.is_empty() {
+        data::liquidity_ranks(
+            panel,
+            &stock_columns,
+            cfg.rank_window,
+            cfg.rank_min_observations,
+            cfg.min_price,
+            cfg.min_history,
+        )?
+    } else {
+        vec![vec![f64::NAN; panel.dates.len()]; panel.symbols.len()]
+    };
+    let gate_sma = cfg.gate == "sma";
+    let atr_filter = cfg.setup_atr_ratio > 0.0;
+    let mut result = blank_signals(panel, "setup_range");
+    for symbol in 0..panel.symbols.len() {
+        let (high, low, close) = (&panel.high[symbol], &panel.low[symbol], &panel.close[symbol]);
+        let sma = if gate_sma {
+            signals::rolling_mean(close, cfg.sma_window)
+        } else {
+            Vec::new()
+        };
+        let atr = if atr_filter {
+            signals::wilder_atr(high, low, close, cfg.atr_len)
+        } else {
+            Vec::new()
+        };
+        let mut history = 0usize;
+        for day in 0..panel.dates.len() {
+            if close[day].is_finite() {
+                history += 1;
+            }
+            if !close[day].is_finite() || history < cfg.min_history {
+                continue;
+            }
+            if !is_etf[symbol]
+                && !(cfg.include_stocks
+                    && ranks[symbol][day].is_finite()
+                    && ranks[symbol][day] <= cfg.universe_top_n as f64)
+            {
+                continue;
+            }
+            result.tradable[symbol][day] = true;
+            result.pool[symbol][day] = true;
+            if day == 0 || !high[day].is_finite() || !low[day].is_finite() {
+                continue;
+            }
+            let range = high[day] - low[day];
+            if !(range > 0.0) {
+                continue;
+            }
+            let nr7 = day >= cfg.lookback - 1
+                && (day + 1 - cfg.lookback..day).all(|d| {
+                    high[d].is_finite() && low[d].is_finite() && high[d] - low[d] > range
+                });
+            let inside = high[day - 1].is_finite()
+                && low[day - 1].is_finite()
+                && high[day] < high[day - 1]
+                && low[day] > low[day - 1];
+            let setup = match cfg.setup_mode.as_str() {
+                "nr7" => nr7,
+                "inside" => inside,
+                _ => nr7 || inside,
+            };
+            if !setup {
+                continue;
+            }
+            if atr_filter && !(atr[day].is_finite() && range <= cfg.setup_atr_ratio * atr[day]) {
+                continue;
+            }
+            if gate_sma && !(sma[day].is_finite() && close[day] != sma[day]) {
+                continue;
+            }
+            result.signal[symbol][day] = true;
+            result.rsi[symbol][day] = range;
+        }
+    }
+    result.benchmark_returns = benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
+/// Daily-bar approximation of the intraday stop-entry rule: entry fills at
+/// max(open, buy_stop)/min(open, sell_stop); both-side triggers resolve to the
+/// stop nearer the session open and exactly equidistant entries are skipped.
+/// Exits: "time" flattens at the close after max_hold sessions,
+/// "first_profitable_close" exits at the first close where the position is
+/// profitable (entry session included), "opposite_break" and the stop leg of
+/// "stop_target" exit through the setup bar's far side, and "stop_target" adds a
+/// gap_reward_risk multiple target (stop fills first when both trade in a
+/// session). Opposite-side exits are evaluated from the session after entry
+/// because daily bars cannot order a same-session reversal against the entry.
+pub fn s038_trades(
+    panel: &Panel,
+    sig: &Signals,
+    cfg: &Config,
+    fill: &str,
+) -> Result<Vec<Trade>, String> {
+    if fill != "stop" {
+        return Err(format!("S038 supports fill \"stop\" only, got {fill:?}"));
+    }
+    let last = engine::last_valid_rows(&panel.close);
+    let mut trades = Vec::new();
+    for j in 0..panel.symbols.len() {
+        let Some(last_row) = last[j] else { continue };
+        let cost = cfg.cost_for_symbol(&panel.symbols[j]);
+        let sma = if cfg.gate == "sma" {
+            signals::rolling_mean(&panel.close[j], cfg.sma_window)
+        } else {
+            Vec::new()
+        };
+        let mut armed: Option<(usize, f64, f64)> = None; // arm day, buy stop, sell stop
+        let mut pos: Option<(usize, usize, f64, f64, f64, f64)> = None;
+        //        (signal day, entry idx, entry px, dir, setup high, setup low)
+        for t in 0..=last_row {
+            if let Some((sig_day, entry_idx, entry_px, dir, hi_s, lo_s)) = pos {
+                let mut exit: Option<(f64, &'static str)> = None;
+                let final_session = (entry_idx + cfg.max_hold - 1).min(last_row);
+                if cfg.exit_mode == "first_profitable_close" {
+                    let c = panel.close[j][t];
+                    if c.is_finite() && dir * (c / entry_px - 1.0) > 0.0 {
+                        exit = Some((c, "first_profit"));
+                    }
+                }
+                if exit.is_none() && t > entry_idx {
+                    if matches!(cfg.exit_mode.as_str(), "opposite_break" | "stop_target") {
+                        let risk = if dir > 0.0 {
+                            entry_px - lo_s
+                        } else {
+                            hi_s - entry_px
+                        };
+                        if dir > 0.0 && panel.low[j][t] <= lo_s {
+                            exit = Some((panel.open[j][t].min(lo_s), "stop"));
+                        } else if dir < 0.0 && panel.high[j][t] >= hi_s {
+                            exit = Some((panel.open[j][t].max(hi_s), "stop"));
+                        }
+                        if exit.is_none() && cfg.exit_mode == "stop_target" && risk > 0.0 {
+                            let target = entry_px + dir * cfg.gap_reward_risk * risk;
+                            if dir > 0.0 && panel.high[j][t] >= target {
+                                exit = Some((panel.open[j][t].max(target), "target"));
+                            } else if dir < 0.0 && panel.low[j][t] <= target {
+                                exit = Some((panel.open[j][t].min(target), "target"));
+                            }
+                        }
+                    }
+                }
+                if exit.is_none() && t >= final_session {
+                    exit = Some((panel.close[j][t], "time"));
+                }
+                if let Some((px, reason)) = exit {
+                    if px.is_finite() && px > 0.0 {
+                        let gross = dir * (px / entry_px - 1.0);
+                        let borrow = if dir < 0.0 {
+                            cfg.borrow_bps_annual / 10_000.0 / cfg.periods_per_year as f64
+                                * (t - entry_idx + 1) as f64
+                        } else {
+                            0.0
+                        };
+                        trades.push(Trade {
+                            sym_idx: j,
+                            signal_idx: sig_day,
+                            entry_idx,
+                            exit_idx: t,
+                            entry_px,
+                            exit_px: px,
+                            ret: gross - cost * 2.0 - borrow,
+                            ret_gross: gross,
+                            exit_reason: reason,
+                            hold: t - entry_idx + 1,
+                            signal_value: sig.rsi[j][sig_day],
+                            weight: 1.0,
+                            entry_turnover: 1.0,
+                            exit_turnover: 1.0,
+                            weighted: false,
+                            borrow_cost_per_bar: 0.0,
+                        });
+                        pos = None;
+                    }
+                }
+                continue;
+            }
+            if sig.signal[j][t] && t + 1 <= last_row {
+                armed = Some((t, panel.high[j][t], panel.low[j][t]));
+            }
+            let Some((arm_day, buy_level, sell_level)) = armed else {
+                continue;
+            };
+            if t > arm_day + cfg.order_validity {
+                armed = None;
+                continue;
+            }
+            if t <= arm_day {
+                continue;
+            }
+            let buy_hit = panel.high[j][t] >= buy_level;
+            let sell_hit = panel.low[j][t] <= sell_level;
+            if !buy_hit && !sell_hit {
+                continue;
+            }
+            armed = None;
+            let open = panel.open[j][t];
+            if !open.is_finite() {
+                continue;
+            }
+            let dir = if buy_hit && sell_hit {
+                let to_buy = (buy_level - open).abs();
+                let to_sell = (open - sell_level).abs();
+                if to_buy == to_sell {
+                    continue;
+                } else if to_buy < to_sell {
+                    1.0
+                } else {
+                    -1.0
+                }
+            } else if buy_hit {
+                1.0
+            } else {
+                -1.0
+            };
+            if cfg.direction == "long" && dir < 0.0 {
+                continue;
+            }
+            if cfg.direction == "short" && dir > 0.0 {
+                continue;
+            }
+            if cfg.gate == "sma" {
+                let trend = panel.close[j][arm_day] - sma[arm_day];
+                if (dir > 0.0 && trend <= 0.0) || (dir < 0.0 && trend >= 0.0) {
+                    continue;
+                }
+            }
+            let px = if dir > 0.0 {
+                open.max(buy_level)
+            } else {
+                open.min(sell_level)
+            };
+            if !px.is_finite() || px <= 0.0 {
+                continue;
+            }
+            pos = Some((arm_day, t, px, dir, buy_level, sell_level));
+            if cfg.exit_mode == "first_profitable_close" {
+                let c = panel.close[j][t];
+                if c.is_finite() && dir * (c / px - 1.0) > 0.0 {
+                    let gross = dir * (c / px - 1.0);
+                    let borrow = if dir < 0.0 {
+                        cfg.borrow_bps_annual / 10_000.0 / cfg.periods_per_year as f64
+                    } else {
+                        0.0
+                    };
+                    trades.push(Trade {
+                        sym_idx: j,
+                        signal_idx: arm_day,
+                        entry_idx: t,
+                        exit_idx: t,
+                        entry_px: px,
+                        exit_px: c,
+                        ret: gross - cost * 2.0 - borrow,
+                        ret_gross: gross,
+                        exit_reason: "first_profit",
+                        hold: 1,
+                        signal_value: sig.rsi[j][arm_day],
+                        weight: 1.0,
+                        entry_turnover: 1.0,
+                        exit_turnover: 1.0,
+                        weighted: false,
+                        borrow_cost_per_bar: 0.0,
+                    });
+                    pos = None;
+                }
+            }
+        }
+        if let Some((sig_day, entry_idx, entry_px, dir, _, _)) = pos {
+            let px = panel.close[j][last_row];
+            if px.is_finite() && px > 0.0 {
+                let gross = dir * (px / entry_px - 1.0);
+                let borrow = if dir < 0.0 {
+                    cfg.borrow_bps_annual / 10_000.0 / cfg.periods_per_year as f64
+                        * (last_row - entry_idx + 1) as f64
+                } else {
+                    0.0
+                };
+                trades.push(Trade {
+                    sym_idx: j,
+                    signal_idx: sig_day,
+                    entry_idx,
+                    exit_idx: last_row,
+                    entry_px,
+                    exit_px: px,
+                    ret: gross - cost * 2.0 - borrow,
+                    ret_gross: gross,
+                    exit_reason: "censored",
+                    hold: last_row - entry_idx + 1,
+                    signal_value: sig.rsi[j][sig_day],
+                    weight: 1.0,
+                    entry_turnover: 1.0,
+                    exit_turnover: 1.0,
+                    weighted: false,
+                    borrow_cost_per_bar: 0.0,
+                });
+            }
+        }
+    }
+    trades.sort_by(|a, b| {
+        (a.entry_idx, &panel.symbols[a.sym_idx]).cmp(&(b.entry_idx, &panel.symbols[b.sym_idx]))
+    });
+    Ok(trades)
+}
