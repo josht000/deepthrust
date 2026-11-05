@@ -57,6 +57,8 @@ pub const S104_NAME: &str = "s104_crash_protection";
 pub const S104_TITLE: &str = "S104 High-Beta/Momentum Crash Protection";
 pub const S041_NAME: &str = "s041_mom_12_1";
 pub const S041_TITLE: &str = "S041 12-1 Cross-Sectional Momentum";
+pub const S049_NAME: &str = "s049_acceleration_mom";
+pub const S049_TITLE: &str = "S049 Acceleration Momentum";
 pub const S042_NAME: &str = "s042_sector_momentum";
 pub const S042_TITLE: &str = "S042 Sector Momentum Rotation";
 pub const S051_NAME: &str = "s051_darvas_box";
@@ -622,6 +624,32 @@ impl StrategyDefinition for CrossSectionalMomentumStrategyDefinition {
     }
 }
 
+struct AccelerationMomentumStrategyDefinition;
+
+impl StrategyDefinition for AccelerationMomentumStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S049_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S049_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family4::compute_s049_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::s049_trades(panel, sig, cfg, fill)
+    }
+}
+
 struct ResidualReversalStrategyDefinition;
 
 impl StrategyDefinition for ResidualReversalStrategyDefinition {
@@ -1103,6 +1131,8 @@ static S048_STRATEGY: ValideaSectorMomentumStrategyDefinition =
     ValideaSectorMomentumStrategyDefinition;
 static S041_STRATEGY: CrossSectionalMomentumStrategyDefinition =
     CrossSectionalMomentumStrategyDefinition;
+static S049_STRATEGY: AccelerationMomentumStrategyDefinition =
+    AccelerationMomentumStrategyDefinition;
 static S075_STRATEGY: ResidualReversalStrategyDefinition = ResidualReversalStrategyDefinition;
 static S031_STRATEGY: UpStreakFadeStrategyDefinition = UpStreakFadeStrategyDefinition;
 static S017_STRATEGY: NightTradingStrategyDefinition = NightTradingStrategyDefinition;
@@ -1218,7 +1248,7 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
 static S088_STRATEGY: MacdVolumeCrossStrategyDefinition = MacdVolumeCrossStrategyDefinition;
 static S091_STRATEGY: DonchianChandelierStrategyDefinition = DonchianChandelierStrategyDefinition;
 static S089_STRATEGY: GoldenCrossSlopeStrategyDefinition = GoldenCrossSlopeStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 52] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 53] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1235,6 +1265,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 52] = [
     &S045_STRATEGY,
     &S046_STRATEGY,
     &S041_STRATEGY,
+    &S049_STRATEGY,
     &S042_STRATEGY,
     &S050_STRATEGY,
     &S051_STRATEGY,
@@ -1562,6 +1593,7 @@ impl<'a> Study<'a> {
                 | S045_NAME
                 | S047_NAME
                 | S048_NAME
+                | S049_NAME
                 | S050_NAME
                 | S051_NAME
                 | S088_NAME
@@ -3006,6 +3038,10 @@ impl<'a> Study<'a> {
                 "Rank stocks on trailing total return while skipping the configured recent window; hold the long-only cross-sectional winners and rebalance monthly.",
                 "The PIT liquidity-rank cache is used, but industry labels are the latest SimFin snapshot rather than historical PIT assignments; the optional short leg and S104 overlays are not implemented.",
             )),
+            "s049_acceleration_mom" => Some((
+                "Rank liquid stocks by acceleration (recent return minus the long-window pace) among positive long-window performers; hold the long-only top slice and rebalance weekly or monthly.",
+                "S&P 500 membership is proxied by the PIT liquidity-rank top-N cache, not an official index table; stock bars start in 2016; the demoted entry's inverted-S028 control runs as the `ctrl_inv_s028` variant.",
+            )),
             "s042_sector_momentum" => Some((
                 "Rank sector ETFs by the configured momentum signal and rebalance the selected top-k basket.",
                 "Sector total-return bars start in 2016; XLC is eligible only after its available/listing history.",
@@ -3178,6 +3214,7 @@ impl<'a> Study<'a> {
                 | S046_NAME
                 | S047_NAME
                 | S048_NAME
+                | S049_NAME
                 | S050_NAME
                 | S051_NAME
                 | S089_NAME

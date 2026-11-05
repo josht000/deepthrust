@@ -2231,6 +2231,134 @@ pub fn s036_trades(
     Ok(trades)
 }
 
+pub fn compute_s049_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if cfg.mom_window == 0 || cfg.skip_window == 0 || cfg.skip_window >= cfg.mom_window {
+        return Err("S049 requires mom_window > skip_window > 0".into());
+    }
+    if !matches!(cfg.breadth_mode.as_str(), "decile" | "top") {
+        return Err(format!("unknown S049 breadth_mode {:?}", cfg.breadth_mode));
+    }
+    if !matches!(cfg.rebalance.as_str(), "weekly" | "monthly") {
+        return Err(format!("unknown S049 rebalance {:?}", cfg.rebalance));
+    }
+    if !matches!(cfg.accel_measure.as_str(), "diff" | "rank" | "r21") {
+        return Err(format!(
+            "unknown S049 accel_measure {:?}",
+            cfg.accel_measure
+        ));
+    }
+    let ranks = if cfg.rank_cache_dir.trim().is_empty() {
+        let columns: Vec<_> = (0..panel.symbols.len()).collect();
+        data::liquidity_ranks(
+            panel,
+            &columns,
+            cfg.rank_window,
+            cfg.rank_min_observations,
+            cfg.min_price,
+            cfg.min_history,
+        )?
+    } else {
+        data::read_liquid_rank_cache(&cfg.rank_cache_dir, &panel.dates, &panel.symbols)?
+    };
+    let n_rows = panel.dates.len();
+    let n_symbols = panel.symbols.len();
+    let r_short = momentum_matrix(panel, cfg.skip_window, cfg.min_history);
+    let r_long = momentum_matrix(panel, cfg.mom_window, cfg.min_history);
+    let mut result = blank_signals(
+        panel,
+        &format!(
+            "accel{}_{}_{}",
+            cfg.skip_window, cfg.mom_window, cfg.accel_measure
+        ),
+    );
+    for symbol in 0..n_symbols {
+        for day in 0..n_rows {
+            result.tradable[symbol][day] = panel.close[symbol][day].is_finite()
+                && ranks[symbol][day].is_finite()
+                && ranks[symbol][day] <= cfg.universe_top_n as f64;
+            result.pool[symbol][day] = result.tradable[symbol][day];
+        }
+    }
+    let pace = cfg.skip_window as f64 / cfg.mom_window as f64;
+    for day in 0..n_rows {
+        let eligible: Vec<usize> = (0..n_symbols)
+            .filter(|&symbol| {
+                result.tradable[symbol][day]
+                    && r_short[symbol][day].is_finite()
+                    && r_long[symbol][day].is_finite()
+                    && (!cfg.accel_gate || r_long[symbol][day] > 0.0)
+            })
+            .collect();
+        if eligible.is_empty() {
+            continue;
+        }
+        match cfg.accel_measure.as_str() {
+            "rank" => {
+                let n = eligible.len() as f64;
+                let mut pct_short = vec![0.0; n_symbols];
+                let mut order = eligible.clone();
+                order.sort_by(|&a, &b| {
+                    r_short[a][day].total_cmp(&r_short[b][day]).then(a.cmp(&b))
+                });
+                for (rank, symbol) in order.into_iter().enumerate() {
+                    pct_short[symbol] = rank as f64 / n;
+                }
+                let mut order = eligible.clone();
+                order.sort_by(|&a, &b| {
+                    r_long[a][day].total_cmp(&r_long[b][day]).then(a.cmp(&b))
+                });
+                for (rank, symbol) in order.into_iter().enumerate() {
+                    result.rsi[symbol][day] = pct_short[symbol] - rank as f64 / n;
+                }
+            }
+            "r21" => {
+                for &symbol in &eligible {
+                    result.rsi[symbol][day] = r_short[symbol][day];
+                }
+            }
+            _ => {
+                for &symbol in &eligible {
+                    result.rsi[symbol][day] =
+                        r_short[symbol][day] - r_long[symbol][day] * pace;
+                }
+            }
+        }
+        for &symbol in &eligible {
+            result.signal[symbol][day] = true;
+        }
+    }
+    Ok(result)
+}
+
+pub fn s049_trades(
+    panel: &Panel,
+    sig: &Signals,
+    cfg: &Config,
+    fill: &str,
+) -> Result<Vec<Trade>, String> {
+    if cfg.breadth_mode == "top" && cfg.breadth == 0 {
+        return Err("S049 breadth must be greater than zero".into());
+    }
+    if cfg.breadth_mode == "decile" {
+        if !cfg.decile.is_finite() || !(0.0..=1.0).contains(&cfg.decile) || cfg.decile == 0.0 {
+            return Err("S049 decile must be in (0, 1]".into());
+        }
+        if cfg.min_breadth == 0 {
+            return Err("S049 minimum breadth must be greater than zero".into());
+        }
+    } else if cfg.breadth_mode != "top" {
+        return Err(format!("unknown S049 breadth_mode {:?}", cfg.breadth_mode));
+    }
+    let trades = signals::rebalance_trades_with_breadth(panel, sig, cfg, fill, |_, eligible| {
+        if cfg.breadth_mode == "top" {
+            cfg.breadth
+        } else {
+            cfg.min_breadth.max((eligible as f64 * cfg.decile) as usize)
+        }
+    })?;
+    Ok(signals::weight_rebalance_trades(trades, cfg.book_slots))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

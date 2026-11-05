@@ -64,7 +64,7 @@
     - [S046 | Industry Rotation via Market-State Similarity](#s046--industry-rotation-via-market-state-similarity) — IMPLEMENTED
     - [S047 | Absolute / Dual Momentum (S047a absolute SPY vs cash; S047b Antonacci GEM)](#s047--absolute--dual-momentum-s047a-absolute-spy-vs-cash-s047b-antonacci-gem) — IMPLEMENTED
     - [S048 | Validea Short-Term Sector Momentum](#s048--validea-short-term-sector-momentum) — IMPLEMENTED — DELTA
-    - [S049 | Acceleration Momentum](#s049--acceleration-momentum)
+    - [S049 | Acceleration Momentum](#s049--acceleration-momentum) — IMPLEMENTED
     - [S050 | First Pullback After Breakout](#s050--first-pullback-after-breakout) — IMPLEMENTED
     - [S051 | Darvas Box Breakout](#s051--darvas-box-breakout) — IMPLEMENTED
 - [Family 5 — Earnings, News, and LLM Strategies](#family-5--earnings-news-and-llm-strategies)
@@ -1304,6 +1304,15 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - notes: Falsification: the numerator is the last 21-day return, i.e. a 1-month WINNER screen, the sign S027/S028 (and the NY Fed paper) say reverses; the two effects point in opposite directions and the hypothesis needs a theory for when acceleration dominates reversal. Pre-register S028 as the control; drop if it does not beat the inverted S028 reversal. A weekly decile rebalance of liquid names is expensive (G-08). The Chan interview does not discuss acceleration.
 - parameter_variants: measure {r21 - r252/12 primary; cross-sectional rank difference}; rebalance {weekly, monthly}
 - data_needs: daily_10years (D1)
+- rust_status: IMPLEMENTED
+- implementation_results: Rust in `src/family4.rs` / `src/study.rs`, config `configs/s049_acceleration_mom.yaml`; liquid top-500 PIT universe (1400 symbols, 1 source), weekly top-decile of r21 - r252/12 among r252 > 0, `next_open` primary, 15 bps/side; sessions 2016-01-04 .. 2026-10-23; evaluation starts 2016-12-29. Full grid: 35 variants + baseline, 72 variant/fill rows. DEV-only selection `u1000_monthly` (best structural dev skill; `cost0` shows gross skill +0.19 does not survive 15 bps at ~69x/yr turnover). baseline DEV/TEST skill -0.528/-0.227; selected DEV/TEST skill -0.008/+0.069 (DECAYED). Selected TEST Sharpe +0.835, PF +1.366, win +52.9%, trades 2021. Falsification: acceleration beats the inverted-S028 control at matched cadence (dev skill -0.012 monthly accel vs -0.464 monthly r21 winners; -0.528 weekly vs -1.553 weekly r21) yet has no positive net skill at the specified weekly decile; demotion stands. no high-metric flag; TEST inspected.
+  | portfolio | variant | partition | total log | trend log | random-pick baselines (log; p) | skill (log) | skill vs random U / pool (log) | bias (log) | skill % | skill p | Sharpe | PF | max DD | win % | trades |
+  |---|---|---|---:|---:|---|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|
+  | baseline | `baseline` | DEV | -0.207 | +0.321 | U -0.373 (p=+0.059); pool -0.377 (p=+0.052) | -0.528 | U +0.165; pool +0.169 | +0.000 | n/a | +0.985 | -0.162 | +0.968 | -35.0% | +49.2% | 12038 |
+  | baseline | `baseline` | TEST | +0.043 | +0.270 | U -0.034 (p=+0.175); pool -0.031 (p=+0.197) | -0.227 | U +0.077; pool +0.074 | +0.000 | n/a | +0.867 | +0.175 | +1.032 | -21.6% | +48.8% | 5202 |
+  | DEV-selected | `u1000_monthly` | DEV | +0.297 | +0.305 | U +0.195 (p=+0.072); pool +0.192 (p=+0.064) | -0.008 | U +0.102; pool +0.105 | +0.000 | n/a | +0.515 | +0.433 | +1.163 | -24.8% | +54.0% | 4638 |
+  | DEV-selected | `u1000_monthly` | TEST | +0.312 | +0.243 | U +0.191 (p=+0.015); pool +0.185 (p=+0.013) | +0.069 | U +0.121; pool +0.127 | +0.000 | +0.221 | +0.347 | +0.835 | +1.366 | -15.1% | +52.9% | 2021 |
+  Reproduce: full matrix `cargo run --release -- --strategy s049_acceleration_mom --variant rank,rank_monthly,monthly,nogate,nogate_monthly,ctrl_inv_s028,ctrl_r21w,ctrl_r21g,s10,s42,s63,l126,l189,l315,l126_s42,decile5,decile15,decile20,top10,top20,top30,top100,u250,u1000,u1500,cost0,cost5,cost10,cost25,cost50,monthly_l126,monthly_decile20,monthly_top20,u1000_monthly,l189_s63`; DEV-selected winner `cargo run --release -- --strategy s049_acceleration_mom --variant u1000_monthly`.
 - review: DEMOTE | source MISMATCH
 
 ### S050 | First Pullback After Breakout
