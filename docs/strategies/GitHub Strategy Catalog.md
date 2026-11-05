@@ -86,7 +86,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G066 | Zipline Cointegration Pair Z-Score (z_signal=2, z_exit=0, lookback=200)](#g066--zipline-cointegration-pair-z-score-z_signal2-z_exit0-lookback200) — DUPLICATE (S071)
 - [Trend Following and Breakout](#trend-following-and-breakout) (29)
   - [G067 | Mount Lucas (MLM) Futures Trend Index - 200d MA + Universe Vol Gate, Monthly Execution](#g067--mount-lucas-mlm-futures-trend-index---200d-ma--universe-vol-gate-monthly-execution)
-  - [G068 | Stochastic-Oversold-Exit + RSI-50 Confirmation with Chandelier(22,2) Trailing Exit](#g068--stochastic-oversold-exit--rsi-50-confirmation-with-chandelier222-trailing-exit)
+  - [G068 | Stochastic-Oversold-Exit + RSI-50 Confirmation with Chandelier(22,2) Trailing Exit](#g068--stochastic-oversold-exit--rsi-50-confirmation-with-chandelier222-trailing-exit) — IMPLEMENTED
   - [G069 | 20-Day-High Breakout Trend (Hyperliquid)](#g069--20-day-high-breakout-trend-hyperliquid) — DUPLICATE (S036)
   - [G070 | ATR SuperTrend Direction-Reversal Strategy](#g070--atr-supertrend-direction-reversal-strategy)
   - [G071 | Keltner Mid-Channel Pullback-in-Trend EA](#g071--keltner-mid-channel-pullback-in-trend-ea) — DUPLICATE (S087)
@@ -1352,6 +1352,13 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - reported_metrics: none reported
 - notes: Entry = stochastic leaving oversold, not oversold itself - timing detail matters.
 - sources: [amoghathalekar/Stochastic-RSI-Trend-Following-Strategy — signal loop + CHSTOP(22,2)](https://github.com/amoghathalekar/Stochastic-RSI-Trend-Following-Strategy/blob/4f4d2a40804829caba0577b7637c3665d6c0d6d6/RSI-Stochastics%20strategy%20NEW%20-%20github%20copy.py)
+- implementation_results: `src/signals.rs` compute_g068_signals (worktree branch g068_stoch_rsi_chandelier); pooled 15-ETF TR book (SPY/QQQ/IWM/DIA + 11 sectors), 5 bps/side, next_open primary; dev < 2024-01-01 <= test. Long-only: the source's short mirror leg is unimplemented (engine is long-only) — DELTA. Baseline + 24 registered variants.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev PF | dev max DD | test total (log) | test skill | test Sharpe | test PF | test max DD | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|---|---|
+  | baseline | -0.00 | +0.00 (p=0.50) | -0.00 | 1.03 | -7.7% | +0.04 | -0.02 | 0.82 | 1.53 | -1.9% | 283+150 |
+  | chan44 (dev pick) | -0.00 | +0.01 | 0.01 | 1.06 | -9% | +0.03 | -0.02 | 0.64 | 1.4 | -2% | 284+150 |
+  No positive dev skill survives to test (chan44 sign-flips; spy_only's +0.02 dev skill is 23 trades, insufficient evidence). Reproduce: `cargo run --release --bin deepthrust -- --strategy g068_stoch_rsi_chandelier`; variants `... --variant in15,in25,in30,out20,out30,out35,rsi45,rsi55,rsi60,ch1_5,ch2_5,ch3,chan14,chan34,chan44,atr14,stoch9,stoch21,spy_only,qqq_only,strict,loose,tight_trail,loose_trail`
 
 ### G069 | 20-Day-High Breakout Trend (Hyperliquid)
 - priority: Medium — Crossref to Donchian breakout family; crypto perp market is the only distinction.

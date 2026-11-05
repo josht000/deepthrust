@@ -43,8 +43,8 @@ variants:
   stop4atr: {disaster_stop_atr: 4.0}
   stop5atr: {disaster_stop_atr: 5.0}
   stop6atr: {disaster_stop_atr: 6.0}
-  broad_indices: {symbols: SPY,QQQ,IWM,DIA, book_slots: 4}
-  sector_etfs: {symbols: XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY, book_slots: 11}
+  broad_indices: {symbols: "SPY,QQQ,IWM,DIA", book_slots: 4}
+  sector_etfs: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11}
   stocks_mega:
     data_dir: 'C:\data\trading\trading_framework\data\cache\daily_10years_tr'
     data_suffix: _1Day_tr.parquet
