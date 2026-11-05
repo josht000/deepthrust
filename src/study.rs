@@ -65,6 +65,8 @@ pub const S024_NAME: &str = crate::family2::S024_NAME;
 pub const S024_TITLE: &str = crate::family2::S024_TITLE;
 pub const S105_NAME: &str = "s105_overnight_carry";
 pub const S105_TITLE: &str = "S105 Volatility-Targeted Overnight Carry";
+pub const S099_NAME: &str = crate::family10::S099_NAME;
+pub const S099_TITLE: &str = crate::family10::S099_TITLE;
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -830,6 +832,32 @@ impl StrategyDefinition for Family6Definition {
     }
 }
 
+struct OutsideDayReversalStrategyDefinition;
+
+impl StrategyDefinition for OutsideDayReversalStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S099_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S099_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family10::compute_s099_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family10::s099_trades(panel, sig, cfg, fill)
+    }
+}
+
 impl StrategyDefinition for OvernightStrategyDefinition {
     fn name(&self) -> &'static str {
         self.name
@@ -975,7 +1003,8 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
+static S099_STRATEGY: OutsideDayReversalStrategyDefinition = OutsideDayReversalStrategyDefinition;
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 41] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1016,6 +1045,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
     &S104_STRATEGY,
     &S056_STRATEGY,
     &S058_STRATEGY,
+    &S099_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -1303,6 +1333,7 @@ impl<'a> Study<'a> {
                 | S047_NAME
                 | S050_NAME
                 | S051_NAME
+                | S099_NAME
                 | S104_NAME
         );
         if family4_universe {
@@ -2606,6 +2637,10 @@ impl<'a> Study<'a> {
                 "Buy a close above a confirmed three-session Darvas box top; confirm pivots only after the required sessions.",
                 "The PIT liquidity-rank cache defines the stock universe; available stock history starts in 2016.",
             )),
+            "s099_outside_day_reversal" => Some((
+                "Buy green outside days following a down close while the close sits within the configured distance of the long SMA; exit on a reversal-low break, a cross above the exit SMA, or time.",
+                "The PIT liquidity-rank cache defines the stock universe; stock bars start in 2016; the reversal-low exit is evaluated on closes, not intraday.",
+            )),
             _ => None,
         };
         if let Some((description, limitations)) = family4 {
@@ -2688,6 +2723,7 @@ impl<'a> Study<'a> {
                 | S047_NAME
                 | S050_NAME
                 | S051_NAME
+                | S099_NAME
         ) {
             title_for(&c.strategy).to_string()
         } else if c.strategy == S104_NAME {

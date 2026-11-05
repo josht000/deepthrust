@@ -330,6 +330,20 @@ pub struct Config {
     pub cyclical_symbols: String,
     #[serde(default = "d_defensive_symbols")]
     pub defensive_symbols: String,
+    #[serde(default = "d_sma_distance")]
+    pub sma_distance: f64,
+    #[serde(default = "d_sma_side")]
+    pub sma_side: String,
+    #[serde(default = "d_true")]
+    pub require_outside: bool,
+    #[serde(default = "d_true")]
+    pub require_green_close: bool,
+    #[serde(default = "d_true")]
+    pub require_prior_down: bool,
+    #[serde(default)]
+    pub rel_vol_min: f64,
+    #[serde(default)]
+    pub min_range_pct: f64,
     #[serde(default)]
     pub results_tag: String,
     /// Resolved variant name ("baseline" when no overlay is applied).
@@ -730,6 +744,15 @@ fn d_cyclical_symbols() -> String {
 }
 fn d_defensive_symbols() -> String {
     "XLP,XLU".into()
+}
+fn d_sma_distance() -> f64 {
+    0.01
+}
+fn d_sma_side() -> String {
+    "any".into()
+}
+fn d_true() -> bool {
+    true
 }
 
 impl Config {
