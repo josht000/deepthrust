@@ -330,6 +330,30 @@ pub struct Config {
     pub cyclical_symbols: String,
     #[serde(default = "d_defensive_symbols")]
     pub defensive_symbols: String,
+    #[serde(default = "d_hurst_window")]
+    pub hurst_window: usize,
+    #[serde(default = "d_hurst_max_horizon")]
+    pub hurst_max_horizon: usize,
+    #[serde(default = "d_hurst_boot")]
+    pub hurst_boot: usize,
+    #[serde(default = "d_hurst_block")]
+    pub hurst_block: usize,
+    #[serde(default = "d_hurst_ci")]
+    pub hurst_ci: f64,
+    #[serde(default = "d_hurst_gate")]
+    pub hurst_gate: String,
+    #[serde(default = "d_hurst_band_lo")]
+    pub hurst_band_lo: f64,
+    #[serde(default = "d_hurst_band_hi")]
+    pub hurst_band_hi: f64,
+    #[serde(default = "d_hurst_neutral")]
+    pub hurst_neutral: String,
+    #[serde(default = "d_regime_exit")]
+    pub regime_exit: bool,
+    #[serde(default = "d_donchian_skip_winner")]
+    pub donchian_skip_winner: bool,
+    #[serde(default)]
+    pub mr_stop_atr: f64,
     #[serde(default)]
     pub results_tag: String,
     /// Resolved variant name ("baseline" when no overlay is applied).
@@ -727,6 +751,39 @@ fn d_adf_lags() -> usize {
 }
 fn d_cyclical_symbols() -> String {
     "XLB,XLI".into()
+}
+fn d_hurst_window() -> usize {
+    504
+}
+fn d_hurst_max_horizon() -> usize {
+    64
+}
+fn d_hurst_boot() -> usize {
+    200
+}
+fn d_hurst_block() -> usize {
+    21
+}
+fn d_hurst_ci() -> f64 {
+    0.95
+}
+fn d_hurst_gate() -> String {
+    "ci".into()
+}
+fn d_hurst_band_lo() -> f64 {
+    0.45
+}
+fn d_hurst_band_hi() -> f64 {
+    0.55
+}
+fn d_hurst_neutral() -> String {
+    "cash".into()
+}
+fn d_regime_exit() -> bool {
+    true
+}
+fn d_donchian_skip_winner() -> bool {
+    true
 }
 fn d_defensive_symbols() -> String {
     "XLP,XLU".into()

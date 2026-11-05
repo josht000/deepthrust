@@ -1,0 +1,113 @@
+# S064 Hurst Exponent Regime Switch - ETF total-return daily bars.
+# Weekly Hurst gate (Chan variance term structure): mean-reverting -> S001 RSI(2)
+# mean reversion, trending -> S036 Donchian 20/10 breakout, indecisive -> cash.
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY
+benchmark: SPY
+start_date: "2005-01-01"
+min_history: 250
+
+# Hurst gate
+hurst_window: 504         # trailing daily log returns for the H estimate
+hurst_max_horizon: 64     # variance horizons 1,2,4,...,64 days
+hurst_boot: 200           # block-bootstrap resamples for the H CI
+hurst_block: 21           # moving-block length (catalog does not specify)
+hurst_ci: 0.95            # CI level for the excludes-0.5 gate
+hurst_gate: ci            # ci | bands | static (static = instrument-level, full-sample)
+hurst_band_lo: 0.45       # bands gate: H < lo -> mean-reverting
+hurst_band_hi: 0.55       # bands gate: H > hi -> trending
+hurst_neutral: cash       # cash | hold (indecisive eval: cash vs keep prior label)
+rebalance: weekly         # regime re-evaluation cadence (weekly|monthly|daily)
+regime_exit: true         # regime switches flatten open positions (false = ride)
+
+# mean-reverting leg = S001 baseline
+rsi_len: 2
+rsi_threshold: 10
+gate: sma200              # sma200 | ret21 | none
+sma_window: 200
+gate_ret_window: 21
+exit_mode: sma5           # sma5 | rsi
+exit_sma: 5
+exit_rsi: 70
+sizing: single            # single | pyramid3
+add_rsi: 5
+max_units: 3
+mr_stop_atr: 0.0          # MR-leg ATR(14) disaster stop multiple; 0 = off (S001 has none)
+
+# trending leg = S036 System 1 (Donchian 20/10, last-winner skip, 2N stop)
+entry_window: 20
+exit_extreme_window: 10
+donchian_skip_winner: true
+disaster_stop_atr: 2.0    # D-leg N-stop multiple, N = ATR(atr_len), evaluated on close
+atr_len: 20
+
+cost_bps_per_side: 5.0    # liquid-ETF leg of the catalog cost ladder
+fills: next_open,close    # next_open primary; close = same-close upper bound
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 1
+
+# Named variants: deepthrust --strategy s064_hurst_regime --variant NAME[,NAME2]
+variants:
+  # registered catalog parameter_variants
+  bands: {hurst_gate: bands}
+  bands_40_60: {hurst_gate: bands, hurst_band_lo: 0.40, hurst_band_hi: 0.60}
+  bands_48_52: {hurst_gate: bands, hurst_band_lo: 0.48, hurst_band_hi: 0.52}
+  static: {hurst_gate: static}
+  neutral_hold: {hurst_neutral: hold}
+  ride: {regime_exit: false}
+  neutral_hold_ride: {hurst_neutral: hold, regime_exit: false}
+  monthly: {rebalance: monthly}
+  daily: {rebalance: daily}
+  # hurst estimator levers
+  win252: {hurst_window: 252}
+  win756: {hurst_window: 756}
+  win1008: {hurst_window: 1008}
+  horizon32: {hurst_max_horizon: 32}
+  horizon128: {hurst_max_horizon: 128}
+  boot100: {hurst_boot: 100}
+  boot400: {hurst_boot: 400}
+  block5: {hurst_block: 5}
+  block63: {hurst_block: 63}
+  ci90: {hurst_ci: 0.90}
+  ci80: {hurst_ci: 0.80}
+  ci99: {hurst_ci: 0.99}
+  # MR leg (S001) levers
+  rsi5: {rsi_threshold: 5}
+  rsi15: {rsi_threshold: 15}
+  gate21: {gate: ret21}
+  gate_none: {gate: none}
+  exit70: {exit_mode: rsi, exit_rsi: 70}
+  exit_sma10: {exit_sma: 10}
+  exit_sma3: {exit_sma: 3}
+  pyramid3: {sizing: pyramid3, add_rsi: 5, max_units: 3}
+  mr_stop3: {mr_stop_atr: 3.0}
+  # D leg (S036) levers
+  nofilter: {donchian_skip_winner: false}
+  dch10: {entry_window: 10}
+  dch40: {entry_window: 40}
+  dch55_s2: {entry_window: 55, exit_extreme_window: 20, donchian_skip_winner: false}
+  exit5: {exit_extreme_window: 5}
+  exit20: {exit_extreme_window: 20}
+  stop_off: {disaster_stop_atr: 0.0}
+  stop1n: {disaster_stop_atr: 1.0}
+  stop3n: {disaster_stop_atr: 3.0}
+  # universes
+  spy_only: {symbols: SPY}
+  qqq_only: {symbols: QQQ, benchmark: QQQ}
+  index4: {symbols: "SPY,QQQ,IWM,DIA"}
+  sectors11: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY"}
+  multi_asset: {symbols: "SPY,QQQ,IWM,TLT,IEF,GLD,USO,UUP,GSG"}
+  # costs
+  cost05: {cost_bps_per_side: 0.5}
+  cost1: {cost_bps_per_side: 1.0}
+  cost2: {cost_bps_per_side: 2.0}
+  cost10: {cost_bps_per_side: 10.0}
+  # combinations
+  bands_nofilter: {hurst_gate: bands, donchian_skip_winner: false}
+  bands_dch55: {hurst_gate: bands, entry_window: 55, exit_extreme_window: 20, donchian_skip_winner: false}
+  win252_bands: {hurst_window: 252, hurst_gate: bands}
+  win252_neutral: {hurst_window: 252, hurst_neutral: hold}

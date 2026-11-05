@@ -696,6 +696,7 @@ enum Family7Kind {
     CopperGoldTilt,
     VolCompression,
     CointegratedPairs,
+    HurstRegime,
 }
 
 impl StrategyDefinition for Family7Definition {
@@ -714,6 +715,7 @@ impl StrategyDefinition for Family7Definition {
             Family7Kind::CopperGoldTilt => crate::family7::compute_s102_signals(panel, cfg),
             Family7Kind::VolCompression => crate::family7::compute_s065_signals(panel, cfg),
             Family7Kind::CointegratedPairs => crate::family7::compute_s071_signals(panel, cfg),
+            Family7Kind::HurstRegime => crate::family7::compute_s064_signals(panel, cfg),
         }
     }
 
@@ -732,6 +734,7 @@ impl StrategyDefinition for Family7Definition {
             }
             Family7Kind::VolCompression => crate::family7::s065_trades(panel, sig, cfg, fill),
             Family7Kind::CointegratedPairs => crate::family7::s071_trades(panel, sig, cfg, fill),
+            Family7Kind::HurstRegime => crate::family7::s064_trades(panel, sig, cfg, fill),
         }
     }
 }
@@ -935,6 +938,11 @@ static S071_STRATEGY: Family7Definition = Family7Definition {
     title: crate::family7::S071_TITLE,
     kind: Family7Kind::CointegratedPairs,
 };
+static S064_STRATEGY: Family7Definition = Family7Definition {
+    name: crate::family7::S064_NAME,
+    title: crate::family7::S064_TITLE,
+    kind: Family7Kind::HurstRegime,
+};
 static S052_STRATEGY: Family5Definition = Family5Definition {
     name: crate::family5::S052_NAME,
     title: crate::family5::S052_TITLE,
@@ -975,7 +983,7 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 41] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1007,6 +1015,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
     &S102_STRATEGY,
     &S065_STRATEGY,
     &S071_STRATEGY,
+    &S064_STRATEGY,
     &S052_STRATEGY,
     &S053_STRATEGY,
     &S054_STRATEGY,
@@ -2645,6 +2654,47 @@ impl<'a> Study<'a> {
                 format!("- Limitations: {limitations}"),
             ];
         }
+        if c.strategy == crate::family7::S064_NAME {
+            return vec![
+                format!(
+                    "- Universe: {}; ETF total-return bars; {} regime re-evaluation on a {}-return window (variance horizons 1-{} days, {} block-bootstrap resamples of length {} for the CI).",
+                    s.panel.symbols.join(", "),
+                    c.rebalance,
+                    c.hurst_window,
+                    c.hurst_max_horizon,
+                    c.hurst_boot,
+                    c.hurst_block
+                ),
+                format!(
+                    "- Rule: Hurst gate {} (indecisive -> {}); mean-reverting -> S001 RSI({})<{} with {} gate and {} exit; trending -> Donchian {}/{} breakout{}; {}.",
+                    c.hurst_gate,
+                    c.hurst_neutral,
+                    c.rsi_len,
+                    c.rsi_threshold,
+                    c.gate,
+                    c.exit_mode,
+                    c.entry_window,
+                    c.exit_extreme_window,
+                    if c.donchian_skip_winner {
+                        " with the last-winner skip filter"
+                    } else {
+                        ""
+                    },
+                    if c.regime_exit {
+                        "regime switches flatten open positions"
+                    } else {
+                        "positions ride through regime switches"
+                    }
+                ),
+                format!(
+                    "- Fill: {}; {:.0} bps/side. The Donchian 2N ATR stop is evaluated on the close (daily-bar approximation of the intraday stop).",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- Baselines: equal-weight ETF universe, SMA200 timing, dev-vol-matched, and exposure-matched random timing.".into(),
+                "- Limitations: the catalog does not specify the bootstrap block length or CI level (21-session moving blocks, 95% CI used); moc_proxy needs minute bars; the demoted entry expects mostly-cash output on the 504-day window.".into(),
+            ];
+        }
         let rule = if c.strategy == S006_NAME {
             let stop = if c.disaster_stop_atr == 0.0 {
                 "No stop is applied in this run.".to_string()
@@ -2740,6 +2790,8 @@ impl<'a> Study<'a> {
             format!("rv{}/{}<{:.2} donchian{} x{}", c.rv_short, c.rv_long, c.rv_ratio, c.entry_window, c.exit_extreme_window)
         } else if c.strategy == crate::family7::S071_NAME {
             format!("adf<{:.2} z>{:.1} out {:.2}/{:.2}", c.adf_max_p, c.z_entry, c.z_exit_short, c.z_exit_long)
+        } else if c.strategy == crate::family7::S064_NAME {
+            format!("hurst{} {} {}/{} rsi{}<{}/sma{} dch{}/{}", c.hurst_window, c.rebalance, c.hurst_gate, c.hurst_neutral, c.rsi_len, c.rsi_threshold, c.exit_sma, c.entry_window, c.exit_extreme_window)
         } else if c.strategy == S021_NAME {
             format!(
                 "overnight {} filter={}",
