@@ -2827,3 +2827,19 @@ pub fn s038_trades(
     });
     Ok(trades)
 }
+
+pub const S048_NAME: &str = "s048_validea_sector_mom";
+pub const S048_TITLE: &str = "S048 Validea Short-Term Sector Momentum";
+
+pub fn compute_s048_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    signals::compute_s042_signals(panel, cfg)
+}
+
+pub fn s048_trades(
+    panel: &Panel,
+    sig: &Signals,
+    cfg: &Config,
+    fill: &str,
+) -> Result<Vec<Trade>, String> {
+    signals::s042_trades(panel, sig, cfg, fill)
+}

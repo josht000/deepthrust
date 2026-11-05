@@ -1,0 +1,64 @@
+data_dir:  C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: XLB,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+min_history: 252
+signal: blend13
+breadth: 5
+rebalance: weekly
+delisting_return: -0.30
+cost_bps_per_side: 5.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 5
+
+variants:
+  monthly: {rebalance: monthly}
+  mom12: {signal: mom12}
+  rankavg: {signal: rankavg}
+  top1: {breadth: 1, book_slots: 1}
+  top2: {breadth: 2, book_slots: 2}
+  top3: {breadth: 3, book_slots: 3}
+  top4: {breadth: 4, book_slots: 4}
+  top7: {breadth: 7, book_slots: 7}
+  top9: {breadth: 9, book_slots: 9}
+  monthly_top1: {rebalance: monthly, breadth: 1, book_slots: 1}
+  monthly_top2: {rebalance: monthly, breadth: 2, book_slots: 2}
+  monthly_top3: {rebalance: monthly, breadth: 3, book_slots: 3}
+  monthly_top4: {rebalance: monthly, breadth: 4, book_slots: 4}
+  monthly_top7: {rebalance: monthly, breadth: 7, book_slots: 7}
+  monthly_top9: {rebalance: monthly, breadth: 9, book_slots: 9}
+  mom12_top1: {signal: mom12, breadth: 1, book_slots: 1}
+  mom12_top2: {signal: mom12, breadth: 2, book_slots: 2}
+  mom12_top3: {signal: mom12, breadth: 3, book_slots: 3}
+  mom12_top4: {signal: mom12, breadth: 4, book_slots: 4}
+  mom12_top7: {signal: mom12, breadth: 7, book_slots: 7}
+  mom12_top9: {signal: mom12, breadth: 9, book_slots: 9}
+  rankavg_top1: {signal: rankavg, breadth: 1, book_slots: 1}
+  rankavg_top2: {signal: rankavg, breadth: 2, book_slots: 2}
+  rankavg_top3: {signal: rankavg, breadth: 3, book_slots: 3}
+  rankavg_top4: {signal: rankavg, breadth: 4, book_slots: 4}
+  rankavg_top7: {signal: rankavg, breadth: 7, book_slots: 7}
+  rankavg_top9: {signal: rankavg, breadth: 9, book_slots: 9}
+  mom12_monthly: {signal: mom12, rebalance: monthly}
+  mom12_monthly_top1: {signal: mom12, rebalance: monthly, breadth: 1, book_slots: 1}
+  mom12_monthly_top2: {signal: mom12, rebalance: monthly, breadth: 2, book_slots: 2}
+  mom12_monthly_top3: {signal: mom12, rebalance: monthly, breadth: 3, book_slots: 3}
+  mom12_monthly_top4: {signal: mom12, rebalance: monthly, breadth: 4, book_slots: 4}
+  mom12_monthly_top7: {signal: mom12, rebalance: monthly, breadth: 7, book_slots: 7}
+  mom12_monthly_top9: {signal: mom12, rebalance: monthly, breadth: 9, book_slots: 9}
+  rankavg_monthly: {signal: rankavg, rebalance: monthly}
+  rankavg_monthly_top1: {signal: rankavg, rebalance: monthly, breadth: 1, book_slots: 1}
+  rankavg_monthly_top2: {signal: rankavg, rebalance: monthly, breadth: 2, book_slots: 2}
+  rankavg_monthly_top3: {signal: rankavg, rebalance: monthly, breadth: 3, book_slots: 3}
+  rankavg_monthly_top4: {signal: rankavg, rebalance: monthly, breadth: 4, book_slots: 4}
+  rankavg_monthly_top7: {signal: rankavg, rebalance: monthly, breadth: 7, book_slots: 7}
+  rankavg_monthly_top9: {signal: rankavg, rebalance: monthly, breadth: 9, book_slots: 9}
+  sectors11: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY"}
+  sectors11_monthly: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", rebalance: monthly}
+  cost10: {cost_bps_per_side: 10.0}
