@@ -1,0 +1,82 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: GLD,SLV
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2008-01-01"
+pairs: "GLD:SLV"
+signal_mode: z
+leg_mode: both
+hedge_mode: ols
+formation_window: 252
+z_window: 60
+z_entry: 2.0
+z_exit_short: 0.0
+z_exit_long: 0.0
+z_stop: 3.0
+max_hold: 0
+rsi_len: 5
+rsi_threshold: 75.0
+exit_rsi: 50.0
+borrow_bps_annual: 50.0
+cost_bps_per_side: 1.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 2
+
+variants:
+  z15: {z_entry: 1.5}
+  z25: {z_entry: 2.5}
+  zwin20: {z_window: 20}
+  zwin30: {z_window: 30}
+  zwin120: {z_window: 120}
+  hedge60: {formation_window: 60}
+  hedge126: {formation_window: 126}
+  hedge504: {formation_window: 504}
+  hedge_ratio: {hedge_mode: ratio}
+  exit_avellaneda: {z_exit_short: 0.75, z_exit_long: -0.5}
+  exit_sym: {z_exit_short: 0.5, z_exit_long: -0.5}
+  exit_tight: {z_exit_short: 0.25, z_exit_long: -0.25}
+  exit_wide: {z_exit_short: 1.0, z_exit_long: -1.0}
+  stop25: {z_stop: 2.5}
+  stop40: {z_stop: 4.0}
+  stop50: {z_stop: 5.0}
+  nostop: {z_stop: 0.0}
+  hold30: {max_hold: 30}
+  hold60: {max_hold: 60}
+  hold120: {max_hold: 120}
+  leg_short_spread: {leg_mode: short_spread}
+  leg_long_spread: {leg_mode: long_spread}
+  borrow0: {borrow_bps_annual: 0.0}
+  borrow300: {borrow_bps_annual: 300.0}
+  borrow1000: {borrow_bps_annual: 1000.0}
+  cost05: {cost_bps_per_side: 0.5}
+  cost2: {cost_bps_per_side: 2.0}
+  cost5: {cost_bps_per_side: 5.0}
+  qs_rsi: {signal_mode: qs_rsi}
+  qs_rsi60: {signal_mode: qs_rsi, rsi_threshold: 60.0}
+  qs_rsi80: {signal_mode: qs_rsi, rsi_threshold: 80.0}
+  qs_rsi_out40: {signal_mode: qs_rsi, exit_rsi: 40.0}
+  qs_rsi10: {signal_mode: qs_rsi, rsi_len: 10}
+  z15_zwin30: {z_entry: 1.5, z_window: 30}
+  z25_zwin120: {z_entry: 2.5, z_window: 120}
+  hedge126_z15: {formation_window: 126, z_entry: 1.5}
+  ratio_z15: {hedge_mode: ratio, z_entry: 1.5}
+  nostop_z15: {z_stop: 0.0, z_entry: 1.5}
+  pslv:
+    pairs: "GLD:PSLV"
+    symbols: "GLD,PSLV"
+    sources:
+      - {name: etf, data_dir: C:\data\trading\trading_framework\data\cache\etf_tr, data_suffix: .parquet, symbols: "GLD"}
+      - {name: stock, data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr, data_suffix: .parquet, symbols: "PSLV"}
+  gldm:
+    pairs: "GLDM:SLV"
+    symbols: "GLDM,SLV"
+    sources:
+      - {name: stock, data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr, data_suffix: .parquet, symbols: "GLDM"}
+      - {name: etf, data_dir: C:\data\trading\trading_framework\data\cache\etf_tr, data_suffix: .parquet, symbols: "SLV"}
+  close_only: {fills: close}

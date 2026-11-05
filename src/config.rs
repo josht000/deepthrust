@@ -284,6 +284,10 @@ pub struct Config {
     pub z_exit_long: f64,
     #[serde(default = "d_adf_max_p")]
     pub adf_max_p: f64,
+    #[serde(default = "d_z_stop")]
+    pub z_stop: f64,
+    #[serde(default = "d_hedge_mode")]
+    pub hedge_mode: String,
     #[serde(default = "d_overlay_mode")]
     pub overlay_mode: String,
     #[serde(default = "d_dd_threshold")]
@@ -664,6 +668,12 @@ fn d_z_exit_long() -> f64 {
 }
 fn d_adf_max_p() -> f64 {
     0.05
+}
+fn d_z_stop() -> f64 {
+    3.0
+}
+fn d_hedge_mode() -> String {
+    "ols".into()
 }
 fn d_overlay_mode() -> String {
     "none".into()

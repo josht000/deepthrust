@@ -19,6 +19,8 @@ pub const S065_NAME: &str = "s065_vol_compression";
 pub const S065_TITLE: &str = "S065 Realized-Vol Compression Breakout";
 pub const S071_NAME: &str = "s071_cointegrated_pairs";
 pub const S071_TITLE: &str = "S071 Cointegrated ETF Pair Z-Score";
+pub const S072_NAME: &str = "s072_gold_silver_ratio";
+pub const S072_TITLE: &str = "S072 Gold/Silver Ratio Mean Reversion";
 
 fn symbol_index(panel: &Panel, name: &str) -> Result<usize, String> {
     panel
@@ -931,4 +933,277 @@ fn push_pair_legs(
             borrow_cost_per_bar: if w < 0.0 { borrow_per_bar } else { 0.0 },
         });
     }
+}
+
+// ---------------- S072 gold/silver ratio mean reversion ----------------
+
+/// Trailing OLS slope of log_a on log_b (regression hedge ratio);
+/// `hedge_mode` "ratio" forces a fixed 1.0 hedge.
+fn rolling_hedge(log_a: &[f64], log_b: &[f64], t: usize, window: usize, mode: &str) -> f64 {
+    if mode == "ratio" {
+        return 1.0;
+    }
+    if t + 1 < window {
+        return f64::NAN;
+    }
+    let x = &log_b[t + 1 - window..=t];
+    let y = &log_a[t + 1 - window..=t];
+    if x.iter().chain(y.iter()).any(|v| !v.is_finite()) {
+        return f64::NAN;
+    }
+    let n = window as f64;
+    let mx = x.iter().sum::<f64>() / n;
+    let my = y.iter().sum::<f64>() / n;
+    let (mut sxy, mut sxx) = (0.0, 0.0);
+    for i in 0..x.len() {
+        sxy += (x[i] - mx) * (y[i] - my);
+        sxx += (x[i] - mx) * (x[i] - mx);
+    }
+    if sxx <= 0.0 {
+        f64::NAN
+    } else {
+        sxy / sxx
+    }
+}
+
+/// Z-score of the hedged spread residual over the trailing `window`.
+fn spread_z(log_a: &[f64], log_b: &[f64], hedge: f64, t: usize, window: usize) -> f64 {
+    if !hedge.is_finite() || t + 1 < window {
+        return f64::NAN;
+    }
+    let (mut sum, mut sq) = (0.0, 0.0);
+    for u in t + 1 - window..=t {
+        let r = log_a[u] - hedge * log_b[u];
+        if !r.is_finite() {
+            return f64::NAN;
+        }
+        sum += r;
+        sq += r * r;
+    }
+    let n = window as f64;
+    let mean = sum / n;
+    let var = (sq - sum * mean) / (n - 1.0);
+    if var <= 0.0 {
+        return f64::NAN;
+    }
+    (log_a[t] - hedge * log_b[t] - mean) / var.sqrt()
+}
+
+pub fn compute_s072_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let pairs: Vec<(String, String)> = split_csv(&cfg.pairs)
+        .into_iter()
+        .filter_map(|entry| {
+            let mut parts = entry.split(':');
+            Some((parts.next()?.to_string(), parts.next()?.to_string()))
+        })
+        .collect();
+    if pairs.is_empty() {
+        return Err("S072 requires a `pairs` list like 'GLD:SLV'".into());
+    }
+    let n = panel.dates.len();
+    let mut result = blank_signals(panel, "spread_z");
+    for j in 0..panel.symbols.len() {
+        for t in 0..n {
+            result.tradable[j][t] = panel.close[j][t].is_finite();
+            result.pool[j][t] = result.tradable[j][t];
+        }
+    }
+    for pair in &pairs {
+        let a = symbol_index(panel, &pair.0)?;
+        let b = symbol_index(panel, &pair.1)?;
+        let log_a: Vec<f64> = panel.close[a]
+            .iter()
+            .map(|v| if v.is_finite() && *v > 0.0 { v.ln() } else { f64::NAN })
+            .collect();
+        let log_b: Vec<f64> = panel.close[b]
+            .iter()
+            .map(|v| if v.is_finite() && *v > 0.0 { v.ln() } else { f64::NAN })
+            .collect();
+        let mut hedge = 1.0;
+        for t in 0..n {
+            let h = rolling_hedge(&log_a, &log_b, t, cfg.formation_window, &cfg.hedge_mode);
+            if h.is_finite() {
+                hedge = h;
+            }
+            let z = spread_z(&log_a, &log_b, hedge, t, cfg.z_window);
+            result.rsi[a][t] = z;
+            result.rsi[b][t] = z;
+        }
+    }
+    Ok(result)
+}
+
+/// Z-band mean-reversion pair trades on the gold/silver ratio; two weighted legs
+/// per position, same accounting as S071. `signal_mode` "qs_rsi" reproduces the
+/// published Quantified Strategies overlay (RSI(rsi_len) > rsi_threshold -> long
+/// leg A / short leg B, exit RSI < exit_rsi, equal-dollar legs).
+pub fn s072_trades(panel: &Panel, _sig: &Signals, cfg: &Config, fill: &str) -> Result<Vec<Trade>, String> {
+    if !matches!(fill, "close" | "next_open") {
+        return Err(format!("S072 does not support fill {fill:?}"));
+    }
+    if !matches!(cfg.hedge_mode.as_str(), "ols" | "ratio") {
+        return Err(format!("S072 hedge_mode must be ols|ratio, got {}", cfg.hedge_mode));
+    }
+    if !matches!(cfg.leg_mode.as_str(), "both" | "long_spread" | "short_spread") {
+        return Err(format!(
+            "S072 leg_mode must be both|long_spread|short_spread, got {}",
+            cfg.leg_mode
+        ));
+    }
+    if !matches!(cfg.signal_mode.as_str(), "z" | "qs_rsi") {
+        return Err(format!("S072 signal_mode must be z|qs_rsi, got {}", cfg.signal_mode));
+    }
+    let pairs: Vec<(String, String)> = split_csv(&cfg.pairs)
+        .into_iter()
+        .filter_map(|entry| {
+            let mut parts = entry.split(':');
+            Some((parts.next()?.to_string(), parts.next()?.to_string()))
+        })
+        .collect();
+    let n = panel.dates.len();
+    let borrow_per_bar = cfg.borrow_bps_annual / 10_000.0 / cfg.periods_per_year as f64;
+    let fill_px = |j: usize, row: usize| -> f64 {
+        if fill == "next_open" {
+            panel.open[j][row]
+        } else {
+            panel.close[j][row]
+        }
+    };
+    let mut trades = Vec::new();
+    for pair in &pairs {
+        let a = symbol_index(panel, &pair.0)?;
+        let b = symbol_index(panel, &pair.1)?;
+        let rsi_a = if cfg.signal_mode == "qs_rsi" {
+            wilder_rsi(&panel.close[a], cfg.rsi_len)?
+        } else {
+            Vec::new()
+        };
+        let mut state = PairState {
+            a,
+            b,
+            active: true,
+            dir: 0.0,
+            hedge: 1.0,
+            entry_px_a: 0.0,
+            entry_px_b: 0.0,
+            sig_day: 0,
+            entry_idx: 0,
+        };
+        let log_a: Vec<f64> = panel.close[a]
+            .iter()
+            .map(|v| if v.is_finite() && *v > 0.0 { v.ln() } else { f64::NAN })
+            .collect();
+        let log_b: Vec<f64> = panel.close[b]
+            .iter()
+            .map(|v| if v.is_finite() && *v > 0.0 { v.ln() } else { f64::NAN })
+            .collect();
+        let mut cur_hedge = 1.0;
+        for t in 0..n {
+            let h = rolling_hedge(&log_a, &log_b, t, cfg.formation_window, &cfg.hedge_mode);
+            if h.is_finite() {
+                cur_hedge = h;
+            }
+            let z = spread_z(&log_a, &log_b, cur_hedge, t, cfg.z_window);
+            if state.dir == 0.0 {
+                let dir = if cfg.signal_mode == "qs_rsi" {
+                    if rsi_a[t].is_finite() && rsi_a[t] > cfg.rsi_threshold {
+                        1.0
+                    } else {
+                        continue;
+                    }
+                } else {
+                    if !z.is_finite() {
+                        continue;
+                    }
+                    if z > cfg.z_entry && cfg.leg_mode != "long_spread" {
+                        -1.0
+                    } else if z < -cfg.z_entry && cfg.leg_mode != "short_spread" {
+                        1.0
+                    } else {
+                        continue;
+                    }
+                };
+                let fill_row = if fill == "next_open" { t + 1 } else { t };
+                if fill_row >= n {
+                    continue;
+                }
+                let px_a = fill_px(a, fill_row);
+                let px_b = fill_px(b, fill_row);
+                if !px_a.is_finite() || !px_b.is_finite() || px_a <= 0.0 || px_b <= 0.0 {
+                    continue;
+                }
+                state.dir = dir;
+                // the published QS overlay is equal-dollar; the z-spec uses the
+                // rolling regression hedge frozen at entry for position weights
+                state.hedge = if cfg.signal_mode == "qs_rsi" {
+                    1.0
+                } else {
+                    cur_hedge.max(0.05)
+                };
+                state.entry_px_a = px_a;
+                state.entry_px_b = px_b;
+                state.sig_day = t;
+                state.entry_idx = fill_row;
+            } else {
+                let reason = if cfg.signal_mode == "qs_rsi" {
+                    if rsi_a[t].is_finite() && rsi_a[t] < cfg.exit_rsi {
+                        Some("rsi_exit")
+                    } else {
+                        None
+                    }
+                } else {
+                    if !z.is_finite() {
+                        continue;
+                    }
+                    if (state.dir < 0.0 && z < cfg.z_exit_short)
+                        || (state.dir > 0.0 && z > cfg.z_exit_long)
+                    {
+                        Some("z_exit")
+                    } else if cfg.z_stop > 0.0
+                        && ((state.dir < 0.0 && z > cfg.z_stop)
+                            || (state.dir > 0.0 && z < -cfg.z_stop))
+                    {
+                        Some("z_stop")
+                    } else {
+                        None
+                    }
+                };
+                let reason = if reason.is_none()
+                    && cfg.max_hold > 0
+                    && t - state.entry_idx >= cfg.max_hold
+                {
+                    Some("time")
+                } else {
+                    reason
+                };
+                if let Some(reason) = reason {
+                    let fill_row = if fill == "next_open" { t + 1 } else { t };
+                    if fill_row >= n {
+                        continue;
+                    }
+                    let px_a = fill_px(a, fill_row);
+                    let px_b = fill_px(b, fill_row);
+                    push_pair_legs(&mut trades, panel, cfg, &state, px_a, px_b, fill_row, reason, borrow_per_bar);
+                    state.dir = 0.0;
+                }
+            }
+        }
+        if state.dir != 0.0 {
+            push_pair_legs(
+                &mut trades,
+                panel,
+                cfg,
+                &state,
+                panel.close[a][n - 1],
+                panel.close[b][n - 1],
+                n - 1,
+                "censored",
+                borrow_per_bar,
+            );
+        }
+    }
+    trades.sort_by(|a, b| {
+        (a.entry_idx, &panel.symbols[a.sym_idx]).cmp(&(b.entry_idx, &panel.symbols[b.sym_idx]))
+    });
+    Ok(trades)
 }

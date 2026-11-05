@@ -696,6 +696,7 @@ enum Family7Kind {
     CopperGoldTilt,
     VolCompression,
     CointegratedPairs,
+    GoldSilverRatio,
 }
 
 impl StrategyDefinition for Family7Definition {
@@ -714,6 +715,7 @@ impl StrategyDefinition for Family7Definition {
             Family7Kind::CopperGoldTilt => crate::family7::compute_s102_signals(panel, cfg),
             Family7Kind::VolCompression => crate::family7::compute_s065_signals(panel, cfg),
             Family7Kind::CointegratedPairs => crate::family7::compute_s071_signals(panel, cfg),
+            Family7Kind::GoldSilverRatio => crate::family7::compute_s072_signals(panel, cfg),
         }
     }
 
@@ -732,6 +734,7 @@ impl StrategyDefinition for Family7Definition {
             }
             Family7Kind::VolCompression => crate::family7::s065_trades(panel, sig, cfg, fill),
             Family7Kind::CointegratedPairs => crate::family7::s071_trades(panel, sig, cfg, fill),
+            Family7Kind::GoldSilverRatio => crate::family7::s072_trades(panel, sig, cfg, fill),
         }
     }
 }
@@ -935,6 +938,11 @@ static S071_STRATEGY: Family7Definition = Family7Definition {
     title: crate::family7::S071_TITLE,
     kind: Family7Kind::CointegratedPairs,
 };
+static S072_STRATEGY: Family7Definition = Family7Definition {
+    name: crate::family7::S072_NAME,
+    title: crate::family7::S072_TITLE,
+    kind: Family7Kind::GoldSilverRatio,
+};
 static S052_STRATEGY: Family5Definition = Family5Definition {
     name: crate::family5::S052_NAME,
     title: crate::family5::S052_TITLE,
@@ -975,7 +983,7 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 41] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1007,6 +1015,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
     &S102_STRATEGY,
     &S065_STRATEGY,
     &S071_STRATEGY,
+    &S072_STRATEGY,
     &S052_STRATEGY,
     &S053_STRATEGY,
     &S054_STRATEGY,
@@ -2368,6 +2377,24 @@ impl<'a> Study<'a> {
                 "- Limitations: the pair list is a pre-registered subset, not the paper's full 30-pair appendix; ADF critical values are asymptotic MacKinnon approximations.".into(),
             ];
         }
+        if c.strategy == crate::family7::S072_NAME {
+            return vec![
+                format!("- Universe: pairs `{}` (GLD/SLV baseline); daily total-return bars.", c.pairs),
+                format!(
+                    "- Rule: {} spread z-score ({}d) of log A - hedge x log B, hedge from {} {}d regression; enter |z|>{:.1}, exit z {}/{} stop +/-{:.1}; signal_mode={} leg_mode={}.",
+                    if c.signal_mode == "qs_rsi" { format!("QS RSI({})", c.rsi_len) } else { "z".to_string() },
+                    c.z_window, c.hedge_mode, c.formation_window, c.z_entry, c.z_exit_short, c.z_exit_long, c.z_stop, c.signal_mode, c.leg_mode
+                ),
+                format!(
+                    "- Fill: {}; {} bps/side plus {:.0} bps/yr borrow on short legs.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side,
+                    c.borrow_bps_annual
+                ),
+                "- Baselines: GLD+SLV equal-weight trend plus random-pick exposure matching.".into(),
+                "- Limitations: demoted catalog entry run as a falsification exercise; the hedge regression is re-estimated daily, the ratio trends for months.".into(),
+            ];
+        }
         if c.strategy == crate::family5::S052_NAME {
             return vec![
                 format!(
@@ -2740,6 +2767,8 @@ impl<'a> Study<'a> {
             format!("rv{}/{}<{:.2} donchian{} x{}", c.rv_short, c.rv_long, c.rv_ratio, c.entry_window, c.exit_extreme_window)
         } else if c.strategy == crate::family7::S071_NAME {
             format!("adf<{:.2} z>{:.1} out {:.2}/{:.2}", c.adf_max_p, c.z_entry, c.z_exit_short, c.z_exit_long)
+        } else if c.strategy == crate::family7::S072_NAME {
+            format!("{} z>{:.1} out {:.2}/{:.2} stop{:.1} {}", c.hedge_mode, c.z_entry, c.z_exit_short, c.z_exit_long, c.z_stop, c.signal_mode)
         } else if c.strategy == S021_NAME {
             format!(
                 "overnight {} filter={}",

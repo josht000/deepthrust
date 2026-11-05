@@ -89,7 +89,7 @@
     - [S070 | QQQ Regime Switches with Real TQQQ History (public rules only)](#s070--qqq-regime-switches-with-real-tqqq-history-public-rules-only) — IMPLEMENTED
 - [Family 7 — Pairs and Spread Strategies](#family-7--pairs-and-spread-strategies)
     - [S071 | Cointegrated ETF Pair Z-Score](#s071--cointegrated-etf-pair-z-score) — IMPLEMENTED — DAILY, DELTA
-    - [S072 | Gold/Silver Ratio Mean Reversion](#s072--goldsilver-ratio-mean-reversion)
+    - [S072 | Gold/Silver Ratio Mean Reversion](#s072--goldsilver-ratio-mean-reversion) — IMPLEMENTED — DELTA
     - [S073 | GDX/GDXJ Miners Spread](#s073--gdxgdxj-miners-spread) — DROPPED
     - [S075 | Stock-vs-Sector Residual Reversal](#s075--stock-vs-sector-residual-reversal) — IMPLEMENTED — DAILY, DELTA
     - [S076 | Twin-ETF Convergence (SPY/IVV/VOO)](#s076--twin-etf-convergence-spyivvvoo) — DROPPED
@@ -1738,11 +1738,23 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: a few trades per year
 - provenance: research-hypothesis
 - status: demoted
+- rust_status: IMPLEMENTED
 - priority: P4
 - sources: [Quantified Strategies — Gold Silver chart ratio strategy](https://www.quantifiedstrategies.com/gold-silver-chart-ratio-strategy/)
 - notes: Quantified Strategies' exact parameters are members-only and its own verdict ('erratic equity curve, nowhere near a tradable strategy') already argues against it. The ratio trends for months (2018-2020 moved ~80 -> 125 -> 65), so +/-3 stops get hit. GLD and SLV are in daily_10years already. Run once with a regression hedge ratio and accept the null.
 - data_needs: GLD, SLV in daily_10years (D1)
 - review: DEMOTE | source UNVERIFIED (QS members-only)
+- implementation_results: Rust in `src/family7.rs` / `src/study.rs`, config `configs/s072_gold_silver_ratio.yaml`; 60d spread z of log GLD - hedge x log SLV, hedge from a daily rolling 252d OLS (DELTA: window unspecified in the spec), |z|>2 entries, z-crosses-0 exits, +/-3 z stop, two weighted legs, next_open primary. DELTAs: trend baseline is EW GLD+SLV (SPY plotted separately); `pslv`/`gldm` variants source legs from daily_10years_tr (absent from etf_tr; GLDM starts 2018-06); the QS page's published overlay (RSI(5)>75 -> long GLD/short SLV, exit RSI<50) runs as `signal_mode: qs_rsi` variants, not the baseline.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev/test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | -0.07 | +0.00 | -0.13 | -23% | -0.15 | +0.01 | -0.60 | -22% | 108 / 58 |
+  | z25_zwin120 | +0.08 | +0.11 | +0.23 | -9% | -0.09 | -0.09 | -0.48 | -14% | 86 / 46 |
+  | qs_rsi | +0.09 | +0.09 | +0.27 | -13% | -0.10 | -0.10 | -0.34 | -23% | 126 / 40 |
+
+  Dev-selected winner `z25_zwin120` (86 dev trades: insufficient evidence) DECAYED on test; 22/41 variants DECAYED, null accepted per the demotion note.
+
+  Reproduce: `cargo run --release -- --strategy s072_gold_silver_ratio --variant z25_zwin120,qs_rsi`
 
 ### S073 | GDX/GDXJ Miners Spread
 - family: pairs and spreads
