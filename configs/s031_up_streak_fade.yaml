@@ -1,0 +1,73 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_split
+data_suffix: .parquet
+symbols: "*"
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-01-01"
+direction: short
+streak_days: 5
+gate: sma200
+sma_window: 200
+gate_ret_window: 21
+exit_mode: sma_or_rsi
+exit_sma: 5
+rsi_len: 2
+exit_rsi: 10.0
+max_hold: 5
+fixed_hold: 5
+skip_days: 0
+stop_loss: 0.0
+take_profit: 0.0
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+borrow_bps_annual: 30.0
+delisting_return: -0.30
+cost_bps_per_side: 15.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 50
+
+variants:
+  borrow300: {borrow_bps_annual: 300.0}
+  borrow1000: {borrow_bps_annual: 1000.0}
+  long: {direction: long}
+  streak2: {streak_days: 2}
+  streak3: {streak_days: 3}
+  streak4: {streak_days: 4}
+  streak6: {streak_days: 6}
+  streak7: {streak_days: 7}
+  gate_none: {gate: none}
+  gate_ret21: {gate: ret21}
+  exit_sma: {exit_mode: sma}
+  exit_rsi: {exit_mode: rsi}
+  rsi5: {exit_rsi: 5.0}
+  rsi15: {exit_rsi: 15.0}
+  rsi20: {exit_rsi: 20.0}
+  fixed2: {exit_mode: fixed, fixed_hold: 2}
+  fixed3: {exit_mode: fixed, fixed_hold: 3}
+  hold3: {max_hold: 3}
+  hold7: {max_hold: 7}
+  hold10: {max_hold: 10}
+  skip1: {skip_days: 1}
+  skip2: {skip_days: 2}
+  stop5: {stop_loss: 0.05}
+  stop8: {stop_loss: 0.08}
+  stop10: {stop_loss: 0.10}
+  target5: {take_profit: 0.05}
+  target8: {take_profit: 0.08}
+  target10: {take_profit: 0.10}
+  u250: {universe_top_n: 250}
+  u1000: {universe_top_n: 1000}
+  cost10: {cost_bps_per_side: 10.0}
+  cost25: {cost_bps_per_side: 25.0}
+  n4_hold3: {streak_days: 4, max_hold: 3}
+  n6_rsi15: {streak_days: 6, exit_rsi: 15.0}
+  n6_borrow300: {streak_days: 6, borrow_bps_annual: 300.0}
+  skip1_borrow300: {skip_days: 1, borrow_bps_annual: 300.0}
