@@ -77,6 +77,8 @@ pub const S088_NAME: &str = crate::family9::S088_NAME;
 pub const S088_TITLE: &str = crate::family9::S088_TITLE;
 pub const S091_NAME: &str = crate::family9::S091_NAME;
 pub const S091_TITLE: &str = crate::family9::S091_TITLE;
+pub const S089_NAME: &str = crate::family9::S089_NAME;
+pub const S089_TITLE: &str = crate::family9::S089_TITLE;
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -218,6 +220,7 @@ struct TurtleDonchianStrategyDefinition;
 struct Nr7BreakoutStrategyDefinition;
 
 struct DarvasBoxStrategyDefinition;
+struct GoldenCrossSlopeStrategyDefinition;
 
 struct FirstPullbackStrategyDefinition;
 
@@ -398,6 +401,30 @@ impl StrategyDefinition for DarvasBoxStrategyDefinition {
         fill: &str,
     ) -> Result<Vec<Trade>, String> {
         crate::family4::s051_trades(panel, sig, cfg, fill)
+    }
+}
+
+impl StrategyDefinition for GoldenCrossSlopeStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S089_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S089_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family9::compute_s089_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family9::s089_trades(panel, sig, cfg, fill)
     }
 }
 
@@ -1190,7 +1217,8 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
 };
 static S088_STRATEGY: MacdVolumeCrossStrategyDefinition = MacdVolumeCrossStrategyDefinition;
 static S091_STRATEGY: DonchianChandelierStrategyDefinition = DonchianChandelierStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 51] = [
+static S089_STRATEGY: GoldenCrossSlopeStrategyDefinition = GoldenCrossSlopeStrategyDefinition;
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 52] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1242,6 +1270,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 51] = [
     &S063_STRATEGY,
     &S088_STRATEGY,
     &S091_STRATEGY,
+    &S089_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -1537,6 +1566,7 @@ impl<'a> Study<'a> {
                 | S051_NAME
                 | S088_NAME
                 | S091_NAME
+                | S089_NAME
                 | S104_NAME
         );
         if family4_universe {
@@ -3020,6 +3050,10 @@ impl<'a> Study<'a> {
                 "Enter long on a close above the 55-day Donchian high (short on the 55-day low when enabled); trail a chandelier stop at the highest high since entry minus 3 x ATR(22) and exit at the next open; an optional N-stop and channel exit are registered alternatives.",
                 "ETF total-return bars start in 2016; unit sizing is a fixed equity fraction per unit (no compounding equity, no pyramiding); the long-short scenario assumes borrow at the configured annual rate. This is a demoted trend-cluster control member, not a validated edge.",
             )),
+            "s089_golden_cross_slope" => Some((
+                "Buy the configured fast/slow SMA golden cross only while the slow SMA rises over the slope lookback; exit on the death cross or the configured alternate exit.",
+                "Catalog status is demoted (regime overlay); run standalone per task. The PIT liquidity-rank cache gates the stock sleeve; ETF bars are total-return and stock bars are split+dividend adjusted, all from 2016.",
+            )),
             _ => None,
         };
         if let Some((description, limitations)) = family4 {
@@ -3146,6 +3180,7 @@ impl<'a> Study<'a> {
                 | S048_NAME
                 | S050_NAME
                 | S051_NAME
+                | S089_NAME
         ) {
             title_for(&c.strategy).to_string()
         } else if c.strategy == S091_NAME {

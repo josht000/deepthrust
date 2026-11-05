@@ -1,0 +1,81 @@
+# S089 Golden Cross with Slope Filter (catalog status: demoted; run standalone per task)
+# baseline: SMA50 crosses above SMA200 AND SMA200(t) > SMA200(t-20); exit on the
+# SMA50<SMA200 death cross. Universe: index/sector ETFs + liquid (top-500 PIT) stocks.
+sources:
+  - name: stocks
+    data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+    data_suffix: .parquet
+    symbols: "*"
+    cost_bps_per_side: 15.0
+  - name: etfs
+    data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+    data_suffix: .parquet
+    symbols: SPY,QQQ,DIA,IWM,RSP,XLB,XLE,XLF,XLI,XLK,XLP,XLU,XLV,XLY,XLC,XLRE,XHB
+    cost_bps_per_side: 5.0
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-01-01"
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+cost_bps_per_side: 15.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+atr_len: 14
+disaster_stop_atr: 0.0
+s089_fast_window: 50
+s089_slow_window: 200
+s089_slope_lookback: 20
+s089_slope_min: 0.0
+s089_require_slope: true
+s089_fast_slope: 0
+s089_vol_mult: 0.0
+s089_vol_window: 20
+s089_exit_mode: cross
+s089_max_hold: 0
+
+variants:
+  noslope: {s089_require_slope: false}
+  slope10: {s089_slope_lookback: 10}
+  slope40: {s089_slope_lookback: 40}
+  slope60: {s089_slope_lookback: 60}
+  slope_min05: {s089_slope_min: 0.005}
+  slope_min1: {s089_slope_min: 0.01}
+  slope_min2: {s089_slope_min: 0.02}
+  f30: {s089_fast_window: 30}
+  f100: {s089_fast_window: 100}
+  s150: {s089_slow_window: 150}
+  s250: {s089_slow_window: 250}
+  f20s100: {s089_fast_window: 20, s089_slow_window: 100}
+  fslope10: {s089_fast_slope: 10}
+  fslope20: {s089_fast_slope: 20}
+  vol12: {s089_vol_mult: 1.2}
+  vol15: {s089_vol_mult: 1.5}
+  exit_sma200: {s089_exit_mode: sma_slow}
+  exit_slope: {s089_exit_mode: slope}
+  hold126: {s089_exit_mode: cross_or_time, s089_max_hold: 126}
+  hold252: {s089_exit_mode: cross_or_time, s089_max_hold: 252}
+  hold504: {s089_exit_mode: cross_or_time, s089_max_hold: 504}
+  time252: {s089_exit_mode: time, s089_max_hold: 252}
+  time504: {s089_exit_mode: time, s089_max_hold: 504}
+  stop2atr: {disaster_stop_atr: 2.0}
+  stop3atr: {disaster_stop_atr: 3.0}
+  u100: {universe_top_n: 100}
+  u250: {universe_top_n: 250}
+  u1000: {universe_top_n: 1000}
+  u1500: {universe_top_n: 1500}
+  close_fill: {fills: close}
+  h500: {min_history: 500}
+  noslope_hold252: {s089_require_slope: false, s089_exit_mode: cross_or_time, s089_max_hold: 252}
+  slope40_min1: {s089_slope_lookback: 40, s089_slope_min: 0.01}
+  f30_s250: {s089_fast_window: 30, s089_slow_window: 250}
+  vol15_slope40: {s089_vol_mult: 1.5, s089_slope_lookback: 40}
+  u1000_slope40: {universe_top_n: 1000, s089_slope_lookback: 40}
+  u1000_hold252: {universe_top_n: 1000, s089_exit_mode: cross_or_time, s089_max_hold: 252}
