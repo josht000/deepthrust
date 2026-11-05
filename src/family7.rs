@@ -8,7 +8,7 @@ use crate::data::Panel;
 use crate::engine::{last_valid_rows, Trade};
 use crate::family2::blank_signals;
 use crate::family4::{benchmark_returns, rebalance_days};
-use crate::signals::{rolling_extreme, rolling_mean, wilder_rsi, Signals};
+use crate::signals::{rolling_extreme, rolling_mean, wilder_atr, wilder_rsi, Signals};
 
 pub const S069_NAME: &str = "s069_tlt_crash_hedge";
 pub const S069_TITLE: &str = "S069 TLT Crash-Hedge Rotation";
@@ -24,6 +24,8 @@ pub const S072_NAME: &str = "s072_gold_silver_ratio";
 pub const S072_TITLE: &str = "S072 Gold/Silver Ratio Mean Reversion";
 pub const S063_NAME: &str = "s063_vix_ma_regime";
 pub const S063_TITLE: &str = "S063 VIX Moving-Average Crossover Regime";
+pub const S064_NAME: &str = "s064_hurst_regime";
+pub const S064_TITLE: &str = "S064 Hurst Exponent Regime Switch";
 
 fn symbol_index(panel: &Panel, name: &str) -> Result<usize, String> {
     panel
@@ -1354,4 +1356,397 @@ pub fn s063_trades(
         .as_ref()
         .ok_or_else(|| "S063 requires target weights".to_string())?;
     switch_trades(panel, weights, sig, cfg, fill)
+}
+// ---------------- S064 Hurst exponent regime switch ----------------
+
+const S064_CASH: i32 = 0;
+const S064_MR: i32 = 1;
+const S064_TREND: i32 = 2;
+
+fn log_ret_series(close: &[f64]) -> Vec<f64> {
+    let mut out = vec![f64::NAN; close.len()];
+    for t in 1..close.len() {
+        if close[t].is_finite() && close[t - 1].is_finite() && close[t] > 0.0 && close[t - 1] > 0.0
+        {
+            out[t] = (close[t] / close[t - 1]).ln();
+        }
+    }
+    out
+}
+
+/// Chan's variance term structure: Var(tau-period log returns) ~ tau^(2H);
+/// H = slope of log-variance vs log-horizon over powers of two, divided by 2.
+fn hurst_exponent(returns: &[f64], max_horizon: usize) -> f64 {
+    let w = returns.len();
+    if w < 9 {
+        return f64::NAN;
+    }
+    let mut prefix = vec![0.0; w + 1];
+    for (i, &r) in returns.iter().enumerate() {
+        prefix[i + 1] = prefix[i] + r;
+    }
+    let mut xs = Vec::new();
+    let mut ys = Vec::new();
+    let mut tau = 1usize;
+    while tau <= max_horizon && tau < w {
+        let n_tau = w - tau + 1;
+        let (mut sum, mut sum2) = (0.0, 0.0);
+        for i in 0..n_tau {
+            let r = prefix[i + tau] - prefix[i];
+            sum += r;
+            sum2 += r * r;
+        }
+        let mean = sum / n_tau as f64;
+        let var = sum2 / n_tau as f64 - mean * mean;
+        if var.is_finite() && var > 0.0 {
+            xs.push((tau as f64).ln());
+            ys.push(var.ln());
+        }
+        tau *= 2;
+    }
+    if xs.len() < 3 {
+        return f64::NAN;
+    }
+    crate::stats::ols(&ys, &xs).0 / 2.0
+}
+
+/// Point estimate plus a moving-block bootstrap CI of H (seeded per eval day).
+fn hurst_with_ci(returns: &[f64], cfg: &Config, seed: u64) -> (f64, f64, f64) {
+    let h = hurst_exponent(returns, cfg.hurst_max_horizon);
+    let w = returns.len();
+    let block = cfg.hurst_block.max(1);
+    if !h.is_finite() || cfg.hurst_boot == 0 || w <= block + 8 {
+        return (h, f64::NAN, f64::NAN);
+    }
+    let n_start = w - block + 1;
+    let mut rng = crate::stats::Rng::new(seed);
+    let mut boots = Vec::with_capacity(cfg.hurst_boot);
+    let mut sample = vec![0.0; w];
+    for _ in 0..cfg.hurst_boot {
+        let mut pos = 0usize;
+        while pos < w {
+            let start = rng.below(n_start);
+            let take = block.min(w - pos);
+            sample[pos..pos + take].copy_from_slice(&returns[start..start + take]);
+            pos += take;
+        }
+        let hb = hurst_exponent(&sample, cfg.hurst_max_horizon);
+        if hb.is_finite() {
+            boots.push(hb);
+        }
+    }
+    if boots.len() < 10 {
+        return (h, f64::NAN, f64::NAN);
+    }
+    boots.sort_by(f64::total_cmp);
+    let tail = (1.0 - cfg.hurst_ci) / 2.0;
+    (
+        h,
+        crate::stats::quantile_sorted(&boots, tail),
+        crate::stats::quantile_sorted(&boots, 1.0 - tail),
+    )
+}
+
+fn s064_classify(h: f64, lo: f64, hi: f64, cfg: &Config) -> i32 {
+    if cfg.hurst_gate == "bands" {
+        if h < cfg.hurst_band_lo {
+            S064_MR
+        } else if h > cfg.hurst_band_hi {
+            S064_TREND
+        } else {
+            S064_CASH
+        }
+    } else if hi.is_finite() && hi < 0.5 {
+        S064_MR
+    } else if lo.is_finite() && lo > 0.5 {
+        S064_TREND
+    } else {
+        S064_CASH
+    }
+}
+
+// S064: weekly Hurst gate; mean-reverting -> S001 RSI(2) leg, trending -> S036 Donchian leg.
+pub fn compute_s064_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if !matches!(cfg.hurst_gate.as_str(), "ci" | "bands" | "static") {
+        return Err(format!(
+            "S064 hurst_gate must be ci|bands|static, got {}",
+            cfg.hurst_gate
+        ));
+    }
+    if !matches!(cfg.hurst_neutral.as_str(), "cash" | "hold") {
+        return Err(format!(
+            "S064 hurst_neutral must be cash|hold, got {}",
+            cfg.hurst_neutral
+        ));
+    }
+    if cfg.hurst_window <= cfg.hurst_max_horizon {
+        return Err(format!(
+            "S064 needs hurst_window > hurst_max_horizon, got {}/{}",
+            cfg.hurst_window, cfg.hurst_max_horizon
+        ));
+    }
+    if cfg.mr_stop_atr > 0.0 && cfg.disaster_stop_atr <= 0.0 {
+        return Err("S064 mr_stop_atr requires disaster_stop_atr > 0".into());
+    }
+    if !matches!(cfg.gate.as_str(), "sma200" | "ret21" | "none") {
+        return Err(format!("S064 gate must be sma200|ret21|none, got {}", cfg.gate));
+    }
+    if !matches!(cfg.exit_mode.as_str(), "sma5" | "rsi") {
+        return Err(format!(
+            "S064 exit_mode must be sma5|rsi, got {}",
+            cfg.exit_mode
+        ));
+    }
+    let n = panel.dates.len();
+    let mut is_eval = vec![false; n];
+    for &day in &rebalance_days(panel, &cfg.rebalance)? {
+        is_eval[day] = true;
+    }
+    let mut result = blank_signals(panel, "hurst");
+    let mut add = vec![vec![false; n]; panel.symbols.len()];
+    let mut atr_stop = vec![vec![f64::NAN; n]; panel.symbols.len()];
+    let mut regime_csv = String::from("symbol,date,h,ci_lo,ci_hi,label\n");
+    let mut summary_csv =
+        String::from("symbol,evals,mr_weeks,trend_weeks,cash_weeks,persist_frac,label_autocorr,h_mean\n");
+    let label_name = |l: i32| match l {
+        S064_MR => "mr",
+        S064_TREND => "trend",
+        _ => "cash",
+    };
+    for j in 0..panel.symbols.len() {
+        let close = &panel.close[j];
+        let rsi = wilder_rsi(close, cfg.rsi_len)?;
+        let sma_gate = rolling_mean(close, cfg.sma_window);
+        let sma_exit = rolling_mean(close, cfg.exit_sma);
+        let hi_d = rolling_extreme(&panel.high[j], cfg.entry_window, false);
+        let lo_d = rolling_extreme(&panel.low[j], cfg.exit_extreme_window, true);
+        let atr_d = wilder_atr(&panel.high[j], &panel.low[j], close, cfg.atr_len);
+        let atr_mr = wilder_atr(&panel.high[j], &panel.low[j], close, 14);
+        let lr = log_ret_series(close);
+        let mut labels = vec![S064_CASH; n];
+        let mut eval_labels: Vec<i32> = Vec::new();
+        let (mut h_sum, mut h_cnt) = (0.0, 0usize);
+        if cfg.hurst_gate == "static" {
+            // instrument-level classification on the full sample, once per symbol
+            let all: Vec<f64> = lr.iter().copied().filter(|v| v.is_finite()).collect();
+            let (h, lo, hi) = hurst_with_ci(&all, cfg, cfg.seed.wrapping_add(j as u64 * 1_000_003));
+            let label = s064_classify(h, lo, hi, cfg);
+            for l in labels.iter_mut() {
+                *l = label;
+            }
+            for t in 0..n {
+                result.rsi[j][t] = h;
+            }
+            eval_labels.push(label);
+            if h.is_finite() {
+                h_sum += h;
+                h_cnt += 1;
+            }
+            if let Some(&last) = panel.dates.last() {
+                regime_csv += &format!(
+                    "{},{last},{h},{lo},{hi},{}\n",
+                    panel.symbols[j],
+                    label_name(label)
+                );
+            }
+        } else {
+            let mut label = S064_CASH;
+            let w = cfg.hurst_window;
+            for t in 0..n {
+                if is_eval[t] && t >= w {
+                    let win = &lr[t + 1 - w..=t];
+                    if win.iter().all(|v| v.is_finite()) {
+                        let seed = cfg
+                            .seed
+                            .wrapping_add((j as u64) << 32)
+                            .wrapping_add(t as u64);
+                        let (h, lo, hi) = if cfg.hurst_gate == "bands" {
+                            (hurst_exponent(win, cfg.hurst_max_horizon), f64::NAN, f64::NAN)
+                        } else {
+                            hurst_with_ci(win, cfg, seed)
+                        };
+                        let next = s064_classify(h, lo, hi, cfg);
+                        label = if next == S064_CASH && cfg.hurst_neutral == "hold" {
+                            label
+                        } else {
+                            next
+                        };
+                        result.rsi[j][t] = h;
+                        if h.is_finite() {
+                            h_sum += h;
+                            h_cnt += 1;
+                        }
+                        eval_labels.push(label);
+                        regime_csv += &format!(
+                            "{},{},{h},{lo},{hi},{}\n",
+                            panel.symbols[j],
+                            panel.dates[t],
+                            label_name(label)
+                        );
+                    }
+                }
+                labels[t] = label;
+            }
+            let mut last_h = f64::NAN;
+            for t in 0..n {
+                if result.rsi[j][t].is_finite() {
+                    last_h = result.rsi[j][t];
+                } else {
+                    result.rsi[j][t] = last_h;
+                }
+            }
+        }
+        let evals = eval_labels.len();
+        if evals > 0 {
+            let mr_n = eval_labels.iter().filter(|&&l| l == S064_MR).count();
+            let tr_n = eval_labels.iter().filter(|&&l| l == S064_TREND).count();
+            let persist = if evals > 1 {
+                eval_labels.windows(2).filter(|w| w[0] == w[1]).count() as f64
+                    / (evals - 1) as f64
+            } else {
+                f64::NAN
+            };
+            let nums: Vec<f64> = eval_labels.iter().map(|&l| l as f64).collect();
+            let autocorr = if evals > 2 {
+                crate::stats::corr(&nums[..evals - 1], &nums[1..])
+            } else {
+                f64::NAN
+            };
+            summary_csv += &format!(
+                "{},{evals},{mr_n},{tr_n},{},{persist},{autocorr},{}\n",
+                panel.symbols[j],
+                evals - mr_n - tr_n,
+                if h_cnt > 0 { h_sum / h_cnt as f64 } else { f64::NAN }
+            );
+        }
+        let mut hist = 0usize;
+        let mut shadow: Option<(usize, f64, f64)> = None; // (entry_idx, entry_px, stop)
+        let mut last_shadow_win = false;
+        for t in 0..n {
+            if close[t].is_finite() {
+                hist += 1;
+            }
+            let trad = close[t].is_finite() && hist >= cfg.min_history;
+            result.tradable[j][t] = trad;
+            result.pool[j][t] = trad;
+            if !close[t].is_finite() {
+                continue;
+            }
+            let label = labels[t];
+            if label != S064_TREND {
+                shadow = None;
+                last_shadow_win = false;
+            }
+            if label == S064_TREND {
+                if let Some((_e, s_px, s_stop)) = shadow {
+                    let stop_hit = s_stop.is_finite() && panel.low[j][t] <= s_stop;
+                    let chan_exit = t >= 1 && lo_d[t - 1].is_finite() && close[t] < lo_d[t - 1];
+                    if stop_hit || chan_exit {
+                        let exit_px = if stop_hit {
+                            panel.open[j][t].min(s_stop)
+                        } else {
+                            close[t]
+                        };
+                        last_shadow_win = exit_px > s_px;
+                        shadow = None;
+                    }
+                }
+            }
+            let mr_exit = if cfg.exit_mode == "rsi" {
+                rsi[t] > cfg.exit_rsi
+            } else {
+                close[t] > sma_exit[t]
+            };
+            let d_exit = t >= 1 && lo_d[t - 1].is_finite() && close[t] < lo_d[t - 1];
+            let leg_exit = if cfg.regime_exit {
+                match label {
+                    S064_MR => mr_exit,
+                    S064_TREND => d_exit,
+                    _ => true,
+                }
+            } else {
+                mr_exit || d_exit
+            };
+            let switched = cfg.regime_exit && t >= 1 && labels[t] != labels[t - 1];
+            result.exit_now[j][t] = leg_exit || switched;
+            if !trad {
+                continue;
+            }
+            add[j][t] = label == S064_MR && rsi[t] < cfg.add_rsi;
+            if label == S064_MR {
+                let gate_ok = match cfg.gate.as_str() {
+                    "ret21" => {
+                        t >= cfg.gate_ret_window
+                            && close[t - cfg.gate_ret_window].is_finite()
+                            && close[t] / close[t - cfg.gate_ret_window] - 1.0 > 0.0
+                    }
+                    "none" => true,
+                    _ => close[t] > sma_gate[t],
+                };
+                if gate_ok && rsi[t] < cfg.rsi_threshold {
+                    result.signal[j][t] = true;
+                    if cfg.mr_stop_atr > 0.0 && atr_mr[t].is_finite() {
+                        // engine multiplies by disaster_stop_atr; pre-scale to mr_stop_atr
+                        atr_stop[j][t] = atr_mr[t] * cfg.mr_stop_atr / cfg.disaster_stop_atr;
+                    }
+                }
+            } else if label == S064_TREND {
+                let breakout = t >= 1 && hi_d[t - 1].is_finite() && close[t] > hi_d[t - 1];
+                if breakout && shadow.is_none() {
+                    if !cfg.donchian_skip_winner || !last_shadow_win {
+                        result.signal[j][t] = true;
+                        if cfg.disaster_stop_atr > 0.0 && atr_d[t].is_finite() {
+                            atr_stop[j][t] = atr_d[t];
+                        }
+                    }
+                    if t + 1 < n && panel.open[j][t + 1].is_finite() {
+                        let px = panel.open[j][t + 1];
+                        let stop = if cfg.disaster_stop_atr > 0.0 && atr_d[t].is_finite() {
+                            px - cfg.disaster_stop_atr * atr_d[t]
+                        } else {
+                            f64::NAN
+                        };
+                        shadow = Some((t + 1, px, stop));
+                    }
+                }
+            }
+        }
+    }
+    result.add_signal = if cfg.sizing == "pyramid3" {
+        Some(add)
+    } else {
+        None
+    };
+    result.atr = if cfg.disaster_stop_atr > 0.0 {
+        Some(atr_stop)
+    } else {
+        None
+    };
+    result.benchmark_returns =
+        benchmark_returns(panel, &cfg.benchmark).or_else(|| benchmark_returns(panel, "SPY"));
+    let dir = std::path::Path::new("results").join(&cfg.strategy);
+    let _ = std::fs::create_dir_all(&dir);
+    let _ = std::fs::write(
+        dir.join(format!("{}hurst_regimes.csv", cfg.prefix())),
+        regime_csv,
+    );
+    let _ = std::fs::write(
+        dir.join(format!("{}hurst_summary.csv", cfg.prefix())),
+        summary_csv,
+    );
+    Ok(result)
+}
+
+pub fn s064_trades(panel: &Panel, sig: &Signals, cfg: &Config, fill: &str) -> Result<Vec<Trade>, String> {
+    let params = crate::engine::SwingParams {
+        signal: &sig.signal,
+        exit_now: &sig.exit_now,
+        add_signal: sig.add_signal.as_ref(),
+        max_units: cfg.max_units,
+        stop_atr: sig.atr.as_ref(),
+        stop_pct: sig.stop_pct.as_ref(),
+        stop_mult: cfg.disaster_stop_atr,
+        signal_value: &sig.rsi,
+    };
+    Ok(crate::engine::swing_trades(panel, &params, cfg, fill))
 }

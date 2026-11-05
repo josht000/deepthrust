@@ -81,7 +81,7 @@
     - [S061 | VIX Spike Mean Reversion (SPY)](#s061--vix-spike-mean-reversion-spy) — NOT_DAILY, DEFER
     - [S062 | VIX/VXV Ratio Spike (Term Structure)](#s062--vixvxv-ratio-spike-term-structure)
     - [S063 | VIX Moving-Average Crossover Regime](#s063--vix-moving-average-crossover-regime) — IMPLEMENTED — DAILY, DELTA
-    - [S064 | Hurst Exponent Regime Switch](#s064--hurst-exponent-regime-switch)
+    - [S064 | Hurst Exponent Regime Switch](#s064--hurst-exponent-regime-switch) — IMPLEMENTED
     - [S065 | Realized-Vol Compression Breakout (compression cluster champion candidate)](#s065--realized-vol-compression-breakout-compression-cluster-champion-candidate) — IMPLEMENTED — DAILY, DELTA
     - [S066 | Zweig Breadth Thrust](#s066--zweig-breadth-thrust)
     - [S067 | Relative Sector Breadth Rotation](#s067--relative-sector-breadth-rotation) — IMPLEMENTED
@@ -1625,6 +1625,9 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - notes: Chan's post (April 2016): SPY intraday H = 0.494 +/- 0.003, daily H (1-256 day variance, 2013-2016) = 0.469 +/- 0.007 ('significantly mean reverting'); USO daily H 0.56 (trending); GLD daily H 0.469; transition from momentum to mean reversion near 16-32 days. The post classifies INSTRUMENTS and does not propose a time-varying gate. With SPY's H near 0.47 the old fixed bands (< 0.45 / > 0.55) mostly output cash, and on a rolling 504-day window with horizons <= 64 the standard error is several times larger than the post's 0.007 (overlapping returns leave ~8 independent samples at the longest horizon). The realistic use is instrument-level classification (USO trending; GLD/SPY mean-reverting). The entry mixes two strategies whose own edges are unproven, adding trials multiplicatively.
 - parameter_variants: gate {CI excludes 0.5 primary; fixed bands 0.45/0.55}; use {rolling regime gate; static instrument-level classification}
 - data_needs: ETF total-return daily series (DP-ETF)
+- rust_status: IMPLEMENTED
+- implementation_results: Rust in `src/family7.rs` / `src/study.rs`, config `configs/s064_hurst_regime.yaml`; weekly Hurst gate on the trailing 504 log returns (variance horizons 1-64 days, 200 moving-block-bootstrap resamples of 21 sessions, 95% CI - block size/CI level unspecified in the source); CI<0.5 -> S001 RSI(2)<10/SMA200/SMA5 leg, CI>0.5 -> S036 Donchian 20/10 leg (last-winner skip + 2N stop evaluated on the close = DELTA), else cash; regime switches flatten positions. 15-ETF TR book, 5 bps/side, next_open primary; dev < 2024-01-01 <= test. Baseline is mostly cash as the notes predict (~3% MR weeks, 0 trend weeks): DEV 13 trades, +0.017 log, skill +0.067, Sharpe 0.09; TEST 6, -0.007, skill -0.005 -> `insufficient evidence`, DECAYED. Dev-selected `neutral_hold_ride` (only >=100-dev-trade variant with positive dev skill): DEV 272 trades, +0.075 log, skill +0.087, Sharpe 0.18; TEST 370, +0.215 log, skill -0.071, Sharpe 0.85, PF 1.49 -> DECAYED.
+  Reproduce: `cargo run --release -- --strategy s064_hurst_regime`; variants `cargo run --release -- --strategy s064_hurst_regime --variant bands,static,neutral_hold,ride,neutral_hold_ride,win252,win252_neutral` (52 named overlays registered).
 - review: DEMOTE | source PARTIAL
 
 ### S065 | Realized-Vol Compression Breakout (compression cluster champion candidate)
