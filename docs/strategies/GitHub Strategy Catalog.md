@@ -90,7 +90,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G069 | 20-Day-High Breakout Trend (Hyperliquid)](#g069--20-day-high-breakout-trend-hyperliquid) — DUPLICATE (S036)
   - [G070 | ATR SuperTrend Direction-Reversal Strategy](#g070--atr-supertrend-direction-reversal-strategy) — IMPLEMENTED
   - [G071 | Keltner Mid-Channel Pullback-in-Trend EA](#g071--keltner-mid-channel-pullback-in-trend-ea) — DUPLICATE (S087)
-  - [G072 | MBBS Three-Speed EWMA CTA Momentum](#g072--mbbs-three-speed-ewma-cta-momentum)
+  - [G072 | MBBS Three-Speed EWMA CTA Momentum](#g072--mbbs-three-speed-ewma-cta-momentum) — IMPLEMENTED
   - [G073 | Three-Day Pullback Above SMA200](#g073--three-day-pullback-above-sma200) — DUPLICATE (S007)
   - [G074 | Turtle Donchian Reversal (26/10)](#g074--turtle-donchian-reversal-2610) — DUPLICATE (S036)
   - [G075 | Adaptive Renko Trend Following with Partial De-Risking](#g075--adaptive-renko-trend-following-with-partial-de-risking)
@@ -1438,6 +1438,13 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - reported_metrics: none reported
 - external_refs: Baz et al. 2015, as named in the modelMBBS.m source; full title is not specified there.
 - sources: [blacksouane/QARMII_project — EWMA memory, response, weighting and trend-quantity options](https://github.com/blacksouane/QARMII_project/blob/dc023aaba9e37388c196e081f63a556ec00b9fd8/Functions%20and%20Scripts/Models/MBBS/modelMBBS.m#L1-L64); [blacksouane/QARMII_project — Signal computation and allocation](https://github.com/blacksouane/QARMII_project/blob/dc023aaba9e37388c196e081f63a556ec00b9fd8/Functions%20and%20Scripts/Models/MBBS/modelMBBS.m#L165-L240); [blacksouane/QARMII_project — EWMA crossover response function](https://github.com/blacksouane/QARMII_project/blob/dc023aaba9e37388c196e081f63a556ec00b9fd8/Functions%20and%20Scripts/Signal/ewmaCO.m#L1-L80)
+- implementation_results: `src/family4.rs` compute_g072_signals (worktree branch g072_mbbs_ewma); 20-asset TR ETF book, 10 bps/side, monthly, EWMA(8,16,32)-(24,48,96) mix + 0.89 sign|s|^4 response, volparity → 10% vol target on 63d cov. DELTA: overQuantity/indQuantity filters not implemented; weight floor |w|>=0.001 added (near-zero vols produced ~1e-19 stored weights → cost/turnover division blew up; capped w_raw at ±1000). Baseline + 19 variants.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev PF | test total (log) | test skill | test Sharpe | test PF | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | +0.35 | -0.22 | 0.44 | 0.83 | +0.13 | -0.08 | 0.47 | 1.01 | 1326+574 |
+  | eq_lin (top dev) | +0.29 | +0.01 | 0.38 | 0.93 | +0.10 | -0.01 | 0.70 | 1.15 | 1630+679 |
+  NO EDGE: every config at or below zero dev skill; top dev (eq_lin, +0.01) is a coin flip on test. Reproduce: `cargo run --release --bin deepthrust -- --strategy g072_mbbs_ewma`; variants `... --variant equal,single_fast,single_mid,single_slow,faster,slower,exp2,exp6,linear,scale50,weekly,sigvol126,tv05,tv15,no_lev,vol126,eq_lin,eq_tv15,eq_no_lev`
 
 ### G073 | Three-Day Pullback Above SMA200
 - priority: Medium — 
