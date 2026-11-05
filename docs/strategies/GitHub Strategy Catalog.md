@@ -117,7 +117,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - [Momentum, Rotation and Cross-Sectional Factors](#momentum-rotation-and-cross-sectional-factors) (21)
   - [G096 | ANTICOR Anti-Correlation Wealth Transfer](#g096--anticor-anti-correlation-wealth-transfer)
   - [G097 | Baltas 2020 Trend Signal with Realized-Volatility Scaling](#g097--baltas-2020-trend-signal-with-realized-volatility-scaling)
-  - [G098 | Moskowitz-Style Time-Series Momentum on Futures](#g098--moskowitz-style-time-series-momentum-on-futures)
+  - [G098 | Moskowitz-Style Time-Series Momentum on Futures](#g098--moskowitz-style-time-series-momentum-on-futures) — IMPLEMENTED
   - [G099 | Online Portfolio Selection Algorithm Zoo (OLMAR/PAMR/CWMR/RMR/ANTICOR/CORN/UP/ONS...)](#g099--online-portfolio-selection-algorithm-zoo-olmarpamrcwmrrmranticorcornupons)
   - [G100 | QARMII 252-Day Binary Momentum Portfolio](#g100--qarmii-252-day-binary-momentum-portfolio) — IMPLEMENTED
   - [G101 | Quadratic Dip-Depth Sizing Formula on VTI/QQQ (SGOV cash park)](#g101--quadratic-dip-depth-sizing-formula-on-vtiqqq-sgov-cash-park)
@@ -1869,6 +1869,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - external_refs: Moskowitz, Ooi, and Pedersen (2012), as cited in the notebook.
 - notes: The code identifies the signal class but does not include the private `vivace` implementation.
 - sources: [rolling-panda-san/notebooks — TSMOM and EWM volatility scaling on the global futures universe; code cell 7](https://github.com/rolling-panda-san/notebooks/blob/ce05661a5d4b3cdb439ece27dcccba88e2cb130a/trend_following_moskowitz2012.ipynb); [rolling-panda-san/notebooks — Same signal on Chinese futures with month-end rebalance; code cell 10](https://github.com/rolling-panda-san/notebooks/blob/ce05661a5d4b3cdb439ece27dcccba88e2cb130a/commodity_trend_following_chinese_futures.ipynb); [rolling-panda-san/notebooks — Moskowitz TSMOM comparison portfolio; code cell 10](https://github.com/rolling-panda-san/notebooks/blob/ce05661a5d4b3cdb439ece27dcccba88e2cb130a/trend_following_breakout.ipynb)
+- implementation_results: `src/family4.rs` compute_g098_signals (worktree branch g098_tsmom); 20-asset TR ETF book, 10 bps/side, month-end, signed weights. DELTA: futures contracts proxied by ETFs. Baseline ewmvol (target_vol 0.40, cap 0.95) is spec-faithful but produces ~19x gross on ETF vols — dev total -7.8, rnd baseline NaN. Equal-weight variant: dev skill -0.15, test -0.05. eq_mom126 top dev (+0.04) flips test (-0.12). NO EDGE in either scheme. Reproduce: `cargo run --release --bin deepthrust -- --strategy g098_tsmom`; variants `... --variant equal,mom63,mom126,mom189,mom315,tv10,tv15,tv20,com20,com120,cap50,cap30,weekly,mom63_tv15,mom126_tv15,eq_mom126`
 
 ### G099 | Online Portfolio Selection Algorithm Zoo (OLMAR/PAMR/CWMR/RMR/ANTICOR/CORN/UP/ONS...)
 - priority: Medium — Rich source of published daily-rebalance algorithms; OLMAR/ANTICOR merit direct porting; others likely cost-limited.
