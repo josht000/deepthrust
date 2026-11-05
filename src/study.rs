@@ -59,6 +59,8 @@ pub const S075_NAME: &str = "s075_residual_reversal";
 pub const S075_TITLE: &str = "S075 Stock-vs-Sector Residual Reversal";
 pub const S017_NAME: &str = "s017_night_trading";
 pub const S017_TITLE: &str = "S017 Night Trading Overnight-Bias Stock Selection";
+pub const S031_NAME: &str = crate::family3::S031_NAME;
+pub const S031_TITLE: &str = crate::family3::S031_TITLE;
 pub const S023_NAME: &str = crate::family2::S023_NAME;
 pub const S023_TITLE: &str = crate::family2::S023_TITLE;
 pub const S024_NAME: &str = crate::family2::S024_NAME;
@@ -531,6 +533,32 @@ impl StrategyDefinition for ResidualReversalStrategyDefinition {
     }
 }
 
+struct UpStreakFadeStrategyDefinition;
+
+impl StrategyDefinition for UpStreakFadeStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S031_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S031_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family3::compute_s031_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family3::s031_trades(panel, sig, cfg, fill)
+    }
+}
+
 struct CrashProtectionStrategyDefinition;
 
 impl StrategyDefinition for CrashProtectionStrategyDefinition {
@@ -891,6 +919,7 @@ static S047_STRATEGY: DualMomentumStrategyDefinition = DualMomentumStrategyDefin
 static S041_STRATEGY: CrossSectionalMomentumStrategyDefinition =
     CrossSectionalMomentumStrategyDefinition;
 static S075_STRATEGY: ResidualReversalStrategyDefinition = ResidualReversalStrategyDefinition;
+static S031_STRATEGY: UpStreakFadeStrategyDefinition = UpStreakFadeStrategyDefinition;
 static S017_STRATEGY: NightTradingStrategyDefinition = NightTradingStrategyDefinition;
 static S023_STRATEGY: PostEarningsDriftStrategyDefinition = PostEarningsDriftStrategyDefinition;
 static S024_STRATEGY: ExDividendCaptureStrategyDefinition = ExDividendCaptureStrategyDefinition;
@@ -975,12 +1004,13 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 40] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 41] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
     &S019_STRATEGY,
     &S021_STRATEGY,
+    &S031_STRATEGY,
     &S032_STRATEGY,
     &S033_STRATEGY,
     &S035_STRATEGY,
@@ -2565,6 +2595,26 @@ impl<'a> Study<'a> {
                 "- Limitations: the configured large-cap stock sample is not a point-in-time universe; close fills do not include auction slippage.".into(),
             ];
         }
+        if c.strategy == crate::family3::S031_NAME {
+            return vec![
+                format!(
+                    "- Universe: liquid top {} stocks by {}-session median dollar volume, ${:.0}+ close, {} prior bars; {} symbols loaded.",
+                    c.universe_top_n, c.rank_window, c.min_price, c.min_history, s.panel.symbols.len()
+                ),
+                format!(
+                    "- Rule: {} {} consecutive up closes under gate {}; cover on exit mode {} or after {} sessions; demoted falsification study.",
+                    c.direction, c.streak_days, c.gate, c.exit_mode, c.max_hold
+                ),
+                format!(
+                    "- Fill: {}; {:.1} bps/side plus {:.0} bps/yr borrow on short positions.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side,
+                    c.borrow_bps_annual
+                ),
+                "- Baselines: equal-weight tradable universe, SMA200 timing, dev-vol-matched, exposure-matched random timing; random picks redraw the shorted names.".into(),
+                "- Limitations: no borrow/locate data (the annual borrow rate is a scenario); `close` is the same-close upper bound; short dividend obligations are not modeled on the split-adjusted series; gross exposure is capped by slot-normalized weights on crowded days.".into(),
+            ];
+        }
         let family4 = match c.strategy.as_str() {
             "s040_volume_breakout" => Some((
                 "Buy confirmed rolling-high breakouts with ATR-distance and volume filters; exit by stop, target, or time.",
@@ -2740,6 +2790,11 @@ impl<'a> Study<'a> {
             format!("rv{}/{}<{:.2} donchian{} x{}", c.rv_short, c.rv_long, c.rv_ratio, c.entry_window, c.exit_extreme_window)
         } else if c.strategy == crate::family7::S071_NAME {
             format!("adf<{:.2} z>{:.1} out {:.2}/{:.2}", c.adf_max_p, c.z_entry, c.z_exit_short, c.z_exit_long)
+        } else if c.strategy == S031_NAME {
+            format!(
+                "{} streak>={} gate={} exit={} borrow={:.0}bps/yr",
+                c.direction, c.streak_days, c.gate, c.exit_mode, c.borrow_bps_annual
+            )
         } else if c.strategy == S021_NAME {
             format!(
                 "overnight {} filter={}",

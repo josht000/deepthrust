@@ -48,7 +48,7 @@
     - [S028 | Jegadeesh 1-Month Reversal](#s028--jegadeesh-1-month-reversal) — NOT_DAILY, DEFER
     - [S029 | Capitulation-Volume Loser Reversal](#s029--capitulation-volume-loser-reversal) — NOT_DAILY, DEFER
     - [S030 | Down-Streak Reversal (5+ Days)](#s030--down-streak-reversal-5-days) — NOT_DAILY, DEFER
-    - [S031 | Up-Streak Fade (5+ Days)](#s031--up-streak-fade-5-days)
+    - [S031 | Up-Streak Fade (5+ Days)](#s031--up-streak-fade-5-days) — IMPLEMENTED — DAILY, DELTA
     - [S032 | 52-Week-High Proximity Portfolio (George-Hwang)](#s032--52-week-high-proximity-portfolio-george-hwang) — IMPLEMENTED
     - [S035 | Low-Volatility Anomaly Portfolio](#s035--low-volatility-anomaly-portfolio) — IMPLEMENTED
 - [Family 4 — Momentum, Breakout, and Rotation](#family-4--momentum-breakout-and-rotation)
@@ -857,6 +857,13 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - notes: CORRECTED: the earlier note said Chan's mirror short-on-gap 'failed to reproduce'; per the l3a0 page the mirror was profitable pre-cost (APR 12.2%, Sharpe 1.79) but did not match the published 46%/1.27 (see S016). Five up closes below the 200-day SMA is a bear-market rally where short-term momentum (S100) and squeeze risk dominate; borrow data is absent (G-09). Run once as the short counterpart to S030 under borrow scenarios (0.3% / 3% / 10% annualised); drop if not significant after FDR. Falsification only.
 - data_needs: daily_10years (D1) + borrow assumptions
 - review: DEMOTE | source MISMATCH (note)
+- implementation_results: `src/family3.rs` / `src/study.rs` and `configs/s031_up_streak_fade.yaml`; 11,058 split-adjusted stock series, liquid top-500 PIT universe ($5+, 250 bars), 15 bps/side, next_open primary (moc_proxy unavailable; `close` = same-close upper bound, DELTA), slot-normalized short book, 30 bps/yr borrow baseline (300/1000 bps registered variants); dev < 2024-01-01 <= test.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | +0.130 | +0.035 (p=0.37) | 0.317 | -9.0% | -0.131 | -0.075 | -1.18 | -14.1% | 3938+1331 |
+  | u250 (dev-selected) | +0.154 | +0.078 (p=0.13) | 0.547 | -6.3% | -0.060 | -0.023 | -0.84 | -8.3% | 1857+679 |
+  36 named variants. `cost10` tops raw dev skill (+0.107) but is a cost assumption, not a rule; `u250` is the best rule variant. Baseline and winner are DECAYED on test; borrow 300/1000 bps erases dev skill (+0.003/-0.081). `long` control dev skill -0.50 confirms the fade direction in dev; `streak7` is the only positive-test-skill cell (+0.006, not dev-selected). Falsification verdict holds: no significant, persistent edge. Reproduce: `target\release\deepthrust.exe --strategy s031_up_streak_fade`; selected: add `--variant u250`.
 
 ### S032 | 52-Week-High Proximity Portfolio (George-Hwang)
 - family: cross-sectional short-term reversal

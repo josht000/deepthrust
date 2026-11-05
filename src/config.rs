@@ -330,6 +330,10 @@ pub struct Config {
     pub cyclical_symbols: String,
     #[serde(default = "d_defensive_symbols")]
     pub defensive_symbols: String,
+    #[serde(default = "d_streak_days")]
+    pub streak_days: usize,
+    #[serde(default = "d_direction")]
+    pub direction: String,
     #[serde(default)]
     pub results_tag: String,
     /// Resolved variant name ("baseline" when no overlay is applied).
@@ -724,6 +728,12 @@ fn d_topic_mode() -> String {
 }
 fn d_adf_lags() -> usize {
     1
+}
+fn d_streak_days() -> usize {
+    5
+}
+fn d_direction() -> String {
+    "short".into()
 }
 fn d_cyclical_symbols() -> String {
     "XLB,XLI".into()

@@ -160,7 +160,7 @@ fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Resul
             })
         })
         .collect();
-    let params = serde_json::json!({
+    let mut params = serde_json::json!({
         "variant_overlay": cfg.variant_overlay,
         "sources": source_params,
         "rsi_len": cfg.rsi_len,
@@ -201,6 +201,13 @@ fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Resul
         "rank_min_observations": cfg.rank_min_observations,
         "min_price": cfg.min_price
     });
+    if let Some(map) = params.as_object() {
+        let mut map = map.clone();
+        map.insert("streak_days".into(), cfg.streak_days.into());
+        map.insert("direction".into(), cfg.direction.clone().into());
+        map.insert("borrow_bps_annual".into(), cfg.borrow_bps_annual.into());
+        params = serde_json::Value::Object(map);
+    }
     for fill in cfg.fills_list() {
         let dev = study
             .row(&fill, "dev")
