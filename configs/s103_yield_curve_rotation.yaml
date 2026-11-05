@@ -1,0 +1,69 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: XLF,XLU
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2013-01-01"
+fred_dir: C:\data\trading\trading_framework\data\pit\market\fred
+rebalance: monthly
+signal_mode: separate
+band_mode: binary
+rate_change_window: 21
+rate_dead_band: 0.10
+level_threshold: 0.0
+financial_symbol: XLF
+utility_symbol: XLU
+cost_bps_per_side: 1.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 1
+
+variants:
+  weekly: {rebalance: weekly}
+  daily: {rebalance: daily}
+  hold: {band_mode: hold}
+  weekly_hold: {rebalance: weekly, band_mode: hold}
+  slope: {signal_mode: slope}
+  slope_weekly: {signal_mode: slope, rebalance: weekly}
+  slope_hold: {signal_mode: slope, band_mode: hold}
+  band0: {rate_dead_band: 0.0}
+  band005: {rate_dead_band: 0.05}
+  band015: {rate_dead_band: 0.15}
+  band025: {rate_dead_band: 0.25}
+  band05: {rate_dead_band: 0.50}
+  slope_band0: {signal_mode: slope, rate_dead_band: 0.0}
+  slope_band025: {signal_mode: slope, rate_dead_band: 0.25}
+  weekly_band005: {rebalance: weekly, rate_dead_band: 0.05}
+  weekly_band025: {rebalance: weekly, rate_dead_band: 0.25}
+  chg10: {rate_change_window: 10}
+  chg42: {rate_change_window: 42}
+  chg63: {rate_change_window: 63}
+  chg126: {rate_change_window: 126}
+  chg63_weekly: {rate_change_window: 63, rebalance: weekly}
+  slope_chg63: {signal_mode: slope, rate_change_window: 63}
+  chg42_band005: {rate_change_window: 42, rate_dead_band: 0.05}
+  level: {signal_mode: level}
+  level25: {signal_mode: level, level_threshold: 0.25}
+  level_neg25: {signal_mode: level, level_threshold: -0.25}
+  level50: {signal_mode: level, level_threshold: 0.50}
+  level_weekly: {signal_mode: level, rebalance: weekly}
+  level_hold: {signal_mode: level, band_mode: hold}
+  def_bil: {utility_symbol: BIL, symbols: "XLF,BIL"}
+  def_ief: {utility_symbol: IEF, symbols: "XLF,IEF"}
+  def_tlt: {utility_symbol: TLT, symbols: "XLF,TLT"}
+  def_shy: {utility_symbol: SHY, symbols: "XLF,SHY"}
+  def_xlp: {utility_symbol: XLP, symbols: "XLF,XLP"}
+  def_xlv: {utility_symbol: XLV, symbols: "XLF,XLV"}
+  cost05: {cost_bps_per_side: 0.5}
+  cost2: {cost_bps_per_side: 2.0}
+  cost5: {cost_bps_per_side: 5.0}
+  weekly_cost05: {rebalance: weekly, cost_bps_per_side: 0.5}
+  weekly_cost2: {rebalance: weekly, cost_bps_per_side: 2.0}
+  weekly_slope_band0: {rebalance: weekly, signal_mode: slope, rate_dead_band: 0.0}
+  hold_band025: {band_mode: hold, rate_dead_band: 0.25}
+  slope_hold_band025: {signal_mode: slope, band_mode: hold, rate_dead_band: 0.25}
+  daily_band025: {rebalance: daily, rate_dead_band: 0.25}
