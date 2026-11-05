@@ -330,6 +330,22 @@ pub struct Config {
     pub cyclical_symbols: String,
     #[serde(default = "d_defensive_symbols")]
     pub defensive_symbols: String,
+    #[serde(default = "d_soldier_len")]
+    pub soldier_len: usize,
+    #[serde(default)]
+    pub min_body_pct: f64,
+    #[serde(default)]
+    pub min_body_atr: f64,
+    #[serde(default = "d_open_in_body")]
+    pub open_in_body: bool,
+    #[serde(default = "d_volume_mode")]
+    pub volume_mode: String,
+    #[serde(default = "d_stop_mode")]
+    pub stop_mode: String,
+    #[serde(default = "d_stop_atr_mult")]
+    pub stop_atr_mult: f64,
+    #[serde(default = "d_max_rsi")]
+    pub max_rsi: f64,
     #[serde(default)]
     pub results_tag: String,
     /// Resolved variant name ("baseline" when no overlay is applied).
@@ -730,6 +746,24 @@ fn d_cyclical_symbols() -> String {
 }
 fn d_defensive_symbols() -> String {
     "XLP,XLU".into()
+}
+fn d_soldier_len() -> usize {
+    3
+}
+fn d_open_in_body() -> bool {
+    true
+}
+fn d_volume_mode() -> String {
+    "rising".into()
+}
+fn d_stop_mode() -> String {
+    "first_low".into()
+}
+fn d_stop_atr_mult() -> f64 {
+    2.0
+}
+fn d_max_rsi() -> f64 {
+    101.0
 }
 
 impl Config {

@@ -1,0 +1,74 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-01-01"
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+soldier_len: 3
+open_in_body: true
+min_body_pct: 0.0
+min_body_atr: 0.0
+volume_mode: rising
+sma_window: 50
+rsi_len: 2
+max_rsi: 101.0
+atr_len: 14
+stop_mode: first_low
+stop_atr_mult: 2.0
+take_profit: 0.0
+max_hold: 8
+skip_days: 0
+delisting_return: -0.30
+cost_bps_per_side: 15.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 50
+
+variants:
+  p2: {soldier_len: 2}
+  p4: {soldier_len: 4}
+  loose: {open_in_body: false}
+  vol_last: {volume_mode: last}
+  vol_off: {volume_mode: off}
+  body05: {min_body_pct: 0.005}
+  body1: {min_body_pct: 0.01}
+  body2: {min_body_pct: 0.02}
+  bodyatr05: {min_body_atr: 0.5}
+  bodyatr1: {min_body_atr: 1.0}
+  nosma: {sma_window: 0}
+  sma100: {sma_window: 100}
+  sma200: {sma_window: 200}
+  hold4: {max_hold: 4}
+  hold5: {max_hold: 5}
+  hold10: {max_hold: 10}
+  hold12: {max_hold: 12}
+  stop_pat: {stop_mode: pattern_low}
+  stopatr15: {stop_mode: atr, stop_atr_mult: 1.5}
+  stopatr2: {stop_mode: atr, stop_atr_mult: 2.0}
+  nostop: {stop_mode: off}
+  tp3: {take_profit: 0.03}
+  tp5: {take_profit: 0.05}
+  tp10: {take_profit: 0.10}
+  rsi90: {max_rsi: 90.0}
+  rsi80: {max_rsi: 80.0}
+  rsi70: {max_rsi: 70.0}
+  u250: {universe_top_n: 250}
+  u400: {universe_top_n: 400}
+  px10: {min_price: 10.0}
+  skip3: {skip_days: 3}
+  skip5: {skip_days: 5}
+  body1_rsi80: {min_body_pct: 0.01, max_rsi: 80.0}
+  nosma_rsi80: {sma_window: 0, max_rsi: 80.0}
+  vol_off_rsi80: {volume_mode: off, max_rsi: 80.0}
+  hold10_tp5: {max_hold: 10, take_profit: 0.05}
+  p2_body1: {soldier_len: 2, min_body_pct: 0.01}

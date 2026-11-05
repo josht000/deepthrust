@@ -114,7 +114,7 @@
     - [S097 | Bullish Engulfing After Down-Streak](#s097--bullish-engulfing-after-down-streak)
     - [S098 | Hammer at Lower Bollinger Band](#s098--hammer-at-lower-bollinger-band) — NOT_DAILY, DEFER
     - [S099 | Outside-Day Key Reversal at 200-SMA](#s099--outside-day-key-reversal-at-200-sma)
-    - [S100 | Three White Soldiers Continuation](#s100--three-white-soldiers-continuation)
+    - [S100 | Three White Soldiers Continuation](#s100--three-white-soldiers-continuation) — IMPLEMENTED — DAILY, DELTA
 - [Family 11 — Miscellaneous Structural Edge](#family-11--miscellaneous-structural-edge)
     - [S102 | Copper/Gold Ratio Equity Tilt (CPER/GLD ratio, both in cache)](#s102--coppergold-ratio-equity-tilt-cpergld-ratio-both-in-cache) — IMPLEMENTED
     - [S103 | Yield-Curve Financials/Utilities Rotation](#s103--yield-curve-financialsutilities-rotation)
@@ -2191,6 +2191,14 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - notes: Falsification against S027's sign: three strong up days put the stock in the top of its 3-day return distribution, the state where the short-term reversal literature (S027, NY Fed SR 513) expects give-back, and S100 bets on continuation without a reason to expect it to win. It is the mirror of S030/S031 logic. Register as a falsification test; candlestick registry member.
 - data_needs: daily_10years (D1)
 - review: DEMOTE | source GENERIC
+- implementation_results: `src/family10.rs` / `src/study.rs`, config `configs/s100_three_white_soldiers.yaml`; PIT liquid top-500 universe (`liquid_ranks` cache) on `daily_10years_tr` bars — DELTA: the tr cache covers every name that ever enters the top-500 liquidity ranks (identical universe at top_n <= 500, wider variants omitted) and TR-adjusted candles differ from the D1 split-only spec around ex-dates; "long" candle size is unquantified in the source so the baseline requires only close > open (`min_body_*` variants tighten it). Long-only, next_open primary + close upper bound, 15 bps/side; dev < 2024-01-01 <= test. Registered falsification test (demoted): the spec'd baseline is net-negative on both partitions, consistent with the S027 reversal expectation; `vol_off_rsi80` = `{volume_mode: off, max_rsi: 80}` is the dev-selected winner of 37 registered variants (only positive dev skill).
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev max DD | test total (log) | test skill | test Sharpe | test max DD | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | -0.01 | -0.06 (p=0.92) | -0.07 | -6.3% | -0.03 | -0.03 (p=0.84) | -0.44 | -3.3% | 988+381 |
+  | vol_off_rsi80 | +0.01 | +0.01 (p=0.34) | +0.17 | -1.9% | +0.02 | +0.02 (p=0.10) | +0.85 | -1.2% | 256+128 |
+
+  Reproduce: baseline `target/release/deepthrust.exe --strategy s100_three_white_soldiers`; all variants `target/release/deepthrust.exe --strategy s100_three_white_soldiers --variant p2,p4,loose,vol_last,vol_off,body05,body1,body2,bodyatr05,bodyatr1,nosma,sma100,sma200,hold4,hold5,hold10,hold12,stop_pat,stopatr15,stopatr2,nostop,tp3,tp5,tp10,rsi90,rsi80,rsi70,u250,u400,px10,skip3,skip5,body1_rsi80,nosma_rsi80,vol_off_rsi80,hold10_tp5,p2_body1`
 
 ---
 
