@@ -67,6 +67,8 @@ pub const S024_NAME: &str = crate::family2::S024_NAME;
 pub const S024_TITLE: &str = crate::family2::S024_TITLE;
 pub const S105_NAME: &str = "s105_overnight_carry";
 pub const S105_TITLE: &str = "S105 Volatility-Targeted Overnight Carry";
+pub const G033_NAME: &str = "g033_pair_rotation";
+pub const G033_TITLE: &str = "G033 Decorrelation-Gated Buy-the-Loser Pair Rotation";
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -128,6 +130,22 @@ impl StrategyDefinition for DoubleSevenStrategyDefinition {
 
     fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         Ok(signals::compute_double7_signals(panel, cfg))
+    }
+}
+
+struct G033StrategyDefinition;
+
+impl StrategyDefinition for G033StrategyDefinition {
+    fn name(&self) -> &'static str {
+        G033_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        G033_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        signals::compute_g033_signals(panel, cfg)
     }
 }
 
@@ -900,6 +918,7 @@ static S003_STRATEGY: RsiStrategyDefinition = RsiStrategyDefinition {
     title: S003_TITLE,
 };
 static S006_STRATEGY: DoubleSevenStrategyDefinition = DoubleSevenStrategyDefinition;
+static G033_STRATEGY: G033StrategyDefinition = G033StrategyDefinition;
 static S019_STRATEGY: GapAndGoStrategyDefinition = GapAndGoStrategyDefinition;
 static S021_STRATEGY: OvernightStrategyDefinition = OvernightStrategyDefinition {
     name: S021_NAME,
@@ -1020,7 +1039,7 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 43] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 44] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1048,6 +1067,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 43] = [
     &S010_STRATEGY,
     &S079_STRATEGY,
     &S080_STRATEGY,
+    &G033_STRATEGY,
     &S069_STRATEGY,
     &S070_STRATEGY,
     &S102_STRATEGY,

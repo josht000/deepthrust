@@ -2935,6 +2935,133 @@ pub fn s017_trades(
     Ok(trades)
 }
 
+/// G033: decorrelation-gated buy-the-loser pair rotation. Hold the leg with the
+/// lower prior-day return, only while rolling corr_len-day correlation of the
+/// legs' ret_len-day returns is < corr_max. Two-symbol panel; book_slots=1.
+/// The source's "keep holding until profitable" nuance is not expressible in
+/// the stateless exit mask (switches when the other leg becomes the loser).
+pub fn compute_g033_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if panel.symbols.len() != 2 {
+        return Err("g033 requires exactly 2 symbols".into());
+    }
+    let n = panel.dates.len();
+    let closes: [&Vec<f64>; 2] = [&panel.close[0], &panel.close[1]];
+    let ret1: [Vec<f64>; 2] = [
+        (0..n)
+            .map(|t| {
+                if t > 0 && closes[0][t].is_finite() && closes[0][t - 1].is_finite() {
+                    closes[0][t] / closes[0][t - 1] - 1.0
+                } else {
+                    f64::NAN
+                }
+            })
+            .collect(),
+        (0..n)
+            .map(|t| {
+                if t > 0 && closes[1][t].is_finite() && closes[1][t - 1].is_finite() {
+                    closes[1][t] / closes[1][t - 1] - 1.0
+                } else {
+                    f64::NAN
+                }
+            })
+            .collect(),
+    ];
+    let retw: [Vec<f64>; 2] = [
+        (0..n)
+            .map(|t| {
+                if t >= cfg.ret_len && closes[0][t].is_finite() && closes[0][t - cfg.ret_len].is_finite() {
+                    closes[0][t] / closes[0][t - cfg.ret_len] - 1.0
+                } else {
+                    f64::NAN
+                }
+            })
+            .collect(),
+        (0..n)
+            .map(|t| {
+                if t >= cfg.ret_len && closes[1][t].is_finite() && closes[1][t - cfg.ret_len].is_finite() {
+                    closes[1][t] / closes[1][t - cfg.ret_len] - 1.0
+                } else {
+                    f64::NAN
+                }
+            })
+            .collect(),
+    ];
+    let gate: Vec<bool> = (0..n)
+        .map(|t| {
+            if t + 1 < cfg.corr_len {
+                return false;
+            }
+            let a = &retw[0][t + 1 - cfg.corr_len..=t];
+            let b = &retw[1][t + 1 - cfg.corr_len..=t];
+            if a.iter().chain(b.iter()).any(|v| !v.is_finite()) {
+                return false;
+            }
+            let ma: f64 = a.iter().sum::<f64>() / cfg.corr_len as f64;
+            let mb: f64 = b.iter().sum::<f64>() / cfg.corr_len as f64;
+            let (mut sab, mut saa, mut sbb) = (0.0, 0.0, 0.0);
+            for k in 0..cfg.corr_len {
+                let (da, db) = (a[k] - ma, b[k] - mb);
+                sab += da * db;
+                saa += da * da;
+                sbb += db * db;
+            }
+            if saa <= 0.0 || sbb <= 0.0 {
+                return false;
+            }
+            sab / (saa * sbb).sqrt() < cfg.corr_max
+        })
+        .collect();
+    let mut signal = Vec::with_capacity(2);
+    let mut exit_now = Vec::with_capacity(2);
+    let mut tradable = Vec::with_capacity(2);
+    let mut ind = Vec::with_capacity(2);
+    for j in 0..2 {
+        let other = 1 - j;
+        signal.push(
+            (0..n)
+                .map(|t| gate[t] && ret1[j][t].is_finite() && ret1[j][t] < ret1[other][t])
+                .collect(),
+        );
+        exit_now.push(
+            (0..n)
+                .map(|t| ret1[j][t].is_finite() && (!gate[t] || ret1[j][t] > ret1[other][t]))
+                .collect(),
+        );
+        let mut history = 0usize;
+        tradable.push(
+            closes[j]
+                .iter()
+                .map(|value| {
+                    if value.is_finite() {
+                        history += 1;
+                    }
+                    value.is_finite() && history >= cfg.min_history
+                })
+                .collect::<Vec<bool>>(),
+        );
+        ind.push(
+            (0..n)
+                .map(|t| if gate[t] { ret1[j][t] } else { f64::NAN })
+                .collect(),
+        );
+    }
+    Ok(Signals {
+        rsi: ind,
+        indicator_name: "leg_ret1_gated".into(),
+        signal,
+        exit_now,
+        add_signal: None,
+        atr: None,
+        stop_pct: None,
+        pool: tradable.clone(),
+        tradable,
+        trade_weights: None,
+        entry_mat: None,
+        exit_mat: None,
+        benchmark_returns: None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
