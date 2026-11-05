@@ -67,6 +67,8 @@ pub const S024_NAME: &str = crate::family2::S024_NAME;
 pub const S024_TITLE: &str = crate::family2::S024_TITLE;
 pub const S105_NAME: &str = "s105_overnight_carry";
 pub const S105_TITLE: &str = "S105 Volatility-Targeted Overnight Carry";
+pub const G091_NAME: &str = "g091_psar";
+pub const G091_TITLE: &str = "G091 Parabolic SAR Stop-and-Reverse";
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -128,6 +130,22 @@ impl StrategyDefinition for DoubleSevenStrategyDefinition {
 
     fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         Ok(signals::compute_double7_signals(panel, cfg))
+    }
+}
+
+struct G091StrategyDefinition;
+
+impl StrategyDefinition for G091StrategyDefinition {
+    fn name(&self) -> &'static str {
+        G091_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        G091_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        signals::compute_g091_signals(panel, cfg)
     }
 }
 
@@ -900,6 +918,7 @@ static S003_STRATEGY: RsiStrategyDefinition = RsiStrategyDefinition {
     title: S003_TITLE,
 };
 static S006_STRATEGY: DoubleSevenStrategyDefinition = DoubleSevenStrategyDefinition;
+static G091_STRATEGY: G091StrategyDefinition = G091StrategyDefinition;
 static S019_STRATEGY: GapAndGoStrategyDefinition = GapAndGoStrategyDefinition;
 static S021_STRATEGY: OvernightStrategyDefinition = OvernightStrategyDefinition {
     name: S021_NAME,
@@ -1020,7 +1039,7 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     title: crate::family6::S058_TITLE,
     kind: Family6Kind::TopicSentiment,
 };
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 43] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 44] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1064,6 +1083,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 43] = [
     &S056_STRATEGY,
     &S058_STRATEGY,
     &S063_STRATEGY,
+    &G091_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {

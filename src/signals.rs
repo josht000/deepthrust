@@ -2935,6 +2935,104 @@ pub fn s017_trades(
     Ok(trades)
 }
 
+/// G091: Wilder Parabolic SAR stop-and-reverse, long side only.
+/// signal on SAR crossing below close (flip -1 -> +1); exit_now when SAR above close.
+pub fn compute_g091_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let mut sar_all = Vec::with_capacity(panel.symbols.len());
+    let mut signal = Vec::with_capacity(panel.symbols.len());
+    let mut exit_now = Vec::with_capacity(panel.symbols.len());
+    let mut tradable = Vec::with_capacity(panel.symbols.len());
+    for j in 0..panel.symbols.len() {
+        let high = &panel.high[j];
+        let low = &panel.low[j];
+        let close = &panel.close[j];
+        let n = close.len();
+        let mut sar = vec![f64::NAN; n];
+        let mut dir = vec![0i8; n];
+        let start = (0..n).find(|&t| close[t].is_finite());
+        if let Some(t0) = start {
+            let mut up = close[t0 + 1.min(n - 1)] >= close[t0];
+            let mut af = cfg.sar_step;
+            let mut ep = if up { high[t0] } else { low[t0] };
+            sar[t0] = if up { low[t0] } else { high[t0] };
+            dir[t0] = if up { 1 } else { -1 };
+            for t in t0 + 1..n {
+                if !close[t].is_finite() {
+                    continue;
+                }
+                let mut s = sar[t - 1] + af * (ep - sar[t - 1]);
+                if up {
+                    if t > 0 {
+                        s = s.min(low[t - 1]);
+                    }
+                    if t > 1 {
+                        s = s.min(low[t - 2]);
+                    }
+                } else {
+                    if t > 0 {
+                        s = s.max(high[t - 1]);
+                    }
+                    if t > 1 {
+                        s = s.max(high[t - 2]);
+                    }
+                }
+                if up && low[t] < s {
+                    up = false;
+                    s = ep;
+                    ep = low[t];
+                    af = cfg.sar_step;
+                } else if !up && high[t] > s {
+                    up = true;
+                    s = ep;
+                    ep = high[t];
+                    af = cfg.sar_step;
+                } else if up && high[t] > ep {
+                    ep = high[t];
+                    af = (af + cfg.sar_step).min(cfg.sar_max);
+                } else if !up && low[t] < ep {
+                    ep = low[t];
+                    af = (af + cfg.sar_step).min(cfg.sar_max);
+                }
+                sar[t] = s;
+                dir[t] = if up { 1 } else { -1 };
+            }
+        }
+        let mut history = 0usize;
+        let trad: Vec<bool> = close
+            .iter()
+            .map(|value| {
+                if value.is_finite() {
+                    history += 1;
+                }
+                value.is_finite() && history >= cfg.min_history
+            })
+            .collect();
+        signal.push(
+            (0..n)
+                .map(|t| t > 0 && trad[t] && dir[t] == 1 && dir[t - 1] == -1)
+                .collect(),
+        );
+        exit_now.push((0..n).map(|t| dir[t] == -1).collect());
+        tradable.push(trad);
+        sar_all.push(sar);
+    }
+    Ok(Signals {
+        rsi: sar_all,
+        indicator_name: "psar".into(),
+        signal,
+        exit_now,
+        add_signal: None,
+        atr: None,
+        stop_pct: None,
+        pool: tradable.clone(),
+        tradable,
+        trade_weights: None,
+        entry_mat: None,
+        exit_mat: None,
+        benchmark_returns: None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

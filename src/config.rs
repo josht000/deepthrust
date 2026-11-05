@@ -290,6 +290,10 @@ pub struct Config {
     pub oversold_in: f64,
     #[serde(default = "d_oversold_out")]
     pub oversold_out: f64,
+    #[serde(default = "d_sar_step")]
+    pub sar_step: f64,
+    #[serde(default = "d_sar_max")]
+    pub sar_max: f64,
     #[serde(default = "d_levered_cap")]
     pub levered_cap: f64,
     #[serde(default = "d_z_entry")]
@@ -800,6 +804,12 @@ fn d_vix_fall_window() -> usize {
 }
 fn d_risk_symbol() -> String {
     "SPY".into()
+}
+fn d_sar_step() -> f64 {
+    0.02
+}
+fn d_sar_max() -> f64 {
+    0.2
 }
 
 impl Config {
