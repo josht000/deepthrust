@@ -7,7 +7,7 @@ Companion machine-readable file: `GitHub Strategy Catalog (JSON for coding agent
 **Focus:** strategies whose essence works on daily bars, overnight holds and short swings
 (multiple trades/week potential). Intraday-native strategies are included but flagged in the
 *Best timeframes* field. Every entry cites the exact code it was extracted from (permalinked at
-clone SHA). Overlaps with the existing 105-strategy catalog are marked `overlap:` -> S###.
+clone SHA). Overlaps with the existing 105-strategy catalog are marked `overlap:` -> S###. Entries that duplicate a 105-catalog strategy are tagged ` — DUPLICATE (S###)` in the table of contents below.
 Priorities: **High** = daily-native + precise rules + real mechanism or lineage; **Medium** =
 clear rules, weaker evidence or needs adaptation; **Low** = intraday-only / weak / anti-pattern.
 Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was re-backtested.
@@ -17,82 +17,82 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 ## Table of Contents
 
 - [Single-Asset Mean Reversion (oscillators, bands, z-score)](#single-asset-mean-reversion-oscillators-bands-z-score) (22)
-  - [G001 | Daily-Checkpoint Oversold-Bounce with Trend-Midpoint Exits (Mag10 + index ETFs)](#g001--daily-checkpoint-oversold-bounce-with-trend-midpoint-exits-mag10--index-etfs)
-  - [G002 | Bollinger(30,2) Band-Touch Mean Reversion with Neutral Zone (EUR/USD)](#g002--bollinger302-band-touch-mean-reversion-with-neutral-zone-eurusd)
+  - [G001 | Daily-Checkpoint Oversold-Bounce with Trend-Midpoint Exits (Mag10 + index ETFs)](#g001--daily-checkpoint-oversold-bounce-with-trend-midpoint-exits-mag10--index-etfs) — DUPLICATE (S001)
+  - [G002 | Bollinger(30,2) Band-Touch Mean Reversion with Neutral Zone (EUR/USD)](#g002--bollinger302-band-touch-mean-reversion-with-neutral-zone-eurusd) — DUPLICATE (S011)
   - [G003 | Daily High-Low Geometric-Midpoint Reversal](#g003--daily-high-low-geometric-midpoint-reversal)
-  - [G004 | Double-Seven Connors Pullback](#g004--double-seven-connors-pullback)
-  - [G005 | Moving-Average-Threshold Single-Asset Mean Reversion](#g005--moving-average-threshold-single-asset-mean-reversion)
+  - [G004 | Double-Seven Connors Pullback](#g004--double-seven-connors-pullback) — DUPLICATE (S006)
+  - [G005 | Moving-Average-Threshold Single-Asset Mean Reversion](#g005--moving-average-threshold-single-asset-mean-reversion) — DUPLICATE (S011)
   - [G006 | Prop-Firm MA-Gap Mean Reversion with Vol-Compression Gate (M5/M15/M30)](#g006--prop-firm-ma-gap-mean-reversion-with-vol-compression-gate-m5m15m30)
-  - [G007 | Ten-Day Local-Minimum Pullback Above SMA200](#g007--ten-day-local-minimum-pullback-above-sma200)
-  - [G008 | Bollinger Dip in an Uptrend with Multi-Asset Allocation](#g008--bollinger-dip-in-an-uptrend-with-multi-asset-allocation)
-  - [G009 | Bollinger(20,2.5)-Cross + RSI(14) Reversal EA (GBP/USD MT4)](#g009--bollinger2025-cross--rsi14-reversal-ea-gbpusd-mt4)
+  - [G007 | Ten-Day Local-Minimum Pullback Above SMA200](#g007--ten-day-local-minimum-pullback-above-sma200) — DUPLICATE (S006)
+  - [G008 | Bollinger Dip in an Uptrend with Multi-Asset Allocation](#g008--bollinger-dip-in-an-uptrend-with-multi-asset-allocation) — DUPLICATE (S011)
+  - [G009 | Bollinger(20,2.5)-Cross + RSI(14) Reversal EA (GBP/USD MT4)](#g009--bollinger2025-cross--rsi14-reversal-ea-gbpusd-mt4) — DUPLICATE (S011)
   - [G010 | Crypto Spot Z-Score Mean-Reversion + Rolling-Momentum Signal Blend](#g010--crypto-spot-z-score-mean-reversion--rolling-momentum-signal-blend)
-  - [G011 | EUR/USD Z-Score Mean Reversion (OANDA M5)](#g011--eurusd-z-score-mean-reversion-oanda-m5)
+  - [G011 | EUR/USD Z-Score Mean Reversion (OANDA M5)](#g011--eurusd-z-score-mean-reversion-oanda-m5) — DUPLICATE (S011)
   - [G012 | Intraday High-Low Geometric-Midpoint Reversal](#g012--intraday-high-low-geometric-midpoint-reversal)
-  - [G013 | N-Bar Contrarian Sign-Flip (mean of last N returns)](#g013--n-bar-contrarian-sign-flip-mean-of-last-n-returns)
+  - [G013 | N-Bar Contrarian Sign-Flip (mean of last N returns)](#g013--n-bar-contrarian-sign-flip-mean-of-last-n-returns) — DUPLICATE (S007)
   - [G014 | Quote-Based High-Low Multi-Lag Reversion](#g014--quote-based-high-low-multi-lag-reversion)
   - [G015 | Quote-Based Intraday High-Low Reversion](#g015--quote-based-intraday-high-low-reversion)
   - [G016 | RSI Threshold + Higher-High Confirmation Entries (Zerodha Kite, Indian equities)](#g016--rsi-threshold--higher-high-confirmation-entries-zerodha-kite-indian-equities)
-  - [G017 | RSI(14) 30/70 Reversal](#g017--rsi14-3070-reversal)
+  - [G017 | RSI(14) 30/70 Reversal](#g017--rsi14-3070-reversal) — DUPLICATE (S003)
   - [G018 | RSI+MA Mean-Reversion on EUR/USD M1 (OANDA)](#g018--rsima-mean-reversion-on-eurusd-m1-oanda)
-  - [G019 | Stochastic-Threshold Mean Reversion on SPY (IB TWS)](#g019--stochastic-threshold-mean-reversion-on-spy-ib-tws)
-  - [G020 | Two-Day Dip with Five-Session Hold](#g020--two-day-dip-with-five-session-hold)
+  - [G019 | Stochastic-Threshold Mean Reversion on SPY (IB TWS)](#g019--stochastic-threshold-mean-reversion-on-spy-ib-tws) — DUPLICATE (S001)
+  - [G020 | Two-Day Dip with Five-Session Hold](#g020--two-day-dip-with-five-session-hold) — DUPLICATE (S007)
   - [G021 | Volume-Adjusted Daily Return Reversal](#g021--volume-adjusted-daily-return-reversal)
   - [G022 | Volume-Adjusted Intraday Reversal and Directional Sizing](#g022--volume-adjusted-intraday-reversal-and-directional-sizing)
 - [Pairs, Spread and Statistical Arbitrage](#pairs-spread-and-statistical-arbitrage) (44)
   - [G023 | ADF+Hurst+Half-Life Screened Pair Reversion with Bollinger Distance Entry](#g023--adfhursthalf-life-screened-pair-reversion-with-bollinger-distance-entry)
-  - [G024 | Avellaneda-Lee PCA Eigenportfolio S-Score Reversion (Equity_StatArb implementation)](#g024--avellaneda-lee-pca-eigenportfolio-s-score-reversion-equity_statarb-implementation)
-  - [G025 | Avellaneda-Lee PCA Eigenportfolio S-Score Reversion](#g025--avellaneda-lee-pca-eigenportfolio-s-score-reversion)
-  - [G026 | Bollinger-Band EWA/EWC Pair Spread Reversion](#g026--bollinger-band-ewaewc-pair-spread-reversion)
-  - [G027 | Chan Cointegrated-Pair Z-Score Backtester (PairTradeR)](#g027--chan-cointegrated-pair-z-score-backtester-pairtrader)
-  - [G028 | Cointegrated Pair Spread Reversion with Risk Limits](#g028--cointegrated-pair-spread-reversion-with-risk-limits)
-  - [G029 | Cointegrated Pair Z-Score Mean Reversion](#g029--cointegrated-pair-z-score-mean-reversion)
-  - [G030 | Commodity Crack-Spread Cointegration Reversion](#g030--commodity-crack-spread-cointegration-reversion)
+  - [G024 | Avellaneda-Lee PCA Eigenportfolio S-Score Reversion (Equity_StatArb implementation)](#g024--avellaneda-lee-pca-eigenportfolio-s-score-reversion-equity_statarb-implementation) — DUPLICATE (S078)
+  - [G025 | Avellaneda-Lee PCA Eigenportfolio S-Score Reversion](#g025--avellaneda-lee-pca-eigenportfolio-s-score-reversion) — DUPLICATE (S078)
+  - [G026 | Bollinger-Band EWA/EWC Pair Spread Reversion](#g026--bollinger-band-ewaewc-pair-spread-reversion) — DUPLICATE (S071)
+  - [G027 | Chan Cointegrated-Pair Z-Score Backtester (PairTradeR)](#g027--chan-cointegrated-pair-z-score-backtester-pairtrader) — DUPLICATE (S071)
+  - [G028 | Cointegrated Pair Spread Reversion with Risk Limits](#g028--cointegrated-pair-spread-reversion-with-risk-limits) — DUPLICATE (S071)
+  - [G029 | Cointegrated Pair Z-Score Mean Reversion](#g029--cointegrated-pair-z-score-mean-reversion) — DUPLICATE (S071)
+  - [G030 | Commodity Crack-Spread Cointegration Reversion](#g030--commodity-crack-spread-cointegration-reversion) — DUPLICATE (S071)
   - [G031 | Crude-Oil Calendar-Spread Bollinger Mean Reversion (CL front vs second month)](#g031--crude-oil-calendar-spread-bollinger-mean-reversion-cl-front-vs-second-month)
-  - [G032 | Crypto Pair Z-Score Reversion (BTC/ETH, Johansen screening)](#g032--crypto-pair-z-score-reversion-btceth-johansen-screening)
+  - [G032 | Crypto Pair Z-Score Reversion (BTC/ETH, Johansen screening)](#g032--crypto-pair-z-score-reversion-btceth-johansen-screening) — DUPLICATE (S071)
   - [G033 | Decorrelation-Gated Buy-the-Loser Pair Rotation (PEP/KO example)](#g033--decorrelation-gated-buy-the-loser-pair-rotation-pepko-example)
-  - [G034 | Kalman Forecast-Error Pair Reversion](#g034--kalman-forecast-error-pair-reversion)
-  - [G035 | Kalman-Updated Hedge-Ratio Pair Z-Score Strategy](#g035--kalman-updated-hedge-ratio-pair-z-score-strategy)
-  - [G036 | Ornstein–Uhlenbeck Pair-Spread Z-Score](#g036--ornsteinuhlenbeck-pair-spread-z-score)
+  - [G034 | Kalman Forecast-Error Pair Reversion](#g034--kalman-forecast-error-pair-reversion) — DUPLICATE (S071)
+  - [G035 | Kalman-Updated Hedge-Ratio Pair Z-Score Strategy](#g035--kalman-updated-hedge-ratio-pair-z-score-strategy) — DUPLICATE (S071)
+  - [G036 | Ornstein–Uhlenbeck Pair-Spread Z-Score](#g036--ornsteinuhlenbeck-pair-spread-z-score) — DUPLICATE (S071)
   - [G037 | Partial-Cointegration Kalman Residual Reversion](#g037--partial-cointegration-kalman-residual-reversion)
-  - [G038 | ADF Cointegration Screener over Vanguard ETFs](#g038--adf-cointegration-screener-over-vanguard-etfs)
+  - [G038 | ADF Cointegration Screener over Vanguard ETFs](#g038--adf-cointegration-screener-over-vanguard-etfs) — DUPLICATE (S071)
   - [G039 | Barra Idiosyncratic Residual Return Reversal](#g039--barra-idiosyncratic-residual-return-reversal)
-  - [G040 | Bayesian-Optimized OU Half-Life Pair Reversion](#g040--bayesian-optimized-ou-half-life-pair-reversion)
+  - [G040 | Bayesian-Optimized OU Half-Life Pair Reversion](#g040--bayesian-optimized-ou-half-life-pair-reversion) — DUPLICATE (S071)
   - [G041 | Commodity Basis Reversal: Outright and Calendar-Spread Variants](#g041--commodity-basis-reversal-outright-and-calendar-spread-variants)
   - [G042 | Commodity Futures Intra-Curve F3/F0 Steepener](#g042--commodity-futures-intra-curve-f3f0-steepener)
   - [G043 | Copula Conditional-Probability Pair Trading](#g043--copula-conditional-probability-pair-trading)
   - [G044 | Daily PCA Idiosyncratic-Residual Reversal](#g044--daily-pca-idiosyncratic-residual-reversal)
-  - [G045 | Distance-Selected Pair Spread Reversion](#g045--distance-selected-pair-spread-reversion)
+  - [G045 | Distance-Selected Pair Spread Reversion](#g045--distance-selected-pair-spread-reversion) — DUPLICATE (S071)
   - [G046 | Dynamic Vasicek Pair Reversion with Market-Factor Adjustment](#g046--dynamic-vasicek-pair-reversion-with-market-factor-adjustment)
-  - [G047 | Eight-Session Bollinger Band Pair Reversion](#g047--eight-session-bollinger-band-pair-reversion)
-  - [G048 | Granger-Causality-Gated Cointegrated Pair Reversion](#g048--granger-causality-gated-cointegrated-pair-reversion)
+  - [G047 | Eight-Session Bollinger Band Pair Reversion](#g047--eight-session-bollinger-band-pair-reversion) — DUPLICATE (S071)
+  - [G048 | Granger-Causality-Gated Cointegrated Pair Reversion](#g048--granger-causality-gated-cointegrated-pair-reversion) — DUPLICATE (S071)
   - [G049 | Intraday PCA Residual Mean Reversion](#g049--intraday-pca-residual-mean-reversion)
   - [G050 | Kagi-Filtered Pair Spread Trend/Reversal Switch](#g050--kagi-filtered-pair-spread-trendreversal-switch)
-  - [G051 | Kalman Hedge-Ratio Cointegration Pair Reversion](#g051--kalman-hedge-ratio-cointegration-pair-reversion)
+  - [G051 | Kalman Hedge-Ratio Cointegration Pair Reversion](#g051--kalman-hedge-ratio-cointegration-pair-reversion) — DUPLICATE (S071)
   - [G052 | Kalman-Hedge-Ratio Pair Mean Reversion with Beta-Stability Gate](#g052--kalman-hedge-ratio-pair-mean-reversion-with-beta-stability-gate)
   - [G053 | LMAR Hidden-Regime Pair Spread Forecast](#g053--lmar-hidden-regime-pair-spread-forecast)
   - [G054 | Lead–Lag Follower Versus Market Strategy](#g054--leadlag-follower-versus-market-strategy)
-  - [G055 | PCA-Factor Residual Stat-Arb Course Strategies (R, NYU Jerzy FRE6871)](#g055--pca-factor-residual-stat-arb-course-strategies-r-nyu-jerzy-fre6871)
+  - [G055 | PCA-Factor Residual Stat-Arb Course Strategies (R, NYU Jerzy FRE6871)](#g055--pca-factor-residual-stat-arb-course-strategies-r-nyu-jerzy-fre6871) — DUPLICATE (S071)
   - [G056 | Quasi-Multivariate Correlated-Portfolio Spread Reversal](#g056--quasi-multivariate-correlated-portfolio-spread-reversal)
-  - [G057 | Regime- and Momentum-Filtered Adaptive Z-Score Pair Strategy](#g057--regime--and-momentum-filtered-adaptive-z-score-pair-strategy)
-  - [G058 | Rolling Cointegration Pair Z-Score Prototype](#g058--rolling-cointegration-pair-z-score-prototype)
+  - [G057 | Regime- and Momentum-Filtered Adaptive Z-Score Pair Strategy](#g057--regime--and-momentum-filtered-adaptive-z-score-pair-strategy) — DUPLICATE (S071)
+  - [G058 | Rolling Cointegration Pair Z-Score Prototype](#g058--rolling-cointegration-pair-z-score-prototype) — DUPLICATE (S071)
   - [G059 | Shumway–Stoffer State-Space Pair Mean Reversion](#g059--shumwaystoffer-state-space-pair-mean-reversion)
   - [G060 | Soybean Crush-Spread Fair-Value Mean Reversion](#g060--soybean-crush-spread-fair-value-mean-reversion)
   - [G061 | Tick-Level Beta-Expected-Price Pair Reversion](#g061--tick-level-beta-expected-price-pair-reversion)
   - [G062 | Tick-Level Kalman Cointegration Error Reversion](#g062--tick-level-kalman-cointegration-error-reversion)
   - [G063 | Treasury Futures Z/T-Score Relative-Value Entry](#g063--treasury-futures-zt-score-relative-value-entry)
   - [G064 | Two-Regime Markov-Switching Pair Spread](#g064--two-regime-markov-switching-pair-spread)
-  - [G065 | Wavelet-Filtered Cointegrated Pair Reversion](#g065--wavelet-filtered-cointegrated-pair-reversion)
-  - [G066 | Zipline Cointegration Pair Z-Score (z_signal=2, z_exit=0, lookback=200)](#g066--zipline-cointegration-pair-z-score-z_signal2-z_exit0-lookback200)
+  - [G065 | Wavelet-Filtered Cointegrated Pair Reversion](#g065--wavelet-filtered-cointegrated-pair-reversion) — DUPLICATE (S071)
+  - [G066 | Zipline Cointegration Pair Z-Score (z_signal=2, z_exit=0, lookback=200)](#g066--zipline-cointegration-pair-z-score-z_signal2-z_exit0-lookback200) — DUPLICATE (S071)
 - [Trend Following and Breakout](#trend-following-and-breakout) (29)
   - [G067 | Mount Lucas (MLM) Futures Trend Index - 200d MA + Universe Vol Gate, Monthly Execution](#g067--mount-lucas-mlm-futures-trend-index---200d-ma--universe-vol-gate-monthly-execution)
   - [G068 | Stochastic-Oversold-Exit + RSI-50 Confirmation with Chandelier(22,2) Trailing Exit](#g068--stochastic-oversold-exit--rsi-50-confirmation-with-chandelier222-trailing-exit)
-  - [G069 | 20-Day-High Breakout Trend (Hyperliquid)](#g069--20-day-high-breakout-trend-hyperliquid)
+  - [G069 | 20-Day-High Breakout Trend (Hyperliquid)](#g069--20-day-high-breakout-trend-hyperliquid) — DUPLICATE (S036)
   - [G070 | ATR SuperTrend Direction-Reversal Strategy](#g070--atr-supertrend-direction-reversal-strategy)
-  - [G071 | Keltner Mid-Channel Pullback-in-Trend EA](#g071--keltner-mid-channel-pullback-in-trend-ea)
+  - [G071 | Keltner Mid-Channel Pullback-in-Trend EA](#g071--keltner-mid-channel-pullback-in-trend-ea) — DUPLICATE (S087)
   - [G072 | MBBS Three-Speed EWMA CTA Momentum](#g072--mbbs-three-speed-ewma-cta-momentum)
-  - [G073 | Three-Day Pullback Above SMA200](#g073--three-day-pullback-above-sma200)
-  - [G074 | Turtle Donchian Reversal (26/10)](#g074--turtle-donchian-reversal-2610)
+  - [G073 | Three-Day Pullback Above SMA200](#g073--three-day-pullback-above-sma200) — DUPLICATE (S007)
+  - [G074 | Turtle Donchian Reversal (26/10)](#g074--turtle-donchian-reversal-2610) — DUPLICATE (S036)
   - [G075 | Adaptive Renko Trend Following with Partial De-Risking](#g075--adaptive-renko-trend-following-with-partial-de-risking)
   - [G076 | Awesome Oscillator Saucer and Zero-Line Momentum](#g076--awesome-oscillator-saucer-and-zero-line-momentum)
   - [G077 | CTA 1.0 Binary EWM Crossover](#g077--cta-10-binary-ewm-crossover)
@@ -101,7 +101,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G080 | CTA 4.0 Robust Oscillator with Risk-Parity Allocation](#g080--cta-40-robust-oscillator-with-risk-parity-allocation)
   - [G081 | CTA 5.0 DCC Correlation-Aware Risk Parity](#g081--cta-50-dcc-correlation-aware-risk-parity)
   - [G082 | Dual Thrust Opening-Range Breakout](#g082--dual-thrust-opening-range-breakout)
-  - [G083 | Golden-Cross Moving-Average Trend](#g083--golden-cross-moving-average-trend)
+  - [G083 | Golden-Cross Moving-Average Trend](#g083--golden-cross-moving-average-trend) — DUPLICATE (S089)
   - [G084 | Leveraged ETF 2 PM Trend-Day Close Trade](#g084--leveraged-etf-2-pm-trend-day-close-trade)
   - [G085 | Local-Extreme Futures Breakout](#g085--local-extreme-futures-breakout)
   - [G086 | MACD-Cross + 10-Bar S/R Break Scalper (XAU/USD M1)](#g086--macd-cross--10-bar-sr-break-scalper-xauusd-m1)
@@ -110,9 +110,9 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G089 | Median-Renko SuperTrend Reversal EA](#g089--median-renko-supertrend-reversal-ea)
   - [G090 | Median-Renko Two-Moving-Average Crossover](#g090--median-renko-two-moving-average-crossover)
   - [G091 | Parabolic SAR Stop-and-Reverse Trend](#g091--parabolic-sar-stop-and-reverse-trend)
-  - [G092 | Rayner-Teo Moving-Average Pullback Strategy (RT_MA)](#g092--rayner-teo-moving-average-pullback-strategy-rt_ma)
-  - [G093 | SMA Crossover Trend (50/200; grid-optimized pairs)](#g093--sma-crossover-trend-50200-grid-optimized-pairs)
-  - [G094 | Simple-Moving-Average MACD Oscillator Crossover](#g094--simple-moving-average-macd-oscillator-crossover)
+  - [G092 | Rayner-Teo Moving-Average Pullback Strategy (RT_MA)](#g092--rayner-teo-moving-average-pullback-strategy-rt_ma) — DUPLICATE (S087)
+  - [G093 | SMA Crossover Trend (50/200; grid-optimized pairs)](#g093--sma-crossover-trend-50200-grid-optimized-pairs) — DUPLICATE (S089)
+  - [G094 | Simple-Moving-Average MACD Oscillator Crossover](#g094--simple-moving-average-macd-oscillator-crossover) — DUPLICATE (S089)
   - [G095 | Singular-Spectrum-Analysis Trend Signal](#g095--singular-spectrum-analysis-trend-signal)
 - [Momentum, Rotation and Cross-Sectional Factors](#momentum-rotation-and-cross-sectional-factors) (21)
   - [G096 | ANTICOR Anti-Correlation Wealth Transfer](#g096--anticor-anti-correlation-wealth-transfer)
@@ -121,8 +121,8 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G099 | Online Portfolio Selection Algorithm Zoo (OLMAR/PAMR/CWMR/RMR/ANTICOR/CORN/UP/ONS...)](#g099--online-portfolio-selection-algorithm-zoo-olmarpamrcwmrrmranticorcornupons)
   - [G100 | QARMII 252-Day Binary Momentum Portfolio](#g100--qarmii-252-day-binary-momentum-portfolio)
   - [G101 | Quadratic Dip-Depth Sizing Formula on VTI/QQQ (SGOV cash park)](#g101--quadratic-dip-depth-sizing-formula-on-vtiqqq-sgov-cash-park)
-  - [G102 | Top-50 S&P500 12-Month Momentum Portfolio (with HQM low-quality-momentum filter variant)](#g102--top-50-sp500-12-month-momentum-portfolio-with-hqm-low-quality-momentum-filter-variant)
-  - [G103 | Top-One Positive-Slope Momentum Rotation](#g103--top-one-positive-slope-momentum-rotation)
+  - [G102 | Top-50 S&P500 12-Month Momentum Portfolio (with HQM low-quality-momentum filter variant)](#g102--top-50-sp500-12-month-momentum-portfolio-with-hqm-low-quality-momentum-filter-variant) — DUPLICATE (S041)
+  - [G103 | Top-One Positive-Slope Momentum Rotation](#g103--top-one-positive-slope-momentum-rotation) — DUPLICATE (S043)
   - [G104 | 232-Session-Lagged Industry-Relative Momentum Factor](#g104--232-session-lagged-industry-relative-momentum-factor)
   - [G105 | Beta-Divided Multi-Period Return Reversal Factor](#g105--beta-divided-multi-period-return-reversal-factor)
   - [G106 | Cross-Sectional 252-Session Commodity Momentum](#g106--cross-sectional-252-session-commodity-momentum)
@@ -145,7 +145,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G122 | Alpha191 Formulaic Alpha Library](#g122--alpha191-formulaic-alpha-library)
   - [G123 | Alpha191-020 Six-Session Price Momentum](#g123--alpha191-020-six-session-price-momentum)
 - [Price Action, Candlestick and Smart-Money Patterns](#price-action-candlestick-and-smart-money-patterns) (7)
-  - [G124 | Bollinger-Band Touch then Pullback-to-MA Continuation Entry](#g124--bollinger-band-touch-then-pullback-to-ma-continuation-entry)
+  - [G124 | Bollinger-Band Touch then Pullback-to-MA Continuation Entry](#g124--bollinger-band-touch-then-pullback-to-ma-continuation-entry) — DUPLICATE (S050)
   - [G125 | ICT Smart-Money-Concepts Signal Primitives (FVG, Order Blocks, BOS/CHoCH, Liquidity, Premium/Discount)](#g125--ict-smart-money-concepts-signal-primitives-fvg-order-blocks-boschoch-liquidity-premiumdiscount)
   - [G126 | STAR-EA ICT 12-Scenario Engine with AMD Phase Gating](#g126--star-ea-ict-12-scenario-engine-with-amd-phase-gating)
   - [G127 | Bollinger Bands Bottom-W Pattern Reversal](#g127--bollinger-bands-bottom-w-pattern-reversal)
@@ -163,16 +163,16 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G138 | Options Strategy Backtest Cookbook Set (PyPatel + Option Greeks book)](#g138--options-strategy-backtest-cookbook-set-pypatel--option-greeks-book)
   - [G139 | VIX Term-Structure and Pair-Spread Volatility Study](#g139--vix-term-structure-and-pair-spread-volatility-study)
 - [Calendar, Session and Overnight Effects](#calendar-session-and-overnight-effects) (7)
-  - [G140 | Equity Overnight Return Hold](#g140--equity-overnight-return-hold)
-  - [G141 | Close-to-Open Gap Reversal Forecast](#g141--close-to-open-gap-reversal-forecast)
+  - [G140 | Equity Overnight Return Hold](#g140--equity-overnight-return-hold) — DUPLICATE (S021)
+  - [G141 | Close-to-Open Gap Reversal Forecast](#g141--close-to-open-gap-reversal-forecast) — DUPLICATE (S018)
   - [G142 | Gao 2018 Equity ETF Intraday Momentum](#g142--gao-2018-equity-etf-intraday-momentum)
   - [G143 | Hour-of-Day Session Gating (HourBasedStrategy)](#g143--hour-of-day-session-gating-hourbasedstrategy)
   - [G144 | London Session Opening-Range Breakout](#g144--london-session-opening-range-breakout)
-  - [G145 | Month-End Long After Negative Prior Month](#g145--month-end-long-after-negative-prior-month)
+  - [G145 | Month-End Long After Negative Prior Month](#g145--month-end-long-after-negative-prior-month) — DUPLICATE (S079)
   - [G146 | Weekday-Conditioned Beta-Adjusted Return Forecast](#g146--weekday-conditioned-beta-adjusted-return-forecast)
 - [News, Sentiment and Alternative Data](#news-sentiment-and-alternative-data) (12)
-  - [G147 | Binance News-Sentiment Bot - Headline Sentiment -> Buy New Listings/Alts](#g147--binance-news-sentiment-bot---headline-sentiment---buy-new-listingsalts)
-  - [G148 | Earnings-Surprise Drift Factor](#g148--earnings-surprise-drift-factor)
+  - [G147 | Binance News-Sentiment Bot - Headline Sentiment -> Buy New Listings/Alts](#g147--binance-news-sentiment-bot---headline-sentiment---buy-new-listingsalts) — DUPLICATE (S056)
+  - [G148 | Earnings-Surprise Drift Factor](#g148--earnings-surprise-drift-factor) — DUPLICATE (S054)
   - [G149 | WSB Mention-Frequency Deviation Long/Short](#g149--wsb-mention-frequency-deviation-longshort)
   - [G150 | 10-K Filing NLP Long-Term Growth Prediction](#g150--10-k-filing-nlp-long-term-growth-prediction)
   - [G151 | Analyst Price-Target Deviation Reversion](#g151--analyst-price-target-deviation-reversion)
@@ -182,7 +182,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G155 | Hard-to-Borrow Fee Crowding Signal](#g155--hard-to-borrow-fee-crowding-signal)
   - [G156 | Scheduled-News Straddle Spike (EarnForex News Trader EA)](#g156--scheduled-news-straddle-spike-earnforex-news-trader-ea)
   - [G157 | Sell-Side Analyst Estimate Revision Forecast](#g157--sell-side-analyst-estimate-revision-forecast)
-  - [G158 | Twitter Sentiment Stock-Movement Prediction](#g158--twitter-sentiment-stock-movement-prediction)
+  - [G158 | Twitter Sentiment Stock-Movement Prediction](#g158--twitter-sentiment-stock-movement-prediction) — DUPLICATE (S056)
 - [Supervised Machine Learning Prediction](#supervised-machine-learning-prediction) (15)
   - [G159 | Machine-Learning-for-Trading (Stefan Jansen) - Book Strategy Compendium](#g159--machine-learning-for-trading-stefan-jansen---book-strategy-compendium)
   - [G160 | QLib Model Zoo on Daily Alpha Factors (LightGBM/MLP/LSTM/ALSTM/TFT/Transformer)](#g160--qlib-model-zoo-on-daily-alpha-factors-lightgbmmlplstmalstmtfttransformer)
@@ -247,6 +247,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G001 | Daily-Checkpoint Oversold-Bounce with Trend-Midpoint Exits (Mag10 + index ETFs)
 - priority: High — Fully specified daily-bar oversold system with complete exits - immediately testable on the declared universe.
+- overlap: S001 (existing catalog) — Same Connors-family mechanism: oversold-oscillator entry (RSI/capitulation) on liquid names + index ETFs with a short-MA reclaim exit; the notes already suggest converging to an RSI(2)<5 variant.
 - direction: long | market: US large-caps (AAPL MSFT GOOGL AMZN META NVDA TSLA AVGO AMD ORCL) + SPY/IWM/DIA | timeframe: 1d (daily-native)
 - indicators: RSI(14), 20-day SMA, 50-day high, 20-day average volume
 - Overview: Oversold-bounce on a fixed 13-name liquid universe, checked daily: buy on RSI(14)<30 below the 20-MA or a >=4% capitulation day on 1.5x volume, prefer the name furthest below its 50-day high; exit at the 20-MA touch, -5% stop, or 10-day time stop. Clean, complete, daily-bar retail mean-reversion spec with honest warnings about retail overtrading.
@@ -264,6 +265,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G002 | Bollinger(30,2) Band-Touch Mean Reversion with Neutral Zone (EUR/USD)
 - priority: Medium — The neutral-zone cost-efficiency insight is real and directly transferable to daily-bar S011 variants.
+- overlap: S011 (existing catalog) — Bollinger band-touch mean reversion flat between bands; the file notes this is the same rule family as S011 (neutral-zone variant).
 - direction: long/short | market: FX EUR/USD (6h bars) | timeframe: 6h (intraday-adaptable)
 - indicators: SMA30 +/- 2 std Bollinger bands
 - Overview: Band-touch mean reversion that stays FLAT between the bands: long only below the lower band, short only above the upper band, neutral otherwise. The neutral zone is the point of the strategy - fewer, higher-conviction trades and materially lower transaction costs than always-in-market signals; the notebooks show it outperforming buy-and-hold with less risk after costs.
@@ -308,6 +310,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G005 | Moving-Average-Threshold Single-Asset Mean Reversion
 - priority: Medium — Entry and exit are exact and costs are supported, but the fixed dollar threshold is not portable across prices.
+- overlap: S011 (existing catalog) — Deviation-from-SMA fade with exit at the mean cross; a fixed-dollar-threshold variant of the S011 z-score/band family.
 - direction: long/short | market: US-listed gold/energy equities; examples GDX and GLD | timeframe: 1d (daily-native)
 - indicators: Rolling SMA and price distance from the SMA
 - Overview: The backtester trades deviations from a simple moving average, entering against large price dislocations and exiting when price crosses back through the average. It is a transparent threshold mean-reversion rule.
@@ -351,6 +354,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G008 | Bollinger Dip in an Uptrend with Multi-Asset Allocation
 - priority: Low — A regime-filtered dip-buying thesis is plausible but the exit and some indicator defaults are unspecified.
+- overlap: S011 (existing catalog) — Lower-Bollinger-band dip buy gated on a market uptrend - the S011 band entry plus its regime gate.
 - direction: long | market: US equities; Backtrader sample | timeframe: 1d (daily-native)
 - indicators: Bollinger Bands and market uptrend filter
 - Overview: The intermediate strategy buys a lower-band pullback only when the broad market is considered uptrending, combining single-name mean reversion with a market-regime gate.
@@ -368,6 +372,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G009 | Bollinger(20,2.5)-Cross + RSI(14) Reversal EA (GBP/USD MT4)
 - priority: Low — Band-cross + RSI confluence is a known weak-to-moderate signal; unverifiable return claim.
+- overlap: S011 (existing catalog) — Close below lower Bollinger band + RSI<30 entry = the ex-S012 variant cell (lower-band close with RSI filter) merged into S011.
 - direction: long/short | market: FX GBP/USD (MT4) | timeframe: chart TF (unspecified) (intraday-adaptable)
 - indicators: Bollinger(20, 2.5sd) bands on prior bars, RSI(14) 30/70
 - Overview: MQL4 EA that buys the bar AFTER a close below the lower Bollinger(20,2.5) band: previous bar bearish AND closed below the band AND RSI<30, with the band cross having just occurred (prior-close above prev-band). Sell mirror at the upper band with RSI>70. Includes trailing logic and a prop-challenge profit-target check. Classic band-cross + RSI confluence fade.
@@ -402,6 +407,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G011 | EUR/USD Z-Score Mean Reversion (OANDA M5)
 - priority: Low — Intraday-only trivial z-score fade; daily analog already in catalog.
+- overlap: S011 (existing catalog) — Z-score mean reversion on M5 EUR/USD; the file notes the daily analog is already in the catalog.
 - direction: long/short | market: FX EUR/USD via OANDA | timeframe: M5 (intraday-only)
 - indicators: Rolling 20-bar SMA and std of closes -> z-score
 - Overview: Minimal z-score mean-reversion loop on EUR/USD 5-minute candles: sell when z-score exceeds the overbought threshold, buy when below oversold. Pure price-stretch fade.
@@ -436,6 +442,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G013 | N-Bar Contrarian Sign-Flip (mean of last N returns)
 - priority: Low — Daily analog already covered by catalog reversal family; value is the honest cost analysis.
+- overlap: S007 (existing catalog) — Always-in-market sign-flip fade of the trailing N-bar return (long after a net N-bar decline); the unconditioned version of the catalog pullback/down-streak reversal rules (cf. S007/S030).
 - direction: long/short | market: FX EUR/USD (6h bars) | timeframe: 6h (intraday-adaptable)
 - indicators: Mean of the last N bar returns (N=3 primary; optimized 51 on 6h)
 - Overview: Simplest possible reversal: if the mean of the last 3 bars' returns is negative go long, positive go short, always in market. Demonstrates both the short-horizon reversal effect and the turnover problem - the notebook's own analysis shows transaction costs eating ~50% of outperformance and 553 trades.
@@ -505,6 +512,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G017 | RSI(14) 30/70 Reversal
 - priority: Low — Exact thresholds are given, but RSI(14) 30/70 is a broad tutorial rule without a regime filter or evidence.
+- overlap: S003 (existing catalog) — RSI-below-low-threshold entry with RSI-above-high-threshold exit - the same rule shape as S003 with slower RSI(14) 30/70 parameters and no regime gate.
 - direction: long/short | market: Yahoo Finance equities | timeframe: 1d (daily-native)
 - indicators: Smoothed 14-session RSI
 - Overview: The code maps RSI extremes to contrarian positions, buying oversold readings and shorting overbought readings. It is a basic RSI(14) oscillator rule, not the catalog's RSI(2) family.
@@ -538,6 +546,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G019 | Stochastic-Threshold Mean Reversion on SPY (IB TWS)
 - priority: Low — Generic stochastic MR on SPY; overlapping catalog family.
+- overlap: S001 (existing catalog) — Stochastic-oversold buy on SPY with a high-threshold exit; the priority note already flags the overlapping catalog family.
 - direction: long | market: SPY via Interactive Brokers | timeframe: intraday (intraday-adaptable)
 - indicators: Stochastic oscillator thresholds
 - Overview: Early-stage IB/TWS bot: buys SPY when the stochastic falls below an oversold threshold and sells when it returns to high levels - plain stochastic mean reversion on the index.
@@ -555,6 +564,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G020 | Two-Day Dip with Five-Session Hold
 - priority: Low — The rule is short and reproducible but has no regime gate, cost model, or evidence of robust edge.
+- overlap: S007 (existing catalog) — Buy a two-day dip and hold five sessions; the S007 multi-day-pullback rule without the SMA200 gate.
 - direction: long | market: Equities; Backtrader sample | timeframe: 1d (daily-native)
 - indicators: Two consecutive lower closes
 - Overview: The beginner strategy buys a short two-day price dip and holds for a fixed five sessions, testing short-horizon reversal without additional indicators.
@@ -629,6 +639,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G024 | Avellaneda-Lee PCA Eigenportfolio S-Score Reversion (Equity_StatArb implementation)
 - priority: High — Published market-neutral methodology with explicit s-score thresholds and daily-bar mechanics; canonical stat-arb backbone.
+- overlap: S078 (existing catalog) — Avellaneda-Lee PCA-residual OU s-score market-neutral basket = the stage-2 design of S078 (s-score thresholds instead of residual quintiles).
 - direction: market-neutral | market: US equities | timeframe: 1d (daily-native)
 - indicators: PCA of standardized returns; OLS residual regression; AR(1) s-score = -m/sigma_eq
 - Overview: Implements Avellaneda & Lee (2010) statistical arbitrage: regress each stock's returns on PCA eigenportfolio factor returns, accumulate residuals, fit AR(1) to get an s-score; long stocks with deeply negative s-score, short positive. Market-neutral cross-sectional mean reversion; the paper historically reported Sharpe ~1.1-1.5 before costs.
@@ -647,6 +658,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G025 | Avellaneda-Lee PCA Eigenportfolio S-Score Reversion
 - priority: Medium — The portfolio has a clear daily signal and published basis, but code evidence is a short gross demonstration.
+- overlap: S078 (existing catalog) — Same Avellaneda-Lee eigenportfolio residual s-score stat-arb basket as G024; maps to the stage-2 design of S078.
 - direction: market-neutral | market: US equities | timeframe: 1d (daily-native)
 - indicators: 15 PCA components, 252-session correlation window, 60-session residual window, OU S-score
 - Overview: The strategy decomposes a 176-stock universe into principal-component factor returns, fits residuals for each eigenportfolio, and trades stocks whose residual S-score is sufficiently extreme. It is a basket/stat-arb method rather than a two-name pair.
@@ -755,6 +767,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G034 | Kalman Forecast-Error Pair Reversion
 - priority: Medium — The method is explicit, sequential, and daily-adaptable, but the example is one pair and lacks cost/OOS evidence.
+- overlap: S071 (existing catalog) — Kalman-updated hedge ratio with forecast-error standard-deviation entries/exits; a dynamic-hedge variant of the cointegrated-pair z-score rule.
 - direction: market-neutral | market: EWC/EWA Canadian/Australian equity ETFs | timeframe: 1d (daily-native)
 - indicators: Kalman hedge ratio/intercept, forecast error and forecast-error standard deviation
 - Overview: A Kalman filter updates the hedge ratio and intercept as each pair price observation arrives; forecast errors are converted to target pair quantities using standard-deviation thresholds. This is a dynamic hedge-ratio alternative to fixed OLS pairs.
@@ -773,6 +786,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G035 | Kalman-Updated Hedge-Ratio Pair Z-Score Strategy
 - priority: Medium — The dynamic hedge ratio and risk-managed pair execution are explicit, but performance depends on pair-specific calibration and is not independently verified.
+- overlap: S071 (existing catalog) — Kalman hedge ratio + rolling spread z-score entry/exit thresholds; a dynamic-hedge variant of S071.
 - direction: market-neutral | market: US equities | timeframe: Daily lookback; bar-frequency position updates (daily-native)
 - indicators: Kalman hedge ratio, OHLC-average/log spread, rolling mean and standard deviation, optional Hurst/ADF tests
 - Overview: A Kalman filter updates the hedge ratio from daily pair prices; the strategy forms a spread and standardizes the latest bar against lookback mean/std. Optional Hurst and ADF gates reject non-mean-reverting pairs, and the broker risk manager sizes both legs.
@@ -844,6 +858,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G040 | Bayesian-Optimized OU Half-Life Pair Reversion
 - priority: Low — The parameterization is precise and ties exits to estimated mean-reversion speed, but optimization and evaluation reuse the same period.
+- overlap: S071 (existing catalog) — Cointegrated pair entered at spread mean +/-1.5 sigma with mean/stop/half-life exits; a threshold-tuned variant of S071.
 - direction: market-neutral | market: US equities; example pair MSFT/ACN | timeframe: 1d (daily-native)
 - indicators: Log-price spread, rolling z-score, OU kappa and half-life
 - Overview: The system screens pairs for cointegration and stationarity, estimates mean-reversion speed/half-life, and trades spread extremes with a stop and half-life-scaled time limit. Gaussian-process Bayesian optimization tunes the spread thresholds.
@@ -933,6 +948,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G045 | Distance-Selected Pair Spread Reversion
 - priority: Low — The distance method has complete spread entry/exit logic, but sample-specific selection and costs limit confidence.
+- overlap: S071 (existing catalog) — Distance-selected pairs traded at spread mean +/-2 SD (Gatev-style selection); a pair-selection variant of S071.
 - direction: market-neutral | market: Equities | timeframe: 1d (daily-native)
 - indicators: Normalized price-distance selection and rolling spread mean/standard deviation
 - Overview: The strategy selects pairs by distance between normalized price paths and trades deviations from the rolling spread mean. It includes a profit/loss limit and optional borrow-cost handling.
@@ -967,6 +983,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G047 | Eight-Session Bollinger Band Pair Reversion
 - priority: Low — The entry and exit are explicit but the sample is educational and the backtest is surface-level.
+- overlap: S071 (existing catalog) — Fixed-pair spread Bollinger bands (8-session mean +/-0.8 sigma) exiting at the mean; a short-window variant of S071.
 - direction: market-neutral | market: HMC/HYMTF equity pair | timeframe: 1d (daily-native)
 - indicators: 8-session rolling mean/std of the HMC–HYMTF price spread
 - Overview: The notebook uses a short-window Bollinger channel on a cointegrated stock pair and trades the spread back to its rolling mean. It is a concrete pair portfolio rather than a generic indicator tutorial.
@@ -984,6 +1001,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G048 | Granger-Causality-Gated Cointegrated Pair Reversion
 - priority: Low — The code's causal screen and trade rules are explicit, but the notebook's in-sample ranking risks selection bias.
+- overlap: S071 (existing catalog) — Cointegrated pair with +/-2 sigma spread entries and exit at zero, plus a Granger-causality pair screen; a screened variant of S071.
 - direction: market-neutral | market: Equities | timeframe: 1d (daily-native)
 - indicators: Engle–Granger/Johansen cointegration, Granger causality, OLS spread
 - Overview: The notebook screens cointegrated pairs for directional Granger predictability and then trades a residual spread. The causal filter adds a pair-selection condition to an otherwise conventional spread-reversion rule.
@@ -1035,6 +1053,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G051 | Kalman Hedge-Ratio Cointegration Pair Reversion
 - priority: Low — Dynamic hedge ratios are a useful twist, but parameters are optimized in-sample and cost assumptions are optional.
+- overlap: S071 (existing catalog) — Kalman hedge ratio + 2 SD residual entry / 0.5 SD exit; a dynamic-hedge variant of S071.
 - direction: market-neutral | market: Equities | timeframe: Daily bars with a 200-session Kalman estimation window (daily-native)
 - indicators: Kalman-filtered intercept and hedge ratio, residual-spread standard deviation
 - Overview: A Kalman filter updates the cointegration hedge ratio and spread volatility for a Backtrader pair strategy. The filter's dynamic coefficients distinguish it from the static OLS z-score baseline.
@@ -1103,6 +1122,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G055 | PCA-Factor Residual Stat-Arb Course Strategies (R, NYU Jerzy FRE6871)
 - priority: Low — Educational course code; strategies are canonical stat arb already covered by S071-style records.
+- overlap: S071 (existing catalog) — The priority note already states these canonical stat-arb strategies are covered by S071-style records (PCA residuals + standard cointegrated-pair mean reversion).
 - direction: long/short | market: US equities | timeframe: 1d (daily-native)
 - indicators: PCA on returns, OU/AR(1) calibration, cointegration tests
 - Overview: NYU FRE6871 course code implementing momentum and pairs/statistical-arbitrage backtests in R, including PCA-based factor residual returns (top PCs explaining >=80% variance) and standard cointegrated-pair mean reversion. Educational implementations of canonical stat-arb.
@@ -1139,6 +1159,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G057 | Regime- and Momentum-Filtered Adaptive Z-Score Pair Strategy
 - priority: Low — The rule set is unusually complete and costs are modeled, but its dynamic/regime complexity and lack of independent OOS evidence reduce priority.
+- overlap: S071 (existing catalog) — SPY/QQQ pair z-score with vol-adaptive thresholds (initialized +/-2 sigma), regime filter and momentum checks; a filtered variant of S071.
 - direction: market-neutral | market: US ETFs; default SPY/QQQ | timeframe: 1d (daily-native)
 - indicators: 30-session spread z-score, volatility-scaled thresholds, 50/200 spread SMA regime, 5-day spread ROC
 - Overview: This system combines a rolling spread z-score with volatility-adaptive thresholds, a spread trend/volatility regime filter, and short-term momentum checks. It avoids treating every extreme spread as a mean-reversion opportunity.
@@ -1269,6 +1290,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G065 | Wavelet-Filtered Cointegrated Pair Reversion
 - priority: Low — Denoising is a distinct signal-processing twist, but exact preprocessing parameters are not sufficiently pinned for replication.
+- overlap: S071 (existing catalog) — Cointegrated pair with +/-2 sigma spread entries exiting at zero, with wavelet denoising as preprocessing; a filtered variant of S071.
 - direction: market-neutral | market: Equities | timeframe: 1d (daily-native)
 - indicators: Wavelet-denoised prices/returns, cointegration, OLS residual spread
 - Overview: A wavelet preprocessing step is applied before pair screening and spread estimation, aiming to reduce high-frequency noise in daily prices. The residual still uses a thresholded mean-reversion position rule.
@@ -1360,6 +1382,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G071 | Keltner Mid-Channel Pullback-in-Trend EA
 - priority: Medium — Precise pullback-in-trend spec with sensible filters; the bar-midpoint condition and parallel-signal ranging filter are distinctive.
+- overlap: S087 (existing catalog) — Pullback below a rising moving average inside an ATR channel = the S087 pullback-in-trend-to-MA entry, with ATR TP/SL exits.
 - direction: long/short | market: FX (MT4) | timeframe: chart TF (param) (intraday-adaptable)
 - indicators: Keltner channel (MA + ATR height), MA slope, bar midpoint vs MA, ATR for exits
 - Overview: Buys when the MA is sloping UP, the bar's price midpoint is below the MA (pullback), and price is below the MA - i.e., a dip inside an uptrend bounded by the ATR channel; sells the mirror (MA sloping down, price above midpoint and MA). Exits are set 1 ATR from entry. A disciplined pullback-in-trend entry with an unusual 'midpoint of the bar' condition.
@@ -1698,6 +1721,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G092 | Rayner-Teo Moving-Average Pullback Strategy (RT_MA)
 - priority: Low — Mainstream pullback-in-trend system overlapping S087; exact parameters in the strategy doc.
+- overlap: S087 (existing catalog) — Rayner-Teo moving-average pullback in trend; the priority note already flags overlap with S087.
 - direction: long/short | market: FX (MT4) | timeframe: chart TF (param) (intraday-adaptable)
 - indicators: Moving averages (trend filter + pullback reference) per Rayner Teo MA strategy doc
 - Overview: Implementation of the Rayner Teo moving-average pullback strategy: trend filter via MA, entry on pullback toward the MA with momentum resumption, ATR-based management. Faithful port of a widely-taught discretionary swing strategy.
@@ -1715,6 +1739,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G093 | SMA Crossover Trend (50/200; grid-optimized pairs)
 - priority: Low — Golden cross is already in the catalog family (S089); value is the explicit overfitting/forward-test methodology.
+- overlap: S089 (existing catalog) — Canonical SMA golden/death cross (grid-optimized pairs including 50/200); the priority note places it in the S089 family.
 - direction: long/short | market: FX EUR/USD daily | timeframe: 1d (daily-native)
 - indicators: SMA_S vs SMA_L crossover; +1/-1 positions
 - Overview: Canonical golden/death-cross: long when SMA_S > SMA_L, short otherwise. Notebook brute-force optimizes the pair (found 46/137 best on-sample) and explicitly documents the overfitting trap and the need for forward testing.
@@ -1732,6 +1757,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G094 | Simple-Moving-Average MACD Oscillator Crossover
 - priority: Low — The rule is precise at the moving-average level but is a generic tutorial crossover without a verified edge.
+- overlap: S089 (existing catalog) — Fast-MA minus slow-MA oscillator = a two-moving-average crossover (the golden-cross mechanism) with configurable periods.
 - direction: long/short | market: Yahoo Finance equities | timeframe: 1d (daily-native)
 - indicators: Fast and slow moving averages of close; oscillator difference
 - Overview: This notebook defines a MACD-like oscillator from configurable moving averages and holds long while the fast average is above the slow average, otherwise flat/short according to the plotted signal implementation.
@@ -1885,6 +1911,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G103 | Top-One Positive-Slope Momentum Rotation
 - priority: Medium — The signal is precise, daily-native, and the notebook includes walk-forward windows, but concentrated top-one exposure and index-selection leakage risk remain.
+- overlap: S043 (existing catalog) — Cross-sectional momentum rotation holding the single top-ranked instrument by 250-day return/slope; a concentrated variant of the S043 rotation family.
 - direction: long | market: US equities; Nasdaq-100 constituents and selectable global equity indices | timeframe: 1d (daily-native)
 - indicators: 250-session log-price slope and 250-session price ROC
 - Overview: The engine selects the instrument with the highest recent log-price slope, gated by a positive 250-session return, and switches the portfolio to that single winner. This is a concentrated, long-only cross-sectional trend rotation.
@@ -2534,6 +2561,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G141 | Close-to-Open Gap Reversal Forecast
 - priority: Low — Overnight gaps are a plausible underreaction effect, but the code depends on intraday execution and beta/industry data.
+- overlap: S018 (existing catalog) — Fades large overnight gaps (beta-adjusted, |gap|>2%) = the S018 gap-fade thesis in fitted-forecast form.
 - direction: long/short | market: US equities | timeframe: Daily close-to-open plus intraday bars (intraday-adaptable)
 - indicators: Overnight log return, beta adjustment, industry demeaning, 2% absolute-gap filter
 - Overview: The strategy fades sufficiently large overnight gaps after removing the market component. Six time-of-day coefficients allow the expected reversal to vary as the session progresses.
@@ -2603,6 +2631,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G145 | Month-End Long After Negative Prior Month
 - priority: Low — A calendar reversal thesis is explicit, but timing internals and costs are unavailable.
+- overlap: S079 (existing catalog) — Long into month-end conditioned on a negative prior month; a conditioned variant of the turn-of-the-month window.
 - direction: long | market: US equities | timeframe: Daily bars; month-end schedule (daily-native)
 - indicators: Month-end timing and prior-month return sign
 - Overview: A calendar strategy enters near month-end only after a negative prior-month return, testing a conditional month-end reversal effect. It is distinct from an unconditional turn-of-month premium.
@@ -2640,6 +2669,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G147 | Binance News-Sentiment Bot - Headline Sentiment -> Buy New Listings/Alts
 - priority: Medium — Sentiment-driven entries on a feed universe - the equity adaptation is a real catalog candidate.
+- overlap: S056 (existing catalog) — Headline-sentiment -> buy entries; the file notes the equity analog is the catalog news-sentiment family (S056).
 - direction: long | market: crypto (Binance) | timeframe: news-cycle (intraday-adaptable)
 - indicators: Scraped news-headline sentiment across top ~100 crypto feeds
 - Overview: Aggregates sentiment from ~100 crypto news feeds and buys the coins whose headlines score positive - an early retail 'news-sentiment momentum' bot. Thesis: positive headline flow precedes retail-driven pumps in crypto; the equity analog is the catalog's news-sentiment family.
@@ -2820,6 +2850,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G158 | Twitter Sentiment Stock-Movement Prediction
 - priority: Low — Canonical sentiment implementation; grouped with attention family.
+- overlap: S056 (existing catalog) — Social-sentiment score -> next-day direction; the same sentiment-driven daily long/short mechanism as S056 with a different source.
 - direction: long/short | market: equities with Twitter coverage | timeframe: 1d (daily-native)
 - indicators: Twitter sentiment aggregation -> next-day direction
 - Overview: Analyzes stock-related tweets to predict next-day movement - classic social-media sentiment alpha. The attention/sentiment thesis is real but retail-sentiment edges decay fast and spam is heavy.

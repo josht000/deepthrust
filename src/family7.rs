@@ -1,6 +1,7 @@
 //! Family 7 ETF timing studies: regime switches, vol-compression breakout, pairs, copper/gold tilt.
 
-use chrono::Datelike;
+use chrono::{Datelike, NaiveDate};
+use std::path::Path;
 
 use crate::config::{split_csv, Config};
 use crate::data::Panel;
@@ -21,6 +22,8 @@ pub const S071_NAME: &str = "s071_cointegrated_pairs";
 pub const S071_TITLE: &str = "S071 Cointegrated ETF Pair Z-Score";
 pub const S072_NAME: &str = "s072_gold_silver_ratio";
 pub const S072_TITLE: &str = "S072 Gold/Silver Ratio Mean Reversion";
+pub const S063_NAME: &str = "s063_vix_ma_regime";
+pub const S063_TITLE: &str = "S063 VIX Moving-Average Crossover Regime";
 
 fn symbol_index(panel: &Panel, name: &str) -> Result<usize, String> {
     panel
@@ -1206,4 +1209,149 @@ pub fn s072_trades(panel: &Panel, _sig: &Signals, cfg: &Config, fill: &str) -> R
         (a.entry_idx, &panel.symbols[a.sym_idx]).cmp(&(b.entry_idx, &panel.symbols[b.sym_idx]))
     });
     Ok(trades)
+}
+
+// ---------------- S063 VIX moving-average crossover regime ----------------
+
+/// CBOE VIX history CSV (DATE,OPEN,HIGH,LOW,CLOSE; %m/%d/%Y or %Y-%m-%d dates).
+fn read_vix_history(path: &str) -> Result<Vec<(NaiveDate, f64)>, String> {
+    if path.trim().is_empty() {
+        return Err("S063 requires vix_file (CBOE VIX daily history CSV)".into());
+    }
+    let path = Path::new(path);
+    let mut reader = csv::ReaderBuilder::new()
+        .from_path(path)
+        .map_err(|error| format!("{}: {error}", path.display()))?;
+    let headers = reader
+        .headers()
+        .map_err(|error| format!("{}: {error}", path.display()))?
+        .clone();
+    let column = |names: &[&str]| {
+        names
+            .iter()
+            .find_map(|name| {
+                headers
+                    .iter()
+                    .position(|header| header.trim().eq_ignore_ascii_case(name))
+            })
+            .ok_or_else(|| format!("{}: missing {:?} column", path.display(), names[0]))
+    };
+    let date_col = column(&["date"])?;
+    let close_col = column(&["close", "vix close"])?;
+    let mut rows = vec![];
+    for (row, result) in reader.records().enumerate() {
+        let record =
+            result.map_err(|error| format!("{} row {}: {error}", path.display(), row + 2))?;
+        let raw = record.get(date_col).unwrap_or_default().trim();
+        let date = NaiveDate::parse_from_str(raw, "%m/%d/%Y")
+            .or_else(|_| NaiveDate::parse_from_str(raw, "%Y-%m-%d"))
+            .map_err(|error| {
+                format!("{} row {}: bad date {raw:?}: {error}", path.display(), row + 2)
+            })?;
+        let close: f64 = record
+            .get(close_col)
+            .unwrap_or_default()
+            .trim()
+            .parse()
+            .unwrap_or(f64::NAN);
+        if close.is_finite() && close > 0.0 {
+            rows.push((date, close));
+        }
+    }
+    rows.sort_by_key(|row| row.0);
+    rows.dedup_by_key(|row| row.0);
+    if rows.is_empty() {
+        return Err(format!("{}: no VIX rows", path.display()));
+    }
+    Ok(rows)
+}
+
+// S063: long the risk asset while the short VIX MA sits below the long VIX MA
+// (entry also needs VIX falling over `vix_fall_window`); flat/defensive otherwise.
+pub fn compute_s063_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if !matches!(cfg.regime_mode.as_str(), "hysteresis" | "strict") {
+        return Err(format!(
+            "S063 regime_mode must be hysteresis|strict, got {:?}",
+            cfg.regime_mode
+        ));
+    }
+    if cfg.vix_ma_short == 0 || cfg.vix_ma_long <= cfg.vix_ma_short {
+        return Err(format!(
+            "S063 needs 0 < vix_ma_short < vix_ma_long, got {}/{}",
+            cfg.vix_ma_short, cfg.vix_ma_long
+        ));
+    }
+    let risk = symbol_index(panel, &cfg.risk_symbol)?;
+    let defensive = match cfg.defensive_asset.trim() {
+        "" | "cash" | "CASH" => None,
+        name => Some(symbol_index(panel, name)?),
+    };
+    let n = panel.dates.len();
+    let vix = read_vix_history(&cfg.vix_file)?;
+    let vix_close: Vec<f64> = vix.iter().map(|row| row.1).collect();
+    let ma_short = rolling_mean(&vix_close, cfg.vix_ma_short);
+    let ma_long = rolling_mean(&vix_close, cfg.vix_ma_long);
+    let price_sma = if cfg.price_sma_gate > 0 {
+        rolling_mean(&panel.close[risk], cfg.price_sma_gate)
+    } else {
+        vec![f64::NAN; n]
+    };
+    let mut result = blank_signals(panel, "vix_ma_spread");
+    let mut weights = vec![vec![0.0; n]; panel.symbols.len()];
+    let mut long = false;
+    let mut vi = 0usize;
+    for t in 0..n {
+        while vi + 1 < vix.len() && vix[vi + 1].0 <= panel.dates[t] {
+            vi += 1;
+        }
+        let mapped = vix[vi].0 <= panel.dates[t];
+        result.tradable[risk][t] = panel.close[risk][t].is_finite() && mapped;
+        result.pool[risk][t] = result.tradable[risk][t];
+        if let Some(d) = defensive {
+            result.tradable[d][t] = panel.close[d][t].is_finite() && mapped;
+            result.pool[d][t] = result.tradable[d][t];
+        }
+        if !mapped {
+            continue;
+        }
+        let (ms, ml, vx) = (ma_short[vi], ma_long[vi], vix_close[vi]);
+        if !ms.is_finite() || !ml.is_finite() {
+            continue;
+        }
+        result.rsi[risk][t] = ms - ml;
+        let vix_falling = cfg.vix_fall_window == 0
+            || (vi >= cfg.vix_fall_window && vx < vix_close[vi - cfg.vix_fall_window]);
+        let enter = ms < ml && vix_falling;
+        let exit = ms > ml;
+        let level_off = cfg.vix_level_exit > 0.0 && vx > cfg.vix_level_exit;
+        let price_ok = cfg.price_sma_gate == 0
+            || (price_sma[t].is_finite() && panel.close[risk][t] > price_sma[t]);
+        long = if cfg.regime_mode == "strict" || !long {
+            enter && price_ok && !level_off
+        } else {
+            !(exit || level_off || !price_ok)
+        };
+        weights[risk][t] = if long { 1.0 } else { 0.0 };
+        result.signal[risk][t] = long;
+        if let Some(d) = defensive {
+            weights[d][t] = if long { 0.0 } else { 1.0 };
+            result.signal[d][t] = !long;
+        }
+    }
+    result.trade_weights = Some(weights);
+    result.benchmark_returns = benchmark_returns(panel, &cfg.risk_symbol);
+    Ok(result)
+}
+
+pub fn s063_trades(
+    panel: &Panel,
+    sig: &Signals,
+    cfg: &Config,
+    fill: &str,
+) -> Result<Vec<Trade>, String> {
+    let weights = sig
+        .trade_weights
+        .as_ref()
+        .ok_or_else(|| "S063 requires target weights".to_string())?;
+    switch_trades(panel, weights, sig, cfg, fill)
 }

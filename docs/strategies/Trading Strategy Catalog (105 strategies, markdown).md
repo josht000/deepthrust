@@ -80,7 +80,7 @@
 - [Family 6 — Volatility Regime and Market Timing](#family-6--volatility-regime-and-market-timing)
     - [S061 | VIX Spike Mean Reversion (SPY)](#s061--vix-spike-mean-reversion-spy) — NOT_DAILY, DEFER
     - [S062 | VIX/VXV Ratio Spike (Term Structure)](#s062--vixvxv-ratio-spike-term-structure)
-    - [S063 | VIX Moving-Average Crossover Regime](#s063--vix-moving-average-crossover-regime)
+    - [S063 | VIX Moving-Average Crossover Regime](#s063--vix-moving-average-crossover-regime) — IMPLEMENTED — DAILY, DELTA
     - [S064 | Hurst Exponent Regime Switch](#s064--hurst-exponent-regime-switch)
     - [S065 | Realized-Vol Compression Breakout (compression cluster champion candidate)](#s065--realized-vol-compression-breakout-compression-cluster-champion-candidate) — IMPLEMENTED — DAILY, DELTA
     - [S066 | Zweig Breadth Thrust](#s066--zweig-breadth-thrust)
@@ -1574,10 +1574,12 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - frequency: regime switches ~4-8 per year
 - provenance: research-hypothesis
 - status: demoted
+- rust_status: IMPLEMENTED
 - priority: P3
 - sources: [Papers With Backtest - Using VIX to trade SPY (shows a 20/50 VIX moving-average crossover as an example with sample code; no backtest results)](https://paperswithbacktest.com/strategies/using-vix-to-trade-spy-and-sp-500)
 - notes: The 'VIX falling over 5 days' condition is the catalog's. A VIX trend signal is mostly a trend-of-SPY signal and will be highly correlated with the 200-day SMA regime (S069/S089): compare against SMA200 timing and S069, and report incremental information by regressing the VIX-MA signal returns on the SMA200 signal. Combine with S047 as a dual-gate overlay only if incremental.
 - data_needs: CBOE VIX history (DP-VIX) + SPY (DP-ETF)
+- implementation_results: Rust in `src/family7.rs` / `src/study.rs`, config `configs/s063_vix_ma_regime.yaml`. DELTA: the undecided middle state (MA20<MA50 with VIX not falling, or MAs equal) holds the prior regime (hysteresis baseline; `strict` variant re-tests the entry condition daily); VIX close is ffilled onto the panel calendar; cash risk-off earns 0 (BIL/SHY/IEF/TLT rotation are variants); the VIX<VIX[t-5] clause gates (re)entry only, not ongoing holds. Baseline (SPY, next_open): DEV 30 trades, +0.619 log, skill -0.037, Sharpe 0.84, win 70%; TEST 10, +0.335, skill +0.070, Sharpe 1.57 — DECAYED and insufficient evidence (<100/<30 trades). Dev-selected `ma20_100_fall0` (MA20/100, no falling clause): DEV 26, +0.520, skill +0.133, Sharpe 0.68; TEST 6, +0.298, skill +0.043, Sharpe 1.25. Incremental vs SMA200 timing (`vix_vs_sma200_incremental.csv`): 57-67% regime agreement, beta ~0.43-0.56, alpha +0.0001-0.0002/day — correlated but not redundant; still below SMA200 timing on dev/test totals. Reproduce: `cargo run --release -- --strategy s063_vix_ma_regime --variant ma5_50,ma10_50,ma30_50,ma20_100,ma20_150,ma20_200,ma10_100,ma50_200,fall0,fall3,fall10,fall21,strict,strict_fall0,strict_ma10_50,qqq,iwm,dia,bil,shy,ief,tlt,sma200_gate,sma100_gate,cap25,cap30,cap35,vix3m,vix9d,close,cost05,cost2,cost5,ma10_50_fall0,ma20_100_fall0,bil_sma200,qqq_bil,strict_bil`
 - review: DEMOTE | source GENERIC
 
 ### S064 | Hurst Exponent Regime Switch
