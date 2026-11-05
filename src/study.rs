@@ -75,6 +75,8 @@ pub const S105_NAME: &str = "s105_overnight_carry";
 pub const S105_TITLE: &str = "S105 Volatility-Targeted Overnight Carry";
 pub const S088_NAME: &str = crate::family9::S088_NAME;
 pub const S088_TITLE: &str = crate::family9::S088_TITLE;
+pub const S091_NAME: &str = crate::family9::S091_NAME;
+pub const S091_TITLE: &str = crate::family9::S091_TITLE;
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -778,6 +780,32 @@ impl StrategyDefinition for MacdVolumeCrossStrategyDefinition {
     }
 }
 
+struct DonchianChandelierStrategyDefinition;
+
+impl StrategyDefinition for DonchianChandelierStrategyDefinition {
+    fn name(&self) -> &'static str {
+        S091_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        S091_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::family9::compute_s091_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family9::s091_trades(panel, sig, cfg, fill)
+    }
+}
+
 struct Family8Definition {
     name: &'static str,
     title: &'static str,
@@ -1161,7 +1189,8 @@ static S058_STRATEGY: Family6Definition = Family6Definition {
     kind: Family6Kind::TopicSentiment,
 };
 static S088_STRATEGY: MacdVolumeCrossStrategyDefinition = MacdVolumeCrossStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 50] = [
+static S091_STRATEGY: DonchianChandelierStrategyDefinition = DonchianChandelierStrategyDefinition;
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 51] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1212,6 +1241,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 50] = [
     &S058_STRATEGY,
     &S063_STRATEGY,
     &S088_STRATEGY,
+    &S091_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -1506,6 +1536,7 @@ impl<'a> Study<'a> {
                 | S050_NAME
                 | S051_NAME
                 | S088_NAME
+                | S091_NAME
                 | S104_NAME
         );
         if family4_universe {
@@ -2985,6 +3016,10 @@ impl<'a> Study<'a> {
                 "Buy the MACD line crossing above its signal while MACD > 0, close > SMA200, and volume beats the configured multiple of the 20-day baseline; exit on the bearish cross at that close, or after the max hold.",
                 "The PIT liquidity-rank cache approximates S&P 500 membership; split-adjusted stock bars start in 2016; the 20-day volume baseline uses prior sessions only. This is a demoted rule-zoo audit member, not a validated edge.",
             )),
+            "s091_donchian55_chandelier" => Some((
+                "Enter long on a close above the 55-day Donchian high (short on the 55-day low when enabled); trail a chandelier stop at the highest high since entry minus 3 x ATR(22) and exit at the next open; an optional N-stop and channel exit are registered alternatives.",
+                "ETF total-return bars start in 2016; unit sizing is a fixed equity fraction per unit (no compounding equity, no pyramiding); the long-short scenario assumes borrow at the configured annual rate. This is a demoted trend-cluster control member, not a validated edge.",
+            )),
             _ => None,
         };
         if let Some((description, limitations)) = family4 {
@@ -3113,6 +3148,16 @@ impl<'a> Study<'a> {
                 | S051_NAME
         ) {
             title_for(&c.strategy).to_string()
+        } else if c.strategy == S091_NAME {
+            format!(
+                "donchian{} {} x{}ATR{} stop{}N {}",
+                c.entry_window,
+                c.turtle_exit_mode,
+                c.turtle_chandelier_mult,
+                c.turtle_chandelier_len,
+                c.disaster_stop_atr,
+                c.strategy_mode
+            )
         } else if c.strategy == S104_NAME {
             format!("mom + {} overlay", c.overlay_mode)
         } else if c.strategy == S023_NAME {
