@@ -85,7 +85,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G065 | Wavelet-Filtered Cointegrated Pair Reversion](#g065--wavelet-filtered-cointegrated-pair-reversion) — DUPLICATE (S071)
   - [G066 | Zipline Cointegration Pair Z-Score (z_signal=2, z_exit=0, lookback=200)](#g066--zipline-cointegration-pair-z-score-z_signal2-z_exit0-lookback200) — DUPLICATE (S071)
 - [Trend Following and Breakout](#trend-following-and-breakout) (29)
-  - [G067 | Mount Lucas (MLM) Futures Trend Index - 200d MA + Universe Vol Gate, Monthly Execution](#g067--mount-lucas-mlm-futures-trend-index---200d-ma--universe-vol-gate-monthly-execution)
+  - [G067 | Mount Lucas (MLM) Futures Trend Index - 200d MA + Universe Vol Gate, Monthly Execution](#g067--mount-lucas-mlm-futures-trend-index---200d-ma--universe-vol-gate-monthly-execution) — IMPLEMENTED
   - [G068 | Stochastic-Oversold-Exit + RSI-50 Confirmation with Chandelier(22,2) Trailing Exit](#g068--stochastic-oversold-exit--rsi-50-confirmation-with-chandelier222-trailing-exit) — IMPLEMENTED
   - [G069 | 20-Day-High Breakout Trend (Hyperliquid)](#g069--20-day-high-breakout-trend-hyperliquid) — DUPLICATE (S036)
   - [G070 | ATR SuperTrend Direction-Reversal Strategy](#g070--atr-supertrend-direction-reversal-strategy) — IMPLEMENTED
@@ -119,7 +119,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G097 | Baltas 2020 Trend Signal with Realized-Volatility Scaling](#g097--baltas-2020-trend-signal-with-realized-volatility-scaling)
   - [G098 | Moskowitz-Style Time-Series Momentum on Futures](#g098--moskowitz-style-time-series-momentum-on-futures)
   - [G099 | Online Portfolio Selection Algorithm Zoo (OLMAR/PAMR/CWMR/RMR/ANTICOR/CORN/UP/ONS...)](#g099--online-portfolio-selection-algorithm-zoo-olmarpamrcwmrrmranticorcornupons)
-  - [G100 | QARMII 252-Day Binary Momentum Portfolio](#g100--qarmii-252-day-binary-momentum-portfolio)
+  - [G100 | QARMII 252-Day Binary Momentum Portfolio](#g100--qarmii-252-day-binary-momentum-portfolio) — IMPLEMENTED
   - [G101 | Quadratic Dip-Depth Sizing Formula on VTI/QQQ (SGOV cash park)](#g101--quadratic-dip-depth-sizing-formula-on-vtiqqq-sgov-cash-park)
   - [G102 | Top-50 S&P500 12-Month Momentum Portfolio (with HQM low-quality-momentum filter variant)](#g102--top-50-sp500-12-month-momentum-portfolio-with-hqm-low-quality-momentum-filter-variant) — DUPLICATE (S041)
   - [G103 | Top-One Positive-Slope Momentum Rotation](#g103--top-one-positive-slope-momentum-rotation) — DUPLICATE (S043)
@@ -1336,6 +1336,14 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - external_refs: Mount Lucas Management MLM Index (200-day MA benchmark CTA)
 - notes: The monthly-execution + universe-vol-gate combination is the distinctive twist vs plain SMA200 trend.
 - sources: [amstrdm/mlm-trend-following — universe, signal=close>MA200, 25th-of-month + avg-vol gate](https://github.com/amstrdm/mlm-trend-following/blob/9e76af882e313297224929b488ad79bc360c51b2/main.py)
+- implementation_results: `src/family4.rs` compute_g067_signals (worktree branch g067_mlm_sma200); added `domNN` rebalance frequency to `rebalance_days`. 12-ETF futures-proxy book (SPY/EFA/EEM/TLT/IEF/UUP/GLD/SLV/CPER/USO/GSG/DBC), 5 bps/side, day-25 signals, universe-mean 20d vol gate 0.15; dev < 2024-01-01 <= test. DELTA: grains/cattle/metals legs replaced by ETF proxies (no ag futures in TR cache). Baseline + 15 variants.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev PF | test total (log) | test skill | test Sharpe | test PF | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | +0.07 | +0.11 | 0.14 | 1.03 | +0.28 | -0.00 | 1.04 | 1.56 | 1032+396 |
+  | gate20_sma250 (best both-side) | +0.18 | +0.19 | 0.33 | 1.13 | +0.32 | +0.24 | 1.30 | 1.66 | 624+396 |
+  | gate20 | +0.11 | +0.13 | 0.23 | 1.08 | +0.34 | +0.26 | 1.34 | 1.73 | 624+396 |
+  Vol-regime gate is the value-add: gate>=0.20 variants keep positive skill on BOTH dev and test while baseline's dev-only skill evaporates at test. sma50 top dev (+0.33) sign-flips test (-0.12). Reproduce: `cargo run --release --bin deepthrust -- --strategy g067_mlm_sma200`; variants `... --variant sma100,sma150,sma250,sma50,dom1,dom15,monthend,no_gate,gate10,gate20,gate25,gate10_sma150,gate20_sma250,no_gate_dom1,no_gate_end`
 
 ### G068 | Stochastic-Oversold-Exit + RSI-50 Confirmation with Chandelier(22,2) Trailing Exit
 - priority: High — Complete, daily-native, precise rule set combining oversold-exit timing + trend gate + vol trailing - immediately implementable.
@@ -1896,6 +1904,13 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - reported_metrics: none reported
 - notes: The signal is the canonical 252-day binary momentum approach; it is not the catalog's 12-1 cross-sectional winner sort.
 - sources: [blacksouane/QARMII_project — Monthly signal loop and binary momentum branches](https://github.com/blacksouane/QARMII_project/blob/dc023aaba9e37388c196e081f63a556ec00b9fd8/Functions%20and%20Scripts/Models/MOM_MA/model1.m#L145-L270); [blacksouane/QARMII_project — Binary sign-of-return signal](https://github.com/blacksouane/QARMII_project/blob/dc023aaba9e37388c196e081f63a556ec00b9fd8/Functions%20and%20Scripts/Others/binsignal.m); [blacksouane/QARMII_project — Momentum252 portfolio configuration and 0.1 volatility target](https://github.com/blacksouane/QARMII_project/blob/dc023aaba9e37388c196e081f63a556ec00b9fd8/Main.m#L69-L82)
+- implementation_results: `src/family4.rs` compute_g100_signals (worktree branch g100_binary_momentum); 20-asset TR ETF book (equity/bond/commodity/FX), 10 bps/side, monthly rebalance, 10% vol target on 180d cov, 4x cap, signed weights (long/short faithful). Baseline + 19 variants; dev < 2024-01-01 <= test.
+
+  | variant | dev total (log) | dev skill | dev Sharpe | dev PF | test total (log) | test skill | test Sharpe | test PF | trades (dev+test) |
+  |---|---|---|---|---|---|---|---|---|---|
+  | baseline | +0.12 | -0.43 | 0.19 | 0.94 | +0.29 | -0.44 | 1.00 | 1.59 | 1660+680 |
+  | mom189 (top dev) | +0.08 | +0.16 | 0.14 | 0.94 | +0.36 | -0.32 | 1.25 | 1.68 | 1680+680 |
+  NO EDGE: positive absolute returns (58-62% test win rate) but negative skill vs random sign assignment on every config; top dev-skill mom189 sign-flips on test (DECAYED). Binary 252d direction adds nothing over random allocation on this universe. Reproduce: `cargo run --release --bin deepthrust -- --strategy g100_binary_momentum`; variants `... --variant equal,mom63,mom126,mom189,mom315,weekly,vol90,vol252,tv05,tv15,tv20,no_lev,cap2x,eq63,eq126,eq_tv15,eq_no_lev,mom378,eq378`
 
 ### G101 | Quadratic Dip-Depth Sizing Formula on VTI/QQQ (SGOV cash park)
 - priority: Medium — Novel sizing-as-function-of-depth mechanic worth testing vs fixed DCA and vs RSI-gated dip buys; slow frequency.
