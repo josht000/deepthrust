@@ -2325,11 +2325,25 @@ pub fn compute_g067_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
         if gate_open {
             for j in 0..ns {
                 if smas[j][day].is_finite() && panel.close[j][day].is_finite() {
-                    current[j] = if panel.close[j][day] > smas[j][day] {
+                    let dist = (panel.close[j][day] - smas[j][day]).abs() / smas[j][day];
+                    let mut s = if panel.close[j][day] > smas[j][day] {
                         1.0
                     } else {
                         -1.0
                     };
+                    if cfg.min_abs_resid > 0.0 && dist < cfg.min_abs_resid {
+                        s = 0.0;
+                    }
+                    if cfg.mom_window > 0 && day >= cfg.mom_window {
+                        let m0 = panel.close[j][day - cfg.mom_window];
+                        if m0.is_finite()
+                            && m0 > 0.0
+                            && (panel.close[j][day] - m0).signum() != s
+                        {
+                            s = 0.0;
+                        }
+                    }
+                    current[j] = s;
                 }
             }
         } else if let Some(cash) = cash_idx {

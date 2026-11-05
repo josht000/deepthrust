@@ -62,3 +62,22 @@ variants:
   vw30_g20s250: {vol_window: 30, vol_gate: 0.20, sma_window: 250}
   vw15_g20s250: {vol_window: 15, vol_gate: 0.20, sma_window: 250}
   vw10_g20s250: {vol_window: 10, vol_gate: 0.20, sma_window: 250}
+  str01_g20s250: {min_abs_resid: 0.01, vol_gate: 0.20, sma_window: 250}
+  str02_g20s250: {min_abs_resid: 0.02, vol_gate: 0.20, sma_window: 250}
+  str03_g20s250: {min_abs_resid: 0.03, vol_gate: 0.20, sma_window: 250}
+  mom63_g20s250: {mom_window: 63, vol_gate: 0.20, sma_window: 250}
+  mom126_g20s250: {mom_window: 126, vol_gate: 0.20, sma_window: 250}
+  mom252_g20s250: {mom_window: 252, vol_gate: 0.20, sma_window: 250}
+  str02_mom126_g20s250: {min_abs_resid: 0.02, mom_window: 126, vol_gate: 0.20, sma_window: 250}
+  str01_vw15_g20s250: {min_abs_resid: 0.01, vol_window: 15, vol_gate: 0.20, sma_window: 250}
+  str02_vw15_g20s250: {min_abs_resid: 0.02, vol_window: 15, vol_gate: 0.20, sma_window: 250}
+  mom126_vw15_g20s250: {mom_window: 126, vol_window: 15, vol_gate: 0.20, sma_window: 250}
+  vw15_me: {vol_window: 15, vol_gate: 0.20, sma_window: 250, rebalance: monthly}
+  vw15_dom15: {vol_window: 15, vol_gate: 0.20, sma_window: 250, rebalance: dom15}
+  vw15_dom1: {vol_window: 15, vol_gate: 0.20, sma_window: 250, rebalance: dom1}
+  vw15_g18s250: {vol_window: 15, vol_gate: 0.18, sma_window: 250}
+  vw15_g22s250: {vol_window: 15, vol_gate: 0.22, sma_window: 250}
+  vw15_g25s250: {vol_window: 15, vol_gate: 0.25, sma_window: 250}
+  defvp_vw15_g20s250: {vol_window: 15, vol_gate: 0.20, sma_window: 250, strategy_mode: defvp}
+  vp_vw15_g20s250: {vol_window: 15, vol_gate: 0.20, sma_window: 250, strategy_mode: volparity}
+  def_vw15_g20s250: {vol_window: 15, vol_gate: 0.20, sma_window: 250, strategy_mode: defensive}
