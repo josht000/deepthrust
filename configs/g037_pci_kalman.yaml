@@ -1,0 +1,57 @@
+# G037 Clegg-Krauss partial cointegration: residual e = logA-alpha-beta*logB
+# decomposes as AR(1) M + random-walk R. Trade only pairs where PAR wins the
+# AIC comparison vs AR(1) and RW with 0.5<rho<0.8, R2>0.5, 0.75<beta<1.25.
+# Kalman M drives entries at +/-1 sigma_M, exits at -/+0.5 sigma_M.
+# DELTA vs source: params fit by Kalman log-likelihood over a
+# (rho x sigma_R/sigma_M) grid rather than numeric MLE; beta on log prices.
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,IVV,VOO,QQQ,IWM,DIA,RSP,TLT,IEF,SHY,BIL,AGG,TIP,GLD,SLV,CPER,GDX,GDXJ,USO,DBC,GSG,EEM,EFA,EWJ,HYG,LQD,IYR,VNQ,XLE,XLB,XLI,XLK,UUP
+pairs: ""
+benchmark: SPY
+start_date: "2008-01-01"
+formation_window: 252
+z_entry: 1.0
+exit_z: 0.5
+borrow_bps_annual: 50.0
+cost_bps_per_side: 1.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 8
+
+variants:
+  e08: {z_entry: 0.8}
+  e12: {z_entry: 1.2}
+  e15: {z_entry: 1.5}
+  e20: {z_entry: 2.0}
+  x03: {exit_z: 0.3}
+  x07: {exit_z: 0.7}
+  x10: {exit_z: 1.0}
+  form126: {formation_window: 126}
+  form189: {formation_window: 189}
+  form504: {formation_window: 504}
+  curated: {pairs: "SPY:IVV,SPY:VOO,IVV:VOO,SPY:DIA,QQQ:SPY,IWM:RSP,TLT:IEF,AGG:IEF,GLD:SLV,GLD:GDX,GDX:GDXJ,USO:DBC,USO:GSG,EEM:EFA,EWJ:EFA,HYG:LQD,IYR:VNQ,XLE:USO,SHY:BIL,TLT:TIP"}
+  etf_small: {symbols: "SPY,QQQ,IWM,TLT,IEF,GLD,SLV,USO,EEM,EFA,HYG,LQD,VNQ,XLE,XLK"}
+  slots4: {book_slots: 4}
+  slots12: {book_slots: 12}
+  cost5: {cost_bps_per_side: 5.0}
+  cost10: {cost_bps_per_side: 10.0}
+  e08_x03: {z_entry: 0.8, exit_z: 0.3}
+  e12_x03: {z_entry: 1.2, exit_z: 0.3}
+  e15_x03: {z_entry: 1.5, exit_z: 0.3}
+  e15_x07: {z_entry: 1.5, exit_z: 0.7}
+  e08_x07: {z_entry: 0.8, exit_z: 0.7}
+  form126_e08: {formation_window: 126, z_entry: 0.8}
+  form504_e15: {formation_window: 504, z_entry: 1.5}
+  form126_x03: {formation_window: 126, exit_z: 0.3}
+  curated_e15: {pairs: "SPY:IVV,SPY:VOO,IVV:VOO,SPY:DIA,QQQ:SPY,IWM:RSP,TLT:IEF,AGG:IEF,GLD:SLV,GLD:GDX,GDX:GDXJ,USO:DBC,USO:GSG,EEM:EFA,EWJ:EFA,HYG:LQD,IYR:VNQ,XLE:USO,SHY:BIL,TLT:TIP", z_entry: 1.5}
+  form189_slots4: {formation_window: 189, book_slots: 4}
+  form126_cost5: {formation_window: 126, cost_bps_per_side: 5.0}
+  e20_form126: {z_entry: 2.0, formation_window: 126}
+  x03_form504: {exit_z: 0.3, formation_window: 504}
+  e12_form189: {z_entry: 1.2, formation_window: 189}
+  slots4_cost5: {book_slots: 4, cost_bps_per_side: 5.0}
+  e08_curated: {pairs: "SPY:IVV,SPY:VOO,IVV:VOO,SPY:DIA,QQQ:SPY,IWM:RSP,TLT:IEF,AGG:IEF,GLD:SLV,GLD:GDX,GDX:GDXJ,USO:DBC,USO:GSG,EEM:EFA,EWJ:EFA,HYG:LQD,IYR:VNQ,XLE:USO,SHY:BIL,TLT:TIP", z_entry: 0.8}

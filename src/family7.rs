@@ -32,7 +32,7 @@ pub const S066_TITLE: &str = "S066 Zweig Breadth Thrust";
 pub const S062_NAME: &str = "s062_vix_vxv_ratio";
 pub const S062_TITLE: &str = "S062 VIX/VXV Ratio Spike";
 
-fn symbol_index(panel: &Panel, name: &str) -> Result<usize, String> {
+pub(crate) fn symbol_index(panel: &Panel, name: &str) -> Result<usize, String> {
     panel
         .symbols
         .iter()
@@ -537,7 +537,7 @@ pub fn s065_trades(panel: &Panel, sig: &Signals, cfg: &Config, fill: &str) -> Re
 // ---------------- S071 cointegrated ETF pairs ----------------
 
 /// Small dense OLS: solve beta = argmin ||y - X beta||^2 via normal equations.
-fn ols(x: &[Vec<f64>], y: &[f64]) -> Option<Vec<f64>> {
+pub(crate) fn ols(x: &[Vec<f64>], y: &[f64]) -> Option<Vec<f64>> {
     let n = y.len();
     let p = x.len();
     let mut xtx = vec![vec![0.0; p]; p];
@@ -577,7 +577,7 @@ fn ols(x: &[Vec<f64>], y: &[f64]) -> Option<Vec<f64>> {
     Some(beta)
 }
 
-fn ols_se(x: &[Vec<f64>], y: &[f64], beta: &[f64]) -> Option<Vec<f64>> {
+pub(crate) fn ols_se(x: &[Vec<f64>], y: &[f64], beta: &[f64]) -> Option<Vec<f64>> {
     let n = y.len();
     let p = x.len();
     let mut resid = vec![0.0; n];
@@ -634,7 +634,7 @@ fn ols_se(x: &[Vec<f64>], y: &[f64], beta: &[f64]) -> Option<Vec<f64>> {
 }
 
 /// Engle-Granger residual ADF t-statistic on log-price residuals over a window.
-fn pair_adf(log_a: &[f64], log_b: &[f64], lags: usize) -> Option<(f64, f64)> {
+pub(crate) fn pair_adf(log_a: &[f64], log_b: &[f64], lags: usize) -> Option<(f64, f64)> {
     let n = log_a.len();
     if n < 60 || lags + 2 >= n {
         return None;
@@ -664,7 +664,7 @@ fn pair_adf(log_a: &[f64], log_b: &[f64], lags: usize) -> Option<(f64, f64)> {
     Some((beta2[1] / se[1], beta_b))
 }
 
-fn adf_critical(max_p: f64) -> f64 {
+pub(crate) fn adf_critical(max_p: f64) -> f64 {
     // MacKinnon asymptotic values, constant included, no trend
     if max_p <= 0.01 {
         -3.43
@@ -1381,7 +1381,7 @@ fn log_ret_series(close: &[f64]) -> Vec<f64> {
 
 /// Chan's variance term structure: Var(tau-period log returns) ~ tau^(2H);
 /// H = slope of log-variance vs log-horizon over powers of two, divided by 2.
-fn hurst_exponent(returns: &[f64], max_horizon: usize) -> f64 {
+pub(crate) fn hurst_exponent(returns: &[f64], max_horizon: usize) -> f64 {
     let w = returns.len();
     if w < 9 {
         return f64::NAN;

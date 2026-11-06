@@ -119,9 +119,9 @@
    "entry": "Compute hl0=close/sqrt(high*low), winsorize by date, demean within ind1, then use lagged hl1..hlN; regress against the configured forward-return horizon and apply the fitted coefficients.",
    "exit": "Recompute the forecast in the next daily simulation; no discrete stop or price target is specified.",
    "trade_management": "Daily alpha forecasts feed the bsim portfolio optimizer; kappa/notional constraints are configured by the simulation engine.",
-   "target": "Expected 1–3 day forecast horizon in the module description.",
+   "target": "Expected 1\u00e2\u20ac\u201c3 day forecast horizon in the module description.",
    "risk": "The signal has high turnover; the strategy relies on proprietary market/industry datasets and external optimizer configuration.",
-   "best_timeframes": "Daily bars are native and the code describes a 1–3 session horizon.",
+   "best_timeframes": "Daily bars are native and the code describes a 1\u00e2\u20ac\u201c3 session horizon.",
    "parameter_variants": "",
    "variant_notes": "",
    "reported_metrics": "none reported",
@@ -186,7 +186,7 @@
    "overview": "The backtester trades deviations from a simple moving average, entering against large price dislocations and exiting when price crosses back through the average. It is a transparent threshold mean-reversion rule.",
    "criteria": "Liquid ETFs/stocks; notebook examples use GDX and GLD.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "With SMA=25 and threshold=$5, short when close−SMA>$5 and long when close−SMA<−$5; hold the last position between entries until the distance changes sign.",
+   "entry": "With SMA=25 and threshold=$5, short when close\u00e2\u02c6\u2019SMA>$5 and long when close\u00e2\u02c6\u2019SMA<\u00e2\u02c6\u2019$5; hold the last position between entries until the distance changes sign.",
    "exit": "Exit when the price-SMA distance crosses zero; position is shifted one bar before returns are applied.",
    "trade_management": "Vectorized single-asset positions; transaction cost is deducted on each position change (example uses 0.1%).",
    "target": "Mean reversion to the rolling SMA.",
@@ -796,13 +796,13 @@
    "overview": "Unusual volume scales a stock's beta-adjusted return to identify temporary price/flow imbalances. The multi-period version removes the intraday component and uses raw relative volume times beta-adjusted returns.",
    "criteria": "US equities with tradable volume, 21-day median volume, beta and industry classifications.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Set relative volume to tradable_volume / 21-session median; compute beta-adjusted return; daily signal is relative-volume × beta-adjusted return (or, in `vadj.py`, volume-weighted sign of return), then winsorize/demean and fit lagged forecasts.",
+   "entry": "Set relative volume to tradable_volume / 21-session median; compute beta-adjusted return; daily signal is relative-volume \u00c3\u2014 beta-adjusted return (or, in `vadj.py`, volume-weighted sign of return), then winsorize/demean and fit lagged forecasts.",
    "exit": "Daily forecast is recomputed; no fixed price stop or exit is specified.",
    "trade_management": "Forecast is passed to bsim; no direct order sizing is defined.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
    "risk": "not specified in source Suggested: per-trade stop and a portfolio-level drawdown guard.",
    "best_timeframes": "Daily bars are native.",
-   "parameter_variants": "vadj.py uses volume times sign of beta-adjusted return and adds intraday features; vadj_multi.py uses relative volume × beta-adjusted return with daily lags.",
+   "parameter_variants": "vadj.py uses volume times sign of beta-adjusted return and adds intraday features; vadj_multi.py uses relative volume \u00c3\u2014 beta-adjusted return with daily lags.",
    "variant_notes": "",
    "reported_metrics": "none reported",
    "priority": "Low",
@@ -836,7 +836,7 @@
    "overview": "The intraday-only model scales beta-adjusted return by unusual volume, while the position-oriented variant uses only the direction of the return and lets volume determine magnitude. Time-of-day coefficients capture different liquidity regimes.",
    "criteria": "US equities with intraday price/volume, beta, and industry classifications.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "For each intraday bar, compute current return (overnight return + log(intraday close/daily open)), subtract beta×market return, then multiply by relative volume; the `vadj_pos.py` variant uses sign(adjusted return)×relative volume.",
+   "entry": "For each intraday bar, compute current return (overnight return + log(intraday close/daily open)), subtract beta\u00c3\u2014market return, then multiply by relative volume; the `vadj_pos.py` variant uses sign(adjusted return)\u00c3\u2014relative volume.",
    "exit": "Forecasts update through qsim; discrete exit and stop rules are not specified.",
    "trade_management": "Intraday alpha is consumed by the qsim execution engine.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
@@ -951,11 +951,11 @@
    "overview": "The strategy decomposes a 176-stock universe into principal-component factor returns, fits residuals for each eigenportfolio, and trades stocks whose residual S-score is sufficiently extreme. It is a basket/stat-arb method rather than a two-name pair.",
    "criteria": "176 US stocks in the notebook's sample; factor weights are estimated from the prior 252 sessions.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Fit 15 PCA components on 252 sessions, estimate factor returns/residuals over 60 sessions, and compute S-scores with k=8.4. Open long at S<−1.25 or short at S>1.25; close long at S>0.75 and close short at S<−0.5.",
+   "entry": "Fit 15 PCA components on 252 sessions, estimate factor returns/residuals over 60 sessions, and compute S-scores with k=8.4. Open long at S<\u00e2\u02c6\u20191.25 or short at S>1.25; close long at S>0.75 and close short at S<\u00e2\u02c6\u20190.5.",
    "exit": "Shift target weights forward one day before applying returns; positions close at the S-score thresholds.",
    "trade_management": "Normalize long/short portfolio weights so each side sums to one; target position size is 1.",
-   "target": "Close when the S-score reaches the opposite thresholds (long 0.75, short −0.5).",
-   "risk": "The 2018–2019 example is short and no transaction-cost treatment is specified.",
+   "target": "Close when the S-score reaches the opposite thresholds (long 0.75, short \u00e2\u02c6\u20190.5).",
+   "risk": "The 2018\u00e2\u20ac\u201c2019 example is short and no transaction-cost treatment is specified.",
    "best_timeframes": "Daily equity returns are native.",
    "parameter_variants": "",
    "variant_notes": "",
@@ -966,7 +966,7 @@
     {
      "repo": "hudson-and-thames/arbitrage_research",
      "url": "https://github.com/hudson-and-thames/arbitrage_research/blob/4340ea15c7ab8d0dbeea55a9af10ffa5e8815211/Other%20Approaches/pca_approach.ipynb",
-     "note": "PCA residual/S-score portfolio parameters, entry/exit thresholds and shifted returns; code cells 21–41"
+     "note": "PCA residual/S-score portfolio parameters, entry/exit thresholds and shifted returns; code cells 21\u00e2\u20ac\u201c41"
     }
    ],
    "external_refs": "Marco Avellaneda and Jeong-Hyun Lee, Statistical Arbitrage in the U.S. Equities Market (2010), as cited by the notebook.",
@@ -993,7 +993,7 @@
    "risk": "",
    "best_timeframes": "",
    "parameter_variants": "",
-   "variant_notes": "Uses a fixed EWC/EWA spread with long entry z<−1.5, short entry z>1.8, and closes within ±0.2 of zero. This is a pair-spread variant of S071; the notebook's cointegration tests are unstable over the sample.",
+   "variant_notes": "Uses a fixed EWC/EWA spread with long entry z<\u00e2\u02c6\u20191.5, short entry z>1.8, and closes within \u00c2\u00b10.2 of zero. This is a pair-spread variant of S071; the notebook's cointegration tests are unstable over the sample.",
    "reported_metrics": "none reported",
    "priority": "Medium",
    "priority_rationale": "",
@@ -1001,7 +1001,7 @@
     {
      "repo": "orangepineapple/mean_reversion_strategies",
      "url": "https://github.com/orangepineapple/mean_reversion_strategies/blob/e6d64522861c4a0551c6d423d4b5e95955049922/EWC_vs_EWA_mean_reversion_bollinger_band/backtest_ewc_ewa_pair_trade.py#L18-L128",
-     "note": "Moving z-score pair entries at −1.5/+1.8 and mean-band exit buffer 0.2"
+     "note": "Moving z-score pair entries at \u00e2\u02c6\u20191.5/+1.8 and mean-band exit buffer 0.2"
     }
    ],
    "external_refs": "",
@@ -1108,7 +1108,7 @@
    "risk": "",
    "best_timeframes": "",
    "parameter_variants": "",
-   "variant_notes": "Source uses cointegration tests on formation data, OLS hedge ratios, ±2 spread-standard-deviation entries, and closes when the spread returns through its mean; it is a direct generic-pair implementation of S071. Other sources use fixed-beta rolling spread z-scores with differing thresholds (Honoreaa: beta=0.2, entry ±2/exit ±0.5; Simao: default entry/exit level 1.0 and five stabilizing observations). The KidQuant notebook is educational and illustrates cointegrated-pair selection and ratio z-score bands, but it does not specify a complete exit/backtest. Sapphire's HFT notebook uses a 2.5σ entry, 0.5σ exit gap, 5σ stop, and at most one pair on minute data.",
+   "variant_notes": "Source uses cointegration tests on formation data, OLS hedge ratios, \u00c2\u00b12 spread-standard-deviation entries, and closes when the spread returns through its mean; it is a direct generic-pair implementation of S071. Other sources use fixed-beta rolling spread z-scores with differing thresholds (Honoreaa: beta=0.2, entry \u00c2\u00b12/exit \u00c2\u00b10.5; Simao: default entry/exit level 1.0 and five stabilizing observations). The KidQuant notebook is educational and illustrates cointegrated-pair selection and ratio z-score bands, but it does not specify a complete exit/backtest. Sapphire's HFT notebook uses a 2.5\u00cf\u0192 entry, 0.5\u00cf\u0192 exit gap, 5\u00cf\u0192 stop, and at most one pair on minute data.",
    "reported_metrics": "none reported",
    "priority": "Medium",
    "priority_rationale": "",
@@ -1116,12 +1116,12 @@
     {
      "repo": "financialnoob/pairs_trading",
      "url": "https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/15.coint_based_stat_arb.ipynb",
-     "note": "Engle–Granger/Johansen pair selection, ±2-standard-deviation spread entries and mean-reversion exit; code cells 86–95"
+     "note": "Engle\u00e2\u20ac\u201cGranger/Johansen pair selection, \u00c2\u00b12-standard-deviation spread entries and mean-reversion exit; code cells 86\u00e2\u20ac\u201c95"
     },
     {
      "repo": "financialnoob/pairs_trading",
      "url": "https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/20.pairs_trading_with_pci/20.pairs_trading_with_partial_cointegration.ipynb",
-     "note": "Standard cointegration baseline with ±2σ spread triggers and zero-cross exits; code cells 23–31"
+     "note": "Standard cointegration baseline with \u00c2\u00b12\u00cf\u0192 spread triggers and zero-cross exits; code cells 23\u00e2\u20ac\u201c31"
     },
     {
      "repo": "honoreaa/Futures-MeanReversion",
@@ -1131,7 +1131,7 @@
     {
      "repo": "honoreaa/Futures-MeanReversion",
      "url": "https://github.com/honoreaa/Futures-MeanReversion/blob/673a22017225c7eb250e6812acc615070d8ea6ac/notebooks/3_zscore.ipynb",
-     "note": "ES/NQ example uses beta=0.2, 30-session z-score, entry ±2 and exit ±0.5; code cells 3 and 6"
+     "note": "ES/NQ example uses beta=0.2, 30-session z-score, entry \u00c2\u00b12 and exit \u00c2\u00b10.5; code cells 3 and 6"
     },
     {
      "repo": "simaomsarmento/PairsTrading",
@@ -1146,7 +1146,7 @@
     {
      "repo": "sapphire921/HFT-Pairs-Trading",
      "url": "https://github.com/sapphire921/HFT-Pairs-Trading/blob/2048b7cf3352d3db83236e6dfcccc47e28596c06/Code.ipynb",
-     "note": "Cointegration screen, hedge-ratio spread and intraday z-score thresholds; code cells 2–6"
+     "note": "Cointegration screen, hedge-ratio spread and intraday z-score thresholds; code cells 2\u00e2\u20ac\u201c6"
     }
    ],
    "external_refs": "",
@@ -1311,7 +1311,7 @@
    "overview": "A Kalman filter updates the hedge ratio and intercept as each pair price observation arrives; forecast errors are converted to target pair quantities using standard-deviation thresholds. This is a dynamic hedge-ratio alternative to fixed OLS pairs.",
    "criteria": "EWC/EWA pair in the example; pair universe is user-supplied.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Initialize the filter with observation covariance 0.001 and transition covariance 0.0001/(1−0.0001); generate trading signals with entry and exit standard-deviation scores both set to 1.",
+   "entry": "Initialize the filter with observation covariance 0.001 and transition covariance 0.0001/(1\u00e2\u02c6\u20190.0001); generate trading signals with entry and exit standard-deviation scores both set to 1.",
    "exit": "Use the Kalman strategy's target quantity to close/reverse pair positions when the forecast-error signal exits; the notebook shifts target quantities by one observation before returns to avoid lookahead.",
    "trade_management": "Hedge-ratio weights are used for the long/short legs; signal quantities are applied one observation later.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
@@ -1346,13 +1346,13 @@
    "overview": "A Kalman filter updates the hedge ratio from daily pair prices; the strategy forms a spread and standardizes the latest bar against lookback mean/std. Optional Hurst and ADF gates reject non-mean-reverting pairs, and the broker risk manager sizes both legs.",
    "criteria": "Configured US equity pairs; optional Hurst/ADF filters and optional earnings cease-fire.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "With pair-specific `entryZScore`, enter short when z≥entryZScore and long when z≤−entryZScore. Example configured pairs use lookbacks 10–120 bars and entry thresholds 0.5–2.0; examples generally use log prices.",
-   "exit": "For a long, close when z≥−exitZScore; for a short, close when z≤exitZScore. Example configs omit exitZScore, leaving the parameter default at 0.0 (mean crossing).",
+   "entry": "With pair-specific `entryZScore`, enter short when z\u00e2\u2030\u00a5entryZScore and long when z\u00e2\u2030\u00a4\u00e2\u02c6\u2019entryZScore. Example configured pairs use lookbacks 10\u00e2\u20ac\u201c120 bars and entry thresholds 0.5\u00e2\u20ac\u201c2.0; examples generally use log prices.",
+   "exit": "For a long, close when z\u00e2\u2030\u00a5\u00e2\u02c6\u2019exitZScore; for a short, close when z\u00e2\u2030\u00a4exitZScore. Example configs omit exitZScore, leaving the parameter default at 0.0 (mean crossing).",
    "trade_management": "RiskManager chooses leg-0 quantity and leg-1 quantity to approximate dollar neutrality using the latest Kalman hedge ratio; market or limit orders are selected by entry/exit distance settings.",
    "target": "Spread mean crossing by default; configuration examples set `exitZScore=0.0`.",
    "risk": "Kalman beta, spread scale, and pair-specific z thresholds are estimated/configured from historical data; earnings handling and risk limits are external to the alpha rule.",
    "best_timeframes": "Daily bars are used for lookback parameter estimation; the same state machine can update on the configured bar frequency.",
-   "parameter_variants": "Per-pair lookback 10–120 and entry z-score 0.5–2.0; optional log prices, Hurst and ADF gates; optional limit entry/exit orders.",
+   "parameter_variants": "Per-pair lookback 10\u00e2\u20ac\u201c120 and entry z-score 0.5\u00e2\u20ac\u201c2.0; optional log prices, Hurst and ADF gates; optional limit entry/exit orders.",
    "variant_notes": "",
    "reported_metrics": "none reported",
    "priority": "Medium",
@@ -1384,7 +1384,7 @@
   },
   {
    "id": "G036",
-   "name": "Ornstein–Uhlenbeck Pair-Spread Z-Score",
+   "name": "Ornstein\u00e2\u20ac\u201cUhlenbeck Pair-Spread Z-Score",
    "category": "Pairs, Spread and Statistical Arbitrage",
    "entry_type": "crossref",
    "overlap_catalog_id": "S071",
@@ -1403,7 +1403,7 @@
    "risk": "",
    "best_timeframes": "",
    "parameter_variants": "",
-   "variant_notes": "Uses OU-derived scores with asymmetric entry/exit thresholds: enter at score >1.25 or <−1.25; close shorts below 0.75 and longs above −0.5. Several notebooks extend the pair universe with ETFs/PCA but retain the same core threshold rule.",
+   "variant_notes": "Uses OU-derived scores with asymmetric entry/exit thresholds: enter at score >1.25 or <\u00e2\u02c6\u20191.25; close shorts below 0.75 and longs above \u00e2\u02c6\u20190.5. Several notebooks extend the pair universe with ETFs/PCA but retain the same core threshold rule.",
    "reported_metrics": "none reported",
    "priority": "Medium",
    "priority_rationale": "",
@@ -1411,7 +1411,7 @@
     {
      "repo": "financialnoob/pairs_trading",
      "url": "https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/8.pairs_trading_with_ou_process_part1.ipynb",
-     "note": "OU-score pair signals and equal-weight long/short positions; code cells 10–11"
+     "note": "OU-score pair signals and equal-weight long/short positions; code cells 10\u00e2\u20ac\u201c11"
     },
     {
      "repo": "financialnoob/pairs_trading",
@@ -1434,10 +1434,10 @@
    "timeframe_class": "daily-native",
    "indicators": "Partial cointegration model, Kalman-separated mean-reverting component, residual spread",
    "overview": "The partial-cointegration model separates a stationary mean-reverting component from a random-walk component in the pair spread. Only pairs whose partial model beats AR and random-walk alternatives are traded, with a Kalman estimate of the mean-reverting component supplying the signal.",
-   "criteria": "Pairs with PAR preferred by AIC, rho in (0.5,0.8), R²>0.5, and beta between 0.75 and 1.25.",
+   "criteria": "Pairs with PAR preferred by AIC, rho in (0.5,0.8), R\u00c2\u00b2>0.5, and beta between 0.75 and 1.25.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Fit the PAR/AR/RW models; keep pairs where PAR has minimum AIC, rho>0.5, R²>0.5, 0.75<beta<1.25, and rho<0.8. Estimate the mean-reverting component M with the Kalman filter; enter short when M>sigma_M and long when M<−sigma_M.",
-   "exit": "Close shorts when M<−0.5·sigma_M and longs when M>0.5·sigma_M; forward-fill positions between signals.",
+   "entry": "Fit the PAR/AR/RW models; keep pairs where PAR has minimum AIC, rho>0.5, R\u00c2\u00b2>0.5, 0.75<beta<1.25, and rho<0.8. Estimate the mean-reverting component M with the Kalman filter; enter short when M>sigma_M and long when M<\u00e2\u02c6\u2019sigma_M.",
+   "exit": "Close shorts when M<\u00e2\u02c6\u20190.5\u00c2\u00b7sigma_M and longs when M>0.5\u00c2\u00b7sigma_M; forward-fill positions between signals.",
    "trade_management": "Hedge weights use the fitted beta; source backtests hold equal pair capital and use lagged positions for returns.",
    "target": "Mean-reverting component returns to zero.",
    "risk": "The model screens many pairs and parameters in-sample; transaction costs are not specified in the notebook.",
@@ -1451,7 +1451,7 @@
     {
      "repo": "financialnoob/pairs_trading",
      "url": "https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/20.pairs_trading_with_pci/20.pairs_trading_with_partial_cointegration.ipynb",
-     "note": "PAR model fitting, pair screens, Kalman component and ±1σ/0.5σ position rules; code cells 79–91"
+     "note": "PAR model fitting, pair screens, Kalman component and \u00c2\u00b11\u00cf\u0192/0.5\u00cf\u0192 position rules; code cells 79\u00e2\u20ac\u201c91"
     }
    ],
    "external_refs": "Clegg and Krauss, Partial Cointegration (2018), as referenced in notebook material.",
@@ -1497,7 +1497,7 @@
    "name": "Barra Idiosyncratic Residual Return Reversal",
    "category": "Pairs, Spread and Statistical Arbitrage",
    "entry_type": "full",
-   "overlap_catalog_id": null,
+   "overlap_catalog_id": "S078",
    "direction": "market-neutral",
    "original_market": "US equities",
    "original_timeframe": "Daily and intraday",
@@ -1539,14 +1539,14 @@
    "timeframe_class": "daily-native",
    "indicators": "Log-price spread, rolling z-score, OU kappa and half-life",
    "overview": "The system screens pairs for cointegration and stationarity, estimates mean-reversion speed/half-life, and trades spread extremes with a stop and half-life-scaled time limit. Gaussian-process Bayesian optimization tunes the spread thresholds.",
-   "criteria": "Pair must pass Engle–Granger and ADF p<0.05; highest correlation among qualifying pairs is chosen.",
+   "criteria": "Pair must pass Engle\u00e2\u20ac\u201cGranger and ADF p<0.05; highest correlation among qualifying pairs is chosen.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Select the highest-correlation pair among those with cointegration and ADF p-values below 0.05. With a 20-session lookback, enter long the spread below rolling mean−1.5σ or short above mean+1.5σ; the pair is MSFT/ACN in the example configuration.",
-   "exit": "Exit on spread reversion through its rolling mean, a stop at 2×rolling spread standard deviation from entry, or after holding_time_factor×half_life (default factor 1.5, half-life 12.25 sessions in the example).",
-   "trade_management": "Backtrader trades opposing legs; example initial capital $100,000 and commission 0.1%. Bayesian search runs 50 evaluations over lookback 5–30, entry 1.5–3.0σ, stop 1.5–3.0σ, and holding factor 1.0–2.0.",
+   "entry": "Select the highest-correlation pair among those with cointegration and ADF p-values below 0.05. With a 20-session lookback, enter long the spread below rolling mean\u00e2\u02c6\u20191.5\u00cf\u0192 or short above mean+1.5\u00cf\u0192; the pair is MSFT/ACN in the example configuration.",
+   "exit": "Exit on spread reversion through its rolling mean, a stop at 2\u00c3\u2014rolling spread standard deviation from entry, or after holding_time_factor\u00c3\u2014half_life (default factor 1.5, half-life 12.25 sessions in the example).",
+   "trade_management": "Backtrader trades opposing legs; example initial capital $100,000 and commission 0.1%. Bayesian search runs 50 evaluations over lookback 5\u00e2\u20ac\u201c30, entry 1.5\u00e2\u20ac\u201c3.0\u00cf\u0192, stop 1.5\u00e2\u20ac\u201c3.0\u00cf\u0192, and holding factor 1.0\u00e2\u20ac\u201c2.0.",
    "target": "Exit at the spread mean; max holding time is tied to estimated half-life.",
-   "risk": "Bayesian optimization maximizes Sharpe and the notebook then backtests the selected parameters on the same 2020–2023 sample, risking substantial in-sample overfit.",
-   "best_timeframes": "Daily bars; default holding time is roughly 18 sessions based on 1.5×12.25-day half-life.",
+   "risk": "Bayesian optimization maximizes Sharpe and the notebook then backtests the selected parameters on the same 2020\u00e2\u20ac\u201c2023 sample, risking substantial in-sample overfit.",
+   "best_timeframes": "Daily bars; default holding time is roughly 18 sessions based on 1.5\u00c3\u201412.25-day half-life.",
    "parameter_variants": "",
    "variant_notes": "",
    "reported_metrics": "none reported",
@@ -1576,13 +1576,13 @@
    "overview": "The notebook compares cross-sectional and time-series reversals in commodity futures basis, both as outright contracts and first/second-expiry spreads. The thesis is that extreme near-term basis moves normalize.",
    "criteria": "Rossi 2025 commodity futures universe; first/second expiries rolled every 21 sessions.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Call `XSBasisReversal` or `BasisReversal` on the Rossi 2025 futures universe with front-expiry shift −1 and back shift 0; spread variants trade the first/second expiry legs. Signal thresholds and rankings are private-library details.",
+   "entry": "Call `XSBasisReversal` or `BasisReversal` on the Rossi 2025 futures universe with front-expiry shift \u00e2\u02c6\u20191 and back shift 0; spread variants trade the first/second expiry legs. Signal thresholds and rankings are private-library details.",
    "exit": "Recompute the basis-reversal signal; exact exit threshold is not specified in source.",
    "trade_management": "Delta-one futures exposure; weighting differs between outright and spread variants.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
    "risk": "Internal signal rules are private and the plotted equity curves are gross of costs.",
    "best_timeframes": "Daily futures bars; notebook assesses long histories and post-publication results.",
-   "parameter_variants": "Cross-sectional outright, cross-sectional spread, time-series outright, time-series spread; front shift −1/back shift 0.",
+   "parameter_variants": "Cross-sectional outright, cross-sectional spread, time-series outright, time-series spread; front shift \u00e2\u02c6\u20191/back shift 0.",
    "variant_notes": "",
    "reported_metrics": "none reported",
    "priority": "Low",
@@ -1611,7 +1611,7 @@
    "overview": "The notebook constructs a fixed calendar spread that is long the third-forward contract and short the front contract across a commodity universe. It is a curve-steepener exposure rather than a timed mean-reversion entry.",
    "criteria": "Commodity futures in the LFIS 2015 universe.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "For each commodity, hold +1 exposure to forwardness 3 and −1 to forwardness 0; contracts roll on the fifth business day at a five-session roll period.",
+   "entry": "For each commodity, hold +1 exposure to forwardness 3 and \u00e2\u02c6\u20191 to forwardness 0; contracts roll on the fifth business day at a five-session roll period.",
    "exit": "No signal-based exit is specified; maintain the calendar spread and roll contracts.",
    "trade_management": "Equal-weight across commodities; fifth-business-day roll schedule.",
    "target": "No fixed target; exposure remains a futures curve steepener.",
@@ -1626,10 +1626,10 @@
     {
      "repo": "rolling-panda-san/notebooks",
      "url": "https://github.com/rolling-panda-san/notebooks/blob/ce05661a5d4b3cdb439ece27dcccba88e2cb130a/commodity_intra_curve.ipynb",
-     "note": "F3 long/F0 short construction and equal-weight backtest; code cells 7–8"
+     "note": "F3 long/F0 short construction and equal-weight backtest; code cells 7\u00e2\u20ac\u201c8"
     }
    ],
-   "external_refs": "La Française Group (2015), as named in the repository README.",
+   "external_refs": "La Fran\u00c3\u00a7aise Group (2015), as named in the repository README.",
    "notes": "This is a fixed curve-spread exposure, not a short-term signal-triggered entry."
   },
   {
@@ -1646,7 +1646,7 @@
    "overview": "The strategy fits marginal return distributions and copulas on a formation period, then uses conditional probabilities to identify relative tail events between pair legs. This models nonlinear dependence rather than assuming a Gaussian spread.",
    "criteria": "Up to 25 non-overlapping equity pairs with dependence fitted only on the formation sample.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Select up to 25 non-overlapping pairs by descending Kendall tau from the formation period (2018-11-20 to 2020-05-19); fit Student-t marginals and choose the minimum-AIC model from Gaussian, Clayton, Gumbel, Frank, and Joe copulas. With confidence level cl=0.99, go long [1,−1] if conditional CDFs are p1<0.01 and p2>0.99; reverse for p1>0.99 and p2<0.01.",
+   "entry": "Select up to 25 non-overlapping pairs by descending Kendall tau from the formation period (2018-11-20 to 2020-05-19); fit Student-t marginals and choose the minimum-AIC model from Gaussian, Clayton, Gumbel, Frank, and Joe copulas. With confidence level cl=0.99, go long [1,\u00e2\u02c6\u20191] if conditional CDFs are p1<0.01 and p2>0.99; reverse for p1>0.99 and p2<0.01.",
    "exit": "Close a long when p1>0.5 or p2<0.5; close a short when p1<0.5 or p2>0.5. The notebook also tests earlier exits at 0.3/0.7.",
    "trade_management": "Positions use equal-weight long/short legs; the notebook doubles return scaling for short capital and does not state a transaction-cost model.",
    "target": "Mean reversion toward the conditional-probability center.",
@@ -1672,7 +1672,7 @@
    "name": "Daily PCA Idiosyncratic-Residual Reversal",
    "category": "Pairs, Spread and Statistical Arbitrage",
    "entry_type": "full",
-   "overlap_catalog_id": null,
+   "overlap_catalog_id": "S078",
    "direction": "market-neutral",
    "original_market": "US equities",
    "original_timeframe": "1d",
@@ -1681,7 +1681,7 @@
    "overview": "The model removes common principal-component movements from stock returns and forecasts idiosyncratic residual reversion. A separate daily generator uses exponentially weighted correlations and four PCs.",
    "criteria": "US equities with daily returns; PCA generator documentation references a broad liquid universe.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Fit PCA to a rolling 30-session return window using five components; compute residual actual−predicted returns, winsorize/demean and use fitted lag coefficients. The daily generator variant uses EWM correlation with five-session half-life and four PCs.",
+   "entry": "Fit PCA to a rolling 30-session return window using five components; compute residual actual\u00e2\u02c6\u2019predicted returns, winsorize/demean and use fitted lag coefficients. The daily generator variant uses EWM correlation with five-session half-life and four PCs.",
    "exit": "Daily forecasts feed the optimizer; no explicit single-name stop or target is specified.",
    "trade_management": "Market-neutral forecasts are consumed by the portfolio optimization and execution engines.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
@@ -1721,8 +1721,8 @@
    "overview": "The strategy selects pairs by distance between normalized price paths and trades deviations from the rolling spread mean. It includes a profit/loss limit and optional borrow-cost handling.",
    "criteria": "Pairs selected from Bloomberg/history data; normalized prices are used for the formation period.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Use the configured lookback to calculate spread mean/std; short above mean + entry_threshold×SD and long below mean − entry_threshold×SD. Defaults are set by the backtest CLI, with the common batch run using entry=2 SD.",
-   "exit": "Close a short below mean + exit_threshold×SD and a long above mean − exit_threshold×SD; exit also if trade return falls below `loss_limit` or the short leg value is nonpositive.",
+   "entry": "Use the configured lookback to calculate spread mean/std; short above mean + entry_threshold\u00c3\u2014SD and long below mean \u00e2\u02c6\u2019 entry_threshold\u00c3\u2014SD. Defaults are set by the backtest CLI, with the common batch run using entry=2 SD.",
+   "exit": "Close a short below mean + exit_threshold\u00c3\u2014SD and a long above mean \u00e2\u02c6\u2019 exit_threshold\u00c3\u2014SD; exit also if trade return falls below `loss_limit` or the short leg value is nonpositive.",
    "trade_management": "Backtrader two-leg positions; borrow-cost modeling is enabled, commission is disabled in the distance variant.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
    "risk": "The training/grid-search sample and parameter selection can overfit; no full execution-cost evidence is provided.",
@@ -1736,7 +1736,7 @@
     {
      "repo": "wywongbd/pairstrade-fyp-2019",
      "url": "https://github.com/wywongbd/pairstrade-fyp-2019/blob/078c84b6ad0b941a0ccd497e4a803cbec78f7165/jupyter_py/ptstrategy_distance.py#L55-L136",
-     "note": "Spread levels, ±entry/exit thresholds, and loss breaker"
+     "note": "Spread levels, \u00c2\u00b1entry/exit thresholds, and loss breaker"
     },
     {
      "repo": "wywongbd/pairstrade-fyp-2019",
@@ -1761,7 +1761,7 @@
    "overview": "The notebook estimates mean-reverting pair-spread dynamics with a market-factor component and uses the fitted equilibrium level to orient pair exposure. It is distinct from a static z-score because persistence and systematic-market effects are estimated dynamically.",
    "criteria": "Non-overlapping equity pairs with Johansen rank evidence; 500-session rolling model window.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Form pairs with Johansen cointegration at the 95% level; estimate EM state parameters on a rolling 500-session window with max lag P=5 and up to 1,000 iterations. Compute the market-adjusted five-session cumulative spread; short when it exceeds theta=B/(1−A), otherwise hold long.",
+   "entry": "Form pairs with Johansen cointegration at the 95% level; estimate EM state parameters on a rolling 500-session window with max lag P=5 and up to 1,000 iterations. Compute the market-adjusted five-session cumulative spread; short when it exceeds theta=B/(1\u00e2\u02c6\u2019A), otherwise hold long.",
    "exit": "The cited test loop recomputes the position each date; no flat-zone or explicit exit threshold is specified.",
    "trade_management": "Long/short leg weights are based on the selected pair; transaction costs are not specified in the cited notebook cells.",
    "target": "Model-estimated equilibrium theta.",
@@ -1776,7 +1776,7 @@
     {
      "repo": "financialnoob/pairs_trading",
      "url": "https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/16.pairs_trading_df2006.ipynb",
-     "note": "Johansen screen, EM/Vasicek parameter fit, market-adjusted spread, and position assignment; code cells 15–23 and 33"
+     "note": "Johansen screen, EM/Vasicek parameter fit, market-adjusted spread, and position assignment; code cells 15\u00e2\u20ac\u201c23 and 33"
     }
    ],
    "external_refs": "",
@@ -1792,11 +1792,11 @@
    "original_market": "HMC/HYMTF equity pair",
    "original_timeframe": "1d",
    "timeframe_class": "daily-native",
-   "indicators": "8-session rolling mean/std of the HMC–HYMTF price spread",
+   "indicators": "8-session rolling mean/std of the HMC\u00e2\u20ac\u201cHYMTF price spread",
    "overview": "The notebook uses a short-window Bollinger channel on a cointegrated stock pair and trades the spread back to its rolling mean. It is a concrete pair portfolio rather than a generic indicator tutorial.",
-   "criteria": "HMC/HYMTF pair selected by Engle–Granger and ADF tests; example uses a 10-year sample.",
+   "criteria": "HMC/HYMTF pair selected by Engle\u00e2\u20ac\u201cGranger and ADF tests; example uses a 10-year sample.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Fit the pair using the training period; compute an 8-session spread mean/std. Long the lower spread band at mean−0.8σ and short the upper band at mean+0.8σ; allocate $50,000 to each leg.",
+   "entry": "Fit the pair using the training period; compute an 8-session spread mean/std. Long the lower spread band at mean\u00e2\u02c6\u20190.8\u00cf\u0192 and short the upper band at mean+0.8\u00cf\u0192; allocate $50,000 to each leg.",
    "exit": "Close a lower-band long when spread rises above the mean and close an upper-band short when spread falls below the mean.",
    "trade_management": "Dollar allocation is $50,000 per leg; signals are applied on the following day.",
    "target": "Spread returns to its rolling mean.",
@@ -1811,7 +1811,7 @@
     {
      "repo": "sap215/StatArbPairsTrading",
      "url": "https://github.com/sap215/StatArbPairsTrading/blob/46ad070f473fd9f0826aa940fc2357e02734c483/StatArbBlog.ipynb",
-     "note": "HMC/HYMTF pair selection, 8-session bands, positions and P&L; code cells 18 and 30–34"
+     "note": "HMC/HYMTF pair selection, 8-session bands, positions and P&L; code cells 18 and 30\u00e2\u20ac\u201c34"
     }
    ],
    "external_refs": "",
@@ -1827,11 +1827,11 @@
    "original_market": "Equities",
    "original_timeframe": "1d",
    "timeframe_class": "daily-native",
-   "indicators": "Engle–Granger/Johansen cointegration, Granger causality, OLS spread",
+   "indicators": "Engle\u00e2\u20ac\u201cGranger/Johansen cointegration, Granger causality, OLS spread",
    "overview": "The notebook screens cointegrated pairs for directional Granger predictability and then trades a residual spread. The causal filter adds a pair-selection condition to an otherwise conventional spread-reversion rule.",
    "criteria": "Cointegrated, positive-beta equity pairs with directional Granger p-values below 0.05.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Retain pairs with positive OLS beta, ADF/Johansen cointegration flags, and at least one direction with Granger SSR test p<0.05 over lags 1–15. Enter short above +2 spread standard deviations or long below −2.",
+   "entry": "Retain pairs with positive OLS beta, ADF/Johansen cointegration flags, and at least one direction with Granger SSR test p<0.05 over lags 1\u00e2\u20ac\u201c15. Enter short above +2 spread standard deviations or long below \u00e2\u02c6\u20192.",
    "exit": "Exit a short when spread falls below zero and a long when spread rises above zero; selected pairs may be ranked by in-sample Sharpe and limited to ten non-overlapping pairs.",
    "trade_management": "Equal-weight pair returns; the selected-pair variant caps the universe at 10 non-overlapping pairs.",
    "target": "Spread mean crossing at zero.",
@@ -1846,7 +1846,7 @@
     {
      "repo": "financialnoob/pairs_trading",
      "url": "https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/14.pairs_trading_granger_causality.ipynb",
-     "note": "Cointegration/Granger screens, ±2σ entries and zero-cross exits; code cells 86–114 and 127–146"
+     "note": "Cointegration/Granger screens, \u00c2\u00b12\u00cf\u0192 entries and zero-cross exits; code cells 86\u00e2\u20ac\u201c114 and 127\u00e2\u20ac\u201c146"
     }
    ],
    "external_refs": "",
@@ -1916,7 +1916,7 @@
     {
      "repo": "financialnoob/pairs_trading",
      "url": "https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/18.pairs_trading_with_kagi.ipynb",
-     "note": "Kagi direction and h_vol>2H trend/contrarian switch; code cells 47–48"
+     "note": "Kagi direction and h_vol>2H trend/contrarian switch; code cells 47\u00e2\u20ac\u201c48"
     }
    ],
    "external_refs": "",
@@ -1981,10 +1981,10 @@
    "overview": "A Kalman filter adapts the pair hedge ratio and constructs a synthetic spread; a rolling EWMA z-score trades large dislocations only while the hedge ratio remains stable. The pair-selection notebook searches within categories and uses training data for the cointegration test.",
    "criteria": "The notebook selects one low-p-value pair per asset category from its training sample; sample pair is selected from US equity data.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Select the best training-period cointegrated pair in each category (minimum p-value, p<0.05). Compute z=(spread−EWMA120 mean)/(EWMA120 std), clipped to [−5,5]. Enter when |z|>2.5 and the current Kalman beta differs from the prior beta by <0.05; long when z<−2.5, short when z>2.5.",
-   "exit": "Close a long when z>−0.5 or a short when z<0.5; also close if beta drift exceeds 0.15.",
-   "trade_management": "Position is long/short spread with dynamic beta; transaction cost is 0.0005 per position change. Stop on beta drift >3×delta_min.",
-   "target": "Spread mean reversion; entry at ±2.5 z and exit toward ±0.5 z.",
+   "entry": "Select the best training-period cointegrated pair in each category (minimum p-value, p<0.05). Compute z=(spread\u00e2\u02c6\u2019EWMA120 mean)/(EWMA120 std), clipped to [\u00e2\u02c6\u20195,5]. Enter when |z|>2.5 and the current Kalman beta differs from the prior beta by <0.05; long when z<\u00e2\u02c6\u20192.5, short when z>2.5.",
+   "exit": "Close a long when z>\u00e2\u02c6\u20190.5 or a short when z<0.5; also close if beta drift exceeds 0.15.",
+   "trade_management": "Position is long/short spread with dynamic beta; transaction cost is 0.0005 per position change. Stop on beta drift >3\u00c3\u2014delta_min.",
+   "target": "Spread mean reversion; entry at \u00c2\u00b12.5 z and exit toward \u00c2\u00b10.5 z.",
    "risk": "Minute data and a single selected pair limit generalization; beta stability and z-score estimates are sensitive to the training window.",
    "best_timeframes": "Minute bars only in the reported strategy; not applicable to daily-only data without recalibration.",
    "parameter_variants": "",
@@ -2001,11 +2001,11 @@
     {
      "repo": "DuarteAbracos/statistical-arbitrage-kalman",
      "url": "https://github.com/DuarteAbracos/statistical-arbitrage-kalman/blob/d3f2a17bdf1a28262a9618139603a807a46c989d/notebooks/02_strategy_baseline.ipynb",
-     "note": "Threshold=2.5, exit_threshold=0.5, delta_min=0.05, and 0.0005 position-change cost; code cells 1–3"
+     "note": "Threshold=2.5, exit_threshold=0.5, delta_min=0.05, and 0.0005 position-change cost; code cells 1\u00e2\u20ac\u201c3"
     }
    ],
    "external_refs": "",
-   "notes": "The repo's separate Avellaneda–Stoikov quote engine in notebooks 03–04 is market-making/HFT and is excluded from this batch's strategy records."
+   "notes": "The repo's separate Avellaneda\u00e2\u20ac\u201cStoikov quote engine in notebooks 03\u00e2\u20ac\u201c04 is market-making/HFT and is excluded from this batch's strategy records."
   },
   {
    "id": "G053",
@@ -2021,7 +2021,7 @@
    "overview": "An EM-fitted latent-regime model estimates the probability that a hedged pair spread is in a mean-reverting state. The strategy trades only when this probability is above a pair-specific historical 95th percentile.",
    "criteria": "Equity pairs with positive OLS hedge beta and repeated converged EM estimates.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Select non-overlapping pairs with at least five converged EM fits and the notebook's parameter-significance screens. For each date compute p=sigmoid(delta0+delta1·|spread(t−1)|+delta2·|spread(t−2)|); enter opposite the spread when p>pq95, only during the first 25 test sessions.",
+   "entry": "Select non-overlapping pairs with at least five converged EM fits and the notebook's parameter-significance screens. For each date compute p=sigmoid(delta0+delta1\u00c2\u00b7|spread(t\u00e2\u02c6\u20191)|+delta2\u00c2\u00b7|spread(t\u00e2\u02c6\u20192)|); enter opposite the spread when p>pq95, only during the first 25 test sessions.",
    "exit": "Close when p<pq50 or after 50 sessions from the pair's first opening.",
    "trade_management": "Pair positions use OLS hedge weights; the notebook evaluates up to ten pairs.",
    "target": "Mean reversion while the fitted regime probability remains high.",
@@ -2036,7 +2036,7 @@
     {
      "repo": "financialnoob/pairs_trading",
      "url": "https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/19.pairs_trading_with_lmar/19.pairs_trading_with_lmar.ipynb",
-     "note": "EM parameter screens, pq95/pq50 probabilities, 25-session entry window and 50-session time stop; code cells 28–38"
+     "note": "EM parameter screens, pq95/pq50 probabilities, 25-session entry window and 50-session time stop; code cells 28\u00e2\u20ac\u201c38"
     }
    ],
    "external_refs": "",
@@ -2044,7 +2044,7 @@
   },
   {
    "id": "G054",
-   "name": "Lead–Lag Follower Versus Market Strategy",
+   "name": "Lead\u00e2\u20ac\u201cLag Follower Versus Market Strategy",
    "category": "Pairs, Spread and Statistical Arbitrage",
    "entry_type": "full",
    "overlap_catalog_id": null,
@@ -2052,11 +2052,11 @@
    "original_market": "Equities",
    "original_timeframe": "1d",
    "timeframe_class": "daily-native",
-   "indicators": "Rolling pairwise lead–lag metrics C1/C2 or Lévy area; market return",
-   "overview": "The strategy ranks equities as leaders or followers from rolling lead–lag dependence and trades followers against the market in the direction implied by the leaders' recent average return. It is a cross-sectional delayed-response effect rather than a stationary pair spread.",
+   "indicators": "Rolling pairwise lead\u00e2\u20ac\u201clag metrics C1/C2 or L\u00c3\u00a9vy area; market return",
+   "overview": "The strategy ranks equities as leaders or followers from rolling lead\u00e2\u20ac\u201clag dependence and trades followers against the market in the direction implied by the leaders' recent average return. It is a cross-sectional delayed-response effect rather than a stationary pair spread.",
    "criteria": "Equities with available daily return histories; market return series is explicitly removed from the leader/follower matrix and used as hedge.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Over a trailing window w, compute C1/C2 or Lévy-area lead–lag matrices, select the top `num_leaders` and bottom `num_followers`; go long followers and short the market when mean leader return is nonnegative, otherwise reverse.",
+   "entry": "Over a trailing window w, compute C1/C2 or L\u00c3\u00a9vy-area lead\u00e2\u20ac\u201clag matrices, select the top `num_leaders` and bottom `num_followers`; go long followers and short the market when mean leader return is nonnegative, otherwise reverse.",
    "exit": "Recompute positions on each daily date; no fixed price target or stop is specified.",
    "trade_management": "Long and short gross exposures are separately normalized to sum to one.",
    "target": "Rebalance as rolling leader/follower classification changes.",
@@ -2071,7 +2071,7 @@
     {
      "repo": "financialnoob/pairs_trading",
      "url": "https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/23.lead_lag_stat_arb/23.lead_lag_stat_arb.ipynb",
-     "note": "Rolling lead/follower construction and market-hedged positions using C1, C2, and Levy area; code cells 58–78"
+     "note": "Rolling lead/follower construction and market-hedged positions using C1, C2, and Levy area; code cells 58\u00e2\u20ac\u201c78"
     }
    ],
    "external_refs": "",
@@ -2131,8 +2131,8 @@
    "overview": "For each anchor stock, the notebook forms a small correlated peer basket and trades the anchor's residual against that basket. It expands simple pairs trading to several hedge legs.",
    "criteria": "Equity universe with each asset used at most once in the selected pair/basket set.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Using a trailing 494-session window, select peer stocks by correlation and compute either OLS or equal weights; enter short when the normalized residual exceeds +d and long when it falls below −d. The numerical d threshold is not specified in source.",
-   "exit": "Set the position to flat when the residual returns inside [−d,+d]; rebalance the peer basket every 10 sessions in the equal-weight version.",
+   "entry": "Using a trailing 494-session window, select peer stocks by correlation and compute either OLS or equal weights; enter short when the normalized residual exceeds +d and long when it falls below \u00e2\u02c6\u2019d. The numerical d threshold is not specified in source.",
+   "exit": "Set the position to flat when the residual returns inside [\u00e2\u02c6\u2019d,+d]; rebalance the peer basket every 10 sessions in the equal-weight version.",
    "trade_management": "Equal-weight or OLS basket; an optional variant limits active positions to three.",
    "target": "Residual convergence to the basket mean.",
    "risk": "The notebook selects peers and weights from long historical windows; d and transaction-cost treatment are not specified.",
@@ -2146,7 +2146,7 @@
     {
      "repo": "financialnoob/pairs_trading",
      "url": "https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/13.quasi_multivariate_pairs_trading.ipynb",
-     "note": "Trailing basket construction, OLS/equal-weight residual, and ±d positions; code cells 14–15 and 30–34"
+     "note": "Trailing basket construction, OLS/equal-weight residual, and \u00c2\u00b1d positions; code cells 14\u00e2\u20ac\u201c15 and 30\u00e2\u20ac\u201c34"
     }
    ],
    "external_refs": "",
@@ -2166,9 +2166,9 @@
    "overview": "This system combines a rolling spread z-score with volatility-adaptive thresholds, a spread trend/volatility regime filter, and short-term momentum checks. It avoids treating every extreme spread as a mean-reversion opportunity.",
    "criteria": "Defaults to SPY/QQQ; configuration supports other cointegrated stocks, ETFs, futures, commodities, forex or crypto pairs.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Default config uses a 30-session z-score window, 252-session long-term lookback, 50/200-session regime SMAs, and dynamic entry thresholds initialized at ±2 then multiplied by a 100-session volatility ratio and clipped to 1.5–3.5σ. Long entries require z below the negative threshold, mean-reverting/down regime, and long-momentum filter; shorts require the symmetric conditions.",
-   "exit": "Exit when |z|<0.5, when a long z rises above +0.5, when a short z falls below −0.5, or when regime becomes Volatile_Trending. Pyramiding can add up to two levels at 0.5σ additional excursion.",
-   "trade_management": "Optional dynamic thresholds, up to two pyramid levels, 2.5×ATR stop, 4×ATR target, 2% risk/trade, 30% maximum position, 20% portfolio drawdown stop, 0.05% transaction cost and 0.02% slippage.",
+   "entry": "Default config uses a 30-session z-score window, 252-session long-term lookback, 50/200-session regime SMAs, and dynamic entry thresholds initialized at \u00c2\u00b12 then multiplied by a 100-session volatility ratio and clipped to 1.5\u00e2\u20ac\u201c3.5\u00cf\u0192. Long entries require z below the negative threshold, mean-reverting/down regime, and long-momentum filter; shorts require the symmetric conditions.",
+   "exit": "Exit when |z|<0.5, when a long z rises above +0.5, when a short z falls below \u00e2\u02c6\u20190.5, or when regime becomes Volatile_Trending. Pyramiding can add up to two levels at 0.5\u00cf\u0192 additional excursion.",
+   "trade_management": "Optional dynamic thresholds, up to two pyramid levels, 2.5\u00c3\u2014ATR stop, 4\u00c3\u2014ATR target, 2% risk/trade, 30% maximum position, 20% portfolio drawdown stop, 0.05% transaction cost and 0.02% slippage.",
    "target": "Z-score mean reversion; secondary exit on volatile-trending regime.",
    "risk": "Multiple filters and thresholds create overfit risk; default lookback/regime values are not validated out of sample.",
    "best_timeframes": "Daily bars are native; intraday can be used only after recalibrating the rolling windows.",
@@ -2186,7 +2186,7 @@
     {
      "repo": "XanderRobbins/Universal-Pairs-Trading-System",
      "url": "https://github.com/XanderRobbins/Universal-Pairs-Trading-System/blob/8b4a5952ded3aa6634481a3e45ef17a8cbc7aca4/config.py#L11-L92",
-     "note": "Default pair, 30/252 lookbacks, ±2/0.5 thresholds, risk and costs"
+     "note": "Default pair, 30/252 lookbacks, \u00c2\u00b12/0.5 thresholds, risk and costs"
     },
     {
      "repo": "XanderRobbins/Universal-Pairs-Trading-System",
@@ -2218,7 +2218,7 @@
    "risk": "",
    "best_timeframes": "",
    "parameter_variants": "",
-   "variant_notes": "The code attempts rolling cointegration gating and residual z-score thresholds but computes each band as the current z-score ± the raw residual standard deviation, making the comparison self-referential and likely preventing signals.",
+   "variant_notes": "The code attempts rolling cointegration gating and residual z-score thresholds but computes each band as the current z-score \u00c2\u00b1 the raw residual standard deviation, making the comparison self-referential and likely preventing signals.",
    "reported_metrics": "none reported",
    "priority": "Low",
    "priority_rationale": "",
@@ -2234,7 +2234,7 @@
   },
   {
    "id": "G059",
-   "name": "Shumway–Stoffer State-Space Pair Mean Reversion",
+   "name": "Shumway\u00e2\u20ac\u201cStoffer State-Space Pair Mean Reversion",
    "category": "Pairs, Spread and Statistical Arbitrage",
    "entry_type": "full",
    "overlap_catalog_id": null,
@@ -2243,7 +2243,7 @@
    "original_timeframe": "1d",
    "timeframe_class": "daily-native",
    "indicators": "Pair price ratio/spread, state-space Kalman filter, mean and variance regimes",
-   "overview": "This method estimates latent spread dynamics with a Shumway–Stoffer/Kalman state-space model, screens for stable mean-reverting pairs, and forms long/short pair positions from deviations around estimated regime means. It differs from a fixed rolling z-score through the fitted dynamic latent state.",
+   "overview": "This method estimates latent spread dynamics with a Shumway\u00e2\u20ac\u201cStoffer/Kalman state-space model, screens for stable mean-reverting pairs, and forms long/short pair positions from deviations around estimated regime means. It differs from a fixed rolling z-score through the fitted dynamic latent state.",
    "criteria": "Pairs of equities with at least 30 formation observations and stable state-space parameters.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
    "entry": "Formation uses a rolling 30-session window and fits the state-space model with 150 EM iterations. Retain pairs with 0<B<1 and C<D; the later strategy uses the fitted spread/regime parameters to assign pair direction.",
@@ -2261,7 +2261,7 @@
     {
      "repo": "financialnoob/pairs_trading",
      "url": "https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/10.pairs_trading_GMC.ipynb",
-     "note": "Shumway–Stoffer smoother, rolling pair selection, and strategy variants; code cells 1, 6, 8, 11, 14, and 17"
+     "note": "Shumway\u00e2\u20ac\u201cStoffer smoother, rolling pair selection, and strategy variants; code cells 1, 6, 8, 11, 14, and 17"
     }
    ],
    "external_refs": "",
@@ -2296,7 +2296,7 @@
     {
      "repo": "rolling-panda-san/notebooks",
      "url": "https://github.com/rolling-panda-san/notebooks/blob/ce05661a5d4b3cdb439ece27dcccba88e2cb130a/commodity_crush_spread_stat_arb.ipynb",
-     "note": "Crush-spread leg definitions, MA/fair-value variants and seasonality; code cells 73–109 and 117–124"
+     "note": "Crush-spread leg definitions, MA/fair-value variants and seasonality; code cells 73\u00e2\u20ac\u201c109 and 117\u00e2\u20ac\u201c124"
     }
    ],
    "external_refs": "Simon (1999), as named in the notebook title; complete publication details are not specified in the inspected cells.",
@@ -2313,10 +2313,10 @@
    "original_timeframe": "Tick data with a 30-second resampled statistic and 1-hour history window",
    "timeframe_class": "intraday-only",
    "indicators": "Mean price ratio beta, relative volatility ratio, tick midpoint",
-   "overview": "The model pairs two instruments using beta=mean(price A)/mean(price B), then trades deviations of A from beta×B conditioned on a volatility-ratio filter. The source describes this as mean reversion, although its variable names and implemented conditions appear directionally inconsistent.",
+   "overview": "The model pairs two instruments using beta=mean(price A)/mean(price B), then trades deviations of A from beta\u00c3\u2014B conditioned on a volatility-ratio filter. The source describes this as mean reversion, although its variable names and implemented conditions appear directionally inconsistent.",
    "criteria": "Two broker-traded instruments with tick-level midpoint data.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Recompute beta and relative volatility from the latest one-hour midpoint history; if volatility ratio>1 and A>beta×B, set buy signal; if ratio<1 and A<beta×B, set sell signal.",
+   "entry": "Recompute beta and relative volatility from the latest one-hour midpoint history; if volatility ratio>1 and A>beta\u00c3\u2014B, set buy signal; if ratio<1 and A<beta\u00c3\u2014B, set sell signal.",
    "exit": "Close a long on a sell signal and a short on a buy signal; no stop, target, or maximum holding time is specified.",
    "trade_management": "Fixed `trade_qty` per spread order; buy one leg and sell the other; market orders are submitted to Interactive Brokers.",
    "target": "Reverse/close on opposite signal.",
@@ -2391,7 +2391,7 @@
    "overview": "The backtester forms weighted Treasury-futures portfolios and enters when both a spread z-score and T-score breach configured lower thresholds. It exits on profit/loss bands or before contract roll.",
    "criteria": "Treasury futures with duration/margin/point-value inputs and a roll calendar.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Enter when ZScore≤−triggerS and TScore≤−triggerT, provided the date precedes the roll date and the portfolio is below its maximum concurrent-position count; trigger levels are user-configured.",
+   "entry": "Enter when ZScore\u00e2\u2030\u00a4\u00e2\u02c6\u2019triggerS and TScore\u00e2\u2030\u00a4\u00e2\u02c6\u2019triggerT, provided the date precedes the roll date and the portfolio is below its maximum concurrent-position count; trigger levels are user-configured.",
    "exit": "Close when portfolio value changes exceed the configured upper/lower tick-size exit levels or at the roll date.",
    "trade_management": "Maximum concurrent positions are capped; margin, point value, transaction-cost coefficient and position weights are inputs.",
    "target": "Configured portfolio-value movement measured in tick-size units.",
@@ -2426,7 +2426,7 @@
    "overview": "A two-state Markov model estimates distinct spread means and variances, and trades deviations from the active regime's mean only when that regime is sufficiently probable. This can adapt pair entries to changing spread behavior.",
    "criteria": "Pairs selected from the equity universe with training-period cointegration p-value below 0.10.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Formation ranks pairs by Kendall tau, keeps non-overlapping pairs with Engle–Granger p<0.10, then fits a two-regime switching-variance model on trailing 250-session windows. With delta=1.645 and rho=0.7, short above a regime mean + delta·sigma and long below mean − delta·sigma; the high-regime short and low-regime long are unconditional, while high-regime long and low-regime short require the corresponding regime probability > rho.",
+   "entry": "Formation ranks pairs by Kendall tau, keeps non-overlapping pairs with Engle\u00e2\u20ac\u201cGranger p<0.10, then fits a two-regime switching-variance model on trailing 250-session windows. With delta=1.645 and rho=0.7, short above a regime mean + delta\u00c2\u00b7sigma and long below mean \u00e2\u02c6\u2019 delta\u00c2\u00b7sigma; the high-regime short and low-regime long are unconditional, while high-regime long and low-regime short require the corresponding regime probability > rho.",
    "exit": "The notebook recomputes a fresh position each day from the four regime/threshold conditions; when none holds, the pair is flat.",
    "trade_management": "Equal-weight selected pairs, with each long/short leg sized symmetrically.",
    "target": "Mean reversion to the regime-specific spread mean.",
@@ -2461,7 +2461,7 @@
    "overview": "A wavelet preprocessing step is applied before pair screening and spread estimation, aiming to reduce high-frequency noise in daily prices. The residual still uses a thresholded mean-reversion position rule.",
    "criteria": "Pairs passing the notebook's cointegration tests; exact universe and wavelet parameter are not specified.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Filter prices/returns with the notebook's wavelet transform, screen candidate pairs for stationarity/cointegration, and enter short above +2 spread standard deviations or long below −2; exact filter level and selected wavelet are not specified in source.",
+   "entry": "Filter prices/returns with the notebook's wavelet transform, screen candidate pairs for stationarity/cointegration, and enter short above +2 spread standard deviations or long below \u00e2\u02c6\u20192; exact filter level and selected wavelet are not specified in source.",
    "exit": "Exit when the spread crosses zero; code also evaluates a top-ten pair selection.",
    "trade_management": "Equal-weight selected pairs; the notebook limits one variant to ten non-overlapping pairs.",
    "target": "Spread reversion to zero.",
@@ -2481,7 +2481,7 @@
     {
      "repo": "financialnoob/pairs_trading",
      "url": "https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/14.pairs_trading_granger_causality.ipynb",
-     "note": "Wavelet transform variant of the Granger-filtered pair screen; code cells 123–146"
+     "note": "Wavelet transform variant of the Granger-filtered pair screen; code cells 123\u00e2\u20ac\u201c146"
     }
    ],
    "external_refs": "",
@@ -2646,7 +2646,7 @@
    "overview": "The trailing ATR band defines the active trend; a close crossing the prior opposing band reverses direction. A new position is taken on each direction flip, allowing the position to remain exposed through persistent trends.",
    "criteria": "Liquid instrument with OHLC bars; the source does not define a specific asset universe.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "For the Pine variant, default ATR period is 10 and multiplier is 3: go long when trend changes from −1 to +1 and short when it changes from +1 to −1. The VectorBT variant defaults to period 7 and multiplier 3 and enters when the corresponding SuperTrend long/short line first becomes non-null.",
+   "entry": "For the Pine variant, default ATR period is 10 and multiplier is 3: go long when trend changes from \u00e2\u02c6\u20191 to +1 and short when it changes from +1 to \u00e2\u02c6\u20191. The VectorBT variant defaults to period 7 and multiplier 3 and enters when the corresponding SuperTrend long/short line first becomes non-null.",
    "exit": "Exit on the opposite SuperTrend direction. The Pine script's optional 15% stop is disabled by default; the VectorBT example charges 0.1% fees.",
    "trade_management": "Pine default quantity is 5 units; the VectorBT notebook uses signal-based positions and models 0.1% fees.",
    "target": "No fixed profit target; trend reversal is the exit.",
@@ -2666,7 +2666,7 @@
     {
      "repo": "PacktPublishing/Python-for-Algorithmic-Trading-Cookbook",
      "url": "https://github.com/PacktPublishing/Python-for-Algorithmic-Trading-Cookbook/blob/b201ffcb44c4a88c2604b94d41e3b2d5ca7c9ba2/06.%20Vector-Based%20Backtesting%20with%20VectorBT/06c_optimizing_the_supertrend_strategy_with_vectorbt_pro.ipynb",
-     "note": "SuperTrend bands, direction changes, entries/exits, and 1 bp commission; code cells 11–35"
+     "note": "SuperTrend bands, direction changes, entries/exits, and 1 bp commission; code cells 11\u00e2\u20ac\u201c35"
     }
    ],
    "external_refs": "",
@@ -2848,7 +2848,7 @@
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
    "entry": "On model initialization, optimize brick size by maximizing Renko score over the interquartile range of absolute 96-bar differences from 877 bars of 99-minute history; build Renko history and target 100% exposure in the last brick direction.",
    "exit": "When the latest Renko direction opposes the held position, flatten and rebuild the model. Otherwise, when a new brick forms, reduce the current position by 67%.",
-   "trade_management": "Leverage is 1.0; maker fee 0.1%, taker fee 0.2%, and slippage 0.05%. Parameter search tests n_history 150–1000, timeframe 10–100 minutes, diff_lag 1–100, and partial cover 0–1.",
+   "trade_management": "Leverage is 1.0; maker fee 0.1%, taker fee 0.2%, and slippage 0.05%. Parameter search tests n_history 150\u00e2\u20ac\u201c1000, timeframe 10\u00e2\u20ac\u201c100 minutes, diff_lag 1\u00e2\u20ac\u201c100, and partial cover 0\u00e2\u20ac\u201c1.",
    "target": "No fixed price target; trend reversal rebuilds the model.",
    "risk": "The code optimizes on a short 2018 period; the objective can select the best-performing fold when any fold is nonnegative, which risks selection bias.",
    "best_timeframes": "The example updates on daily bars using 99-minute history; a daily-only implementation would require recalibrating the Renko brick size.",
@@ -2926,7 +2926,7 @@
    "overview": "A basic time-series trend strategy maps each asset's fast-versus-slow EWM crossover to a signed position. The source notes that the binary position changes can create very high turnover.",
    "criteria": "Multi-asset price series supplied to the notebook.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Signal is sign(EWM(price, com=32) − EWM(price, com=96)), with a 100-observation minimum warmup; position cash is signal × 5e6 in a 1e8 AUM portfolio.",
+   "entry": "Signal is sign(EWM(price, com=32) \u00e2\u02c6\u2019 EWM(price, com=96)), with a 100-observation minimum warmup; position cash is signal \u00c3\u2014 5e6 in a 1e8 AUM portfolio.",
    "exit": "Recompute the signed continuous target on each input bar; no discrete exit or maximum holding period is specified.",
    "trade_management": "Fast/slow com 32/96; 5e6 cash-signal scale; AUM 1e8.",
    "target": "No fixed target; positions follow the continuous signal.",
@@ -2950,7 +2950,7 @@
     }
    ],
    "external_refs": "",
-   "notes": "Experiments 4–5 are portfolio-construction variants of the same robust oscillator; both are retained because their risk models differ materially."
+   "notes": "Experiments 4\u00e2\u20ac\u201c5 are portfolio-construction variants of the same robust oscillator; both are retained because their risk models differ materially."
   },
   {
    "id": "G078",
@@ -2990,7 +2990,7 @@
     }
    ],
    "external_refs": "",
-   "notes": "Experiments 4–5 are portfolio-construction variants of the same robust oscillator; both are retained because their risk models differ materially."
+   "notes": "Experiments 4\u00e2\u20ac\u201c5 are portfolio-construction variants of the same robust oscillator; both are retained because their risk models differ materially."
   },
   {
    "id": "G079",
@@ -3040,7 +3040,7 @@
     }
    ],
    "external_refs": "",
-   "notes": "Experiments 4–5 are portfolio-construction variants of the same robust oscillator; both are retained because their risk models differ materially."
+   "notes": "Experiments 4\u00e2\u20ac\u201c5 are portfolio-construction variants of the same robust oscillator; both are retained because their risk models differ materially."
   },
   {
    "id": "G080",
@@ -3085,7 +3085,7 @@
     }
    ],
    "external_refs": "",
-   "notes": "Experiments 4–5 are portfolio-construction variants of the same robust oscillator; both are retained because their risk models differ materially."
+   "notes": "Experiments 4\u00e2\u20ac\u201c5 are portfolio-construction variants of the same robust oscillator; both are retained because their risk models differ materially."
   },
   {
    "id": "G081",
@@ -3140,7 +3140,7 @@
     }
    ],
    "external_refs": "",
-   "notes": "Experiments 4–5 are portfolio-construction variants of the same robust oscillator; both are retained because their risk models differ materially."
+   "notes": "Experiments 4\u00e2\u20ac\u201c5 are portfolio-construction variants of the same robust oscillator; both are retained because their risk models differ materially."
   },
   {
    "id": "G082",
@@ -3156,7 +3156,7 @@
    "overview": "A dual-thrust rule sets asymmetric upper/lower breakout thresholds from a prior-session range and trades the first London-session breakout. The code reverses when the opposite threshold is crossed and liquidates at the end of the London trading window.",
    "criteria": "FX pairs with intraday bars and prior-session OHLC range.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "At 03:00 ET, set upper=open_reference + param×range and lower=open_reference − (1−param)×range; enter long above upper or short below lower, allowing one reversal if price crosses the opposite threshold.",
+   "entry": "At 03:00 ET, set upper=open_reference + param\u00c3\u2014range and lower=open_reference \u00e2\u02c6\u2019 (1\u00e2\u02c6\u2019param)\u00c3\u2014range; enter long above upper or short below lower, allowing one reversal if price crosses the opposite threshold.",
    "exit": "Flatten all open exposure at 12:00 ET; no stop loss is used before the session close.",
    "trade_management": "At most one directional signal at a time; positions are forcibly closed by 12:00 ET.",
    "target": "End-of-session liquidation; no intraday profit target.",
@@ -3226,7 +3226,7 @@
    "overview": "A large same-day move in leveraged ETFs is treated as a trend-day continuation signal. The model enters in the direction of the move during the afternoon and exits at the close, so it captures only the final intraday segment.",
    "criteria": "Leveraged ETF universe defined by QuantRocket; eligible US stock listings.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "At 14:00, compute (14:00 open - prior 15:59 close)/prior close; buy if >6%, short if <−6%, otherwise stay flat. The backtest uses the 14:00 bar close as the 14:01 entry.",
+   "entry": "At 14:00, compute (14:00 open - prior 15:59 close)/prior close; buy if >6%, short if <\u00e2\u02c6\u20196%, otherwise stay flat. The backtest uses the 14:00 bar close as the 14:01 entry.",
    "exit": "Exit at the 15:59 bar close with a market-on-close order.",
    "trade_management": "Allocate 20% of capital per active position, capped at 100% gross exposure. Commission is $0.005/share and slippage is 3 bps.",
    "target": "Fixed same-day close; no profit target.",
@@ -3343,7 +3343,7 @@
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
    "entry": "Open after one confirming Renko reversal signal by default; optional MA and SuperTrend filters are off by default.",
    "exit": "Close on reversal by default, with 200-point stop and 400-point target. Stop-and-reverse is disabled by default.",
-   "trade_management": "Default 0.1 lot, 1-bar entry/exit confirmation, 200-point stop and 400-point target; optional trading window 09:00–16:00.",
+   "trade_management": "Default 0.1 lot, 1-bar entry/exit confirmation, 200-point stop and 400-point target; optional trading window 09:00\u00e2\u20ac\u201c16:00.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
    "risk": "not specified in source Suggested: per-trade stop and a portfolio-level drawdown guard.",
    "best_timeframes": "Renko-native; the source does not specify a daily-bar adaptation.",
@@ -3370,7 +3370,7 @@
    "overlap_catalog_id": null,
    "direction": "long/short",
    "original_market": "Instrument supplied by MetaTrader chart",
-   "original_timeframe": "Custom chart bars; default trading schedule 09:00–17:55",
+   "original_timeframe": "Custom chart bars; default trading schedule 09:00\u00e2\u20ac\u201c17:55",
    "timeframe_class": "intraday-adaptable",
    "indicators": "Close-to-moving-average cross with configurable confirmation bars",
    "overview": "Price crossing its moving average supplies the directional signal, with optional multi-bar confirmation and session restrictions. The EA's default exit is an opposing signal.",
@@ -3378,7 +3378,7 @@
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
    "entry": "Enter long when price crosses above the moving average and short when it crosses below; default confirmation and prior-signal bars are each 1.",
    "exit": "Close on the opposing signal by default; stop/target are disabled by default.",
-   "trade_management": "Default lots 0.1; trading window 09:00–17:55; optional stop/target, trailing and partial-close controls.",
+   "trade_management": "Default lots 0.1; trading window 09:00\u00e2\u20ac\u201c17:55; optional stop/target, trailing and partial-close controls.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
    "risk": "not specified in source Suggested: per-trade stop and a portfolio-level drawdown guard.",
    "best_timeframes": "Custom chart bars; daily mapping is not specified.",
@@ -3440,7 +3440,7 @@
    "overlap_catalog_id": null,
    "direction": "long/short",
    "original_market": "Instrument supplied by MetaTrader chart",
-   "original_timeframe": "Custom chart bars; default trading schedule 09:00–17:55",
+   "original_timeframe": "Custom chart bars; default trading schedule 09:00\u00e2\u20ac\u201c17:55",
    "timeframe_class": "intraday-adaptable",
    "indicators": "Fast and slow moving-average crossover on custom/Renko chart bars",
    "overview": "A configurable two-moving-average crossover trades the direction of the cross and can close or reverse on the opposing cross. It is a conventional trend-following rule packaged for nonstandard chart types.",
@@ -3448,7 +3448,7 @@
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
    "entry": "Enter long/short on the custom indicator's moving-average crossover; periods and applied price are configured in the external MedianRenko indicator and are not specified in the EA source.",
    "exit": "Close or reverse on the opposite cross; default stop loss 100 points and take profit 300 points.",
-   "trade_management": "Default lots 0.1; stop 100 points, target 300 points; trading window 09:00–17:55.",
+   "trade_management": "Default lots 0.1; stop 100 points, target 300 points; trading window 09:00\u00e2\u20ac\u201c17:55.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
    "risk": "not specified in source Suggested: per-trade stop and a portfolio-level drawdown guard.",
    "best_timeframes": "Renko/custom chart bars; daily mapping is not specified.",
@@ -3596,7 +3596,7 @@
    "overview": "This notebook defines a MACD-like oscillator from configurable moving averages and holds long while the fast average is above the slow average, otherwise flat/short according to the plotted signal implementation.",
    "criteria": "Daily close prices from Yahoo Finance.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "After the warmup, set position to 1 when MA1≥MA2 and 0 otherwise; emit the first difference as the trade signal. The oscillator is MA1−MA2; actual MA periods are configured outside the function.",
+   "entry": "After the warmup, set position to 1 when MA1\u00e2\u2030\u00a5MA2 and 0 otherwise; emit the first difference as the trade signal. The oscillator is MA1\u00e2\u02c6\u2019MA2; actual MA periods are configured outside the function.",
    "exit": "Exit long on the fast-below-slow cross; the code does not specify a fixed target or stop.",
    "trade_management": "Example portfolio uses fixed share count and starting cash; transaction costs are not specified.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
@@ -3716,13 +3716,13 @@
    "overview": "This notebook compares the original trend signal, volatility-scaling variants, and the Baltas 2020 trend signal. It targets a 40% annualized portfolio volatility and evaluates turnover reduction.",
    "criteria": "Diversified global futures universe in the notebook.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Use `TSMOMBaltas2020()` with 21-session rolling or Yang–Zhang realized volatility (min_periods=10), target volatility 0.4, and cap 0.95; carry the signal to month-end.",
+   "entry": "Use `TSMOMBaltas2020()` with 21-session rolling or Yang\u00e2\u20ac\u201cZhang realized volatility (min_periods=10), target volatility 0.4, and cap 0.95; carry the signal to month-end.",
    "exit": "Rebalance at month-end; no fixed price stop or target is specified.",
-   "trade_management": "Equal weight assets; compare rolling/EWM/Yang–Zhang volatility scaling, target 40%, cap 0.95.",
+   "trade_management": "Equal weight assets; compare rolling/EWM/Yang\u00e2\u20ac\u201cZhang volatility scaling, target 40%, cap 0.95.",
    "target": "Monthly portfolio rebalance.",
    "risk": "Backtests are gross of costs; full signal implementation is private.",
    "best_timeframes": "Daily futures data; monthly rebalance.",
-   "parameter_variants": "21-session rolling, EWM, and Yang–Zhang realized-volatility scaling.",
+   "parameter_variants": "21-session rolling, EWM, and Yang\u00e2\u20ac\u201cZhang realized-volatility scaling.",
    "variant_notes": "",
    "reported_metrics": "none reported",
    "priority": "Medium",
@@ -3836,7 +3836,7 @@
    "overview": "This portfolio takes the sign of each asset's trailing 252-day return and combines the cross-asset signals with volatility-parity or equal-weight allocations. It is a time-series momentum baseline with target-volatility leverage.",
    "criteria": "Assets with daily return history; the repository's dataset spans multiple asset classes.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Every 21 daily observations, set each asset signal to +1 when its trailing 252-day cumulative return is positive and −1 otherwise; the script's binary-signal helper implements the direction.",
+   "entry": "Every 21 daily observations, set each asset signal to +1 when its trailing 252-day cumulative return is positive and \u00e2\u02c6\u20191 otherwise; the script's binary-signal helper implements the direction.",
    "exit": "Rebalance on the next 21-bar signal date; no discretionary exit is specified beyond the sign change.",
    "trade_management": "Default configuration uses a 10% annualized volatility target and 180-day volatility window; equal-weight, volatility-parity, and risk-parity schemes are tested. Portfolio return code deducts 0.1% costs.",
    "target": "No fixed price target; signal is recomputed at the monthly rebalance.",
@@ -3957,7 +3957,7 @@
    "target": "No fixed profit target; rotate at the next rebalance.",
    "risk": "No explicit stop. In the notebook's optional best-index mode, the selected index can be chosen using the same full evaluation window, creating look-ahead selection risk.",
    "best_timeframes": "Daily bars are native; the 250-session signal is not intended for intraday bars.",
-   "parameter_variants": "Walk-forward grid tests lookback/ROC 150–250 sessions, 7–21 calendar-day rebalance, and 95% exposure.",
+   "parameter_variants": "Walk-forward grid tests lookback/ROC 150\u00e2\u20ac\u201c250 sessions, 7\u00e2\u20ac\u201c21 calendar-day rebalance, and 95% exposure.",
    "variant_notes": "",
    "reported_metrics": "none reported",
    "priority": "Medium",
@@ -4291,7 +4291,7 @@
    "overview": "This alternative intraday model removes the market component from returns using cap-weighted beta adjustment, then forecasts from the residual signal. It is a higher-frequency counterpart to badj2_multi.",
    "criteria": "US equities with intraday returns, market cap and predicted beta.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "At each intraday bar, subtract predicted beta × cap-weighted market return, winsorize/demean, and use six time-of-day regression coefficients.",
+   "entry": "At each intraday bar, subtract predicted beta \u00c3\u2014 cap-weighted market return, winsorize/demean, and use six time-of-day regression coefficients.",
    "exit": "Forecast is refreshed by timestamp; explicit position exit is delegated to the simulator.",
    "trade_management": "not specified in source Suggested: unit or volatility-scaled sizing; cap concurrent positions.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
@@ -4317,7 +4317,7 @@
    "name": "Market-Weighted Beta-Residual Return Factor",
    "category": "Momentum, Rotation and Cross-Sectional Factors",
    "entry_type": "full",
-   "overlap_catalog_id": null,
+   "overlap_catalog_id": "S078",
    "direction": "long/short",
    "original_market": "US equities",
    "original_timeframe": "1d",
@@ -4326,7 +4326,7 @@
    "overview": "This variant subtracts the predicted beta times the cap-weighted market return instead of dividing each return by beta. The resulting residual-like daily signals are regressed against future returns.",
    "criteria": "US equities with market cap, predicted beta, and daily return data.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "For each date, calculate market return as cap-weighted mean return and set adjusted return to log_return−predicted_beta×market_return; winsorize, industry-demean, lag, and fit the forecast model.",
+   "entry": "For each date, calculate market return as cap-weighted mean return and set adjusted return to log_return\u00e2\u02c6\u2019predicted_beta\u00c3\u2014market_return; winsorize, industry-demean, lag, and fit the forecast model.",
    "exit": "Daily re-estimation of the forecast; a separate price-based exit is not specified.",
    "trade_management": "Portfolio optimizer consumes the alpha forecast; direct sizing/exit rules are not specified.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
@@ -4431,7 +4431,7 @@
    "overview": "The strategy conditions stock returns on a volatility ratio, winsorizes and industry-demeans them, and fits daily/intraday coefficients. It tests whether return reversal changes with realized volatility.",
    "criteria": "US equities with daily/intraday returns and volatility ratio data.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Signal = log_return × volatility_ratio; generate lagged daily and intraday features, winsorize/demean by industry, and apply regression-fitted forecasts.",
+   "entry": "Signal = log_return \u00c3\u2014 volatility_ratio; generate lagged daily and intraday features, winsorize/demean by industry, and apply regression-fitted forecasts.",
    "exit": "No direct position exit or stop is specified; forecast flows into the portfolio engine.",
    "trade_management": "not specified in source Suggested: unit or volatility-scaled sizing; cap concurrent positions.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
@@ -4526,7 +4526,7 @@
     {
      "repo": "popbo/alphas",
      "url": "https://github.com/popbo/alphas/blob/620594add1c48a4c8b8eb0dca22c2fef9cabccf9/alphas101.py#L194-L752",
-     "note": "Alpha001–Alpha101 implementation and shared rolling operators"
+     "note": "Alpha001\u00e2\u20ac\u201cAlpha101 implementation and shared rolling operators"
     },
     {
      "repo": "popbo/alphas",
@@ -4580,7 +4580,7 @@
     }
    ],
    "external_refs": "",
-   "notes": "Selected as a standout because its code expresses a clear 1–5 session price/volume swing effect; the repository's example portfolio evaluates Alpha083 instead."
+   "notes": "Selected as a standout because its code expresses a clear 1\u00e2\u20ac\u201c5 session price/volume swing effect; the repository's example portfolio evaluates Alpha083 instead."
   },
   {
    "id": "G120",
@@ -4620,7 +4620,7 @@
     }
    ],
    "external_refs": "",
-   "notes": "Selected as a standout because its code expresses a clear 1–5 session price/volume swing effect; the repository's example portfolio evaluates Alpha083 instead."
+   "notes": "Selected as a standout because its code expresses a clear 1\u00e2\u20ac\u201c5 session price/volume swing effect; the repository's example portfolio evaluates Alpha083 instead."
   },
   {
    "id": "G121",
@@ -4660,7 +4660,7 @@
     }
    ],
    "external_refs": "",
-   "notes": "Selected as a standout because its code expresses a clear 1–5 session price/volume swing effect; the repository's example portfolio evaluates Alpha083 instead."
+   "notes": "Selected as a standout because its code expresses a clear 1\u00e2\u20ac\u201c5 session price/volume swing effect; the repository's example portfolio evaluates Alpha083 instead."
   },
   {
    "id": "G122",
@@ -4691,7 +4691,7 @@
     {
      "repo": "popbo/alphas",
      "url": "https://github.com/popbo/alphas/blob/620594add1c48a4c8b8eb0dca22c2fef9cabccf9/alphas191.py#L1-L1231",
-     "note": "Alpha001–Alpha191 formula definitions"
+     "note": "Alpha001\u00e2\u20ac\u201cAlpha191 formula definitions"
     },
     {
      "repo": "popbo/alphas",
@@ -4867,7 +4867,7 @@
    "original_market": "Yahoo Finance equities",
    "original_timeframe": "1d",
    "timeframe_class": "daily-native",
-   "indicators": "20-session SMA, ±2 standard-deviation bands, five-node W pattern",
+   "indicators": "20-session SMA, \u00c2\u00b12 standard-deviation bands, five-node W pattern",
    "overview": "A bottom-W pattern is detected from two lower-band tests and intervening midpoint recovery, with a breakout above the upper band confirming the pattern. The code treats bandwidth contraction as a condition to clear the held position.",
    "criteria": "Daily equity prices with at least 75 sessions of history.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
@@ -4979,7 +4979,7 @@
    "entry": "Require all eight candle conditions using `lower_bound=0.2` and `body_size=0.5`; enter short at the signal close.",
    "exit": "Exit when absolute close-to-entry change exceeds 5% (either favorable or adverse) or after 7 sessions.",
    "trade_management": "One short per signal; `stop_threshold=0.05` and `holding_period=7`.",
-   "target": "Symmetric ±5% close-to-entry exit or seven-session time stop.",
+   "target": "Symmetric \u00c2\u00b15% close-to-entry exit or seven-session time stop.",
    "risk": "The absolute-value exit closes both profitable and losing 5% moves; no costs or regime filter are present.",
    "best_timeframes": "Daily bars.",
    "parameter_variants": "",
@@ -5241,7 +5241,7 @@
    "overview": "The notebook tests a long straddle when call and put premiums are close in price, seeking a large move in either direction. It is not a volatility forecast; the signal is based on premium symmetry.",
    "criteria": "Matched call/put strike and expiry; example data are EURO STOXX 50 options.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Buy a call and put with the same strike and expiry when |call premium−put premium|<threshold; the threshold is an input and not fixed in source.",
+   "entry": "Buy a call and put with the same strike and expiry when |call premium\u00e2\u02c6\u2019put premium|<threshold; the threshold is an input and not fixed in source.",
    "exit": "not specified in source",
    "trade_management": "Long both option legs; sizing, expiry management, and transaction costs are not specified.",
    "target": "Profits from a sufficiently large move in either direction; no numeric target is supplied.",
@@ -5420,14 +5420,14 @@
    "overlap_catalog_id": null,
    "direction": "long",
    "original_market": "US equity ETFs",
-   "original_timeframe": "Intraday bars; 09:30–16:00 session",
+   "original_timeframe": "Intraday bars; 09:30\u00e2\u20ac\u201c16:00 session",
    "timeframe_class": "intraday-only",
    "indicators": "First-hour return r1 and prior-session return r12",
    "overview": "The notebook compares first-hour and prior-session return signals for an intraday ETF portfolio. The cited approach tests whether early-session price discovery predicts late-session returns.",
    "criteria": "Equity ETFs with intraday bars.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
    "entry": "Run the private `IntradayMomentumGao2018` signal with r1-only, r12-only, and combined r1/r12 variants; exact thresholds/position mapping are not exposed in the notebook.",
-   "exit": "Exit at the session close; the backtest uses close-based PnL for the 09:30–16:00 session.",
+   "exit": "Exit at the session close; the backtest uses close-based PnL for the 09:30\u00e2\u20ac\u201c16:00 session.",
    "trade_management": "Daily close liquidation; sizing and costs are delegated to private `vivace`.",
    "target": "Close at 16:00; no profit target.",
    "risk": "Intraday spreads, opening volatility and execution slippage can dominate the signal; no net cost model is visible.",
@@ -5571,7 +5571,7 @@
    "overview": "The strategy fits separate return-predictability coefficients for each weekday, testing whether beta-adjusted return effects vary with the trading calendar.",
    "criteria": "US equities with weekday calendar, beta, and daily return data.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Compute o2c0=log_return/predicted_beta, create daily lags, and apply the coefficient set corresponding to Monday–Friday.",
+   "entry": "Compute o2c0=log_return/predicted_beta, create daily lags, and apply the coefficient set corresponding to Monday\u00e2\u20ac\u201cFriday.",
    "exit": "Forecast positions refresh daily; no explicit price exit is specified.",
    "trade_management": "Daily alpha forecasts feed the optimizer; no separate stop or sizing is specified.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
@@ -5846,13 +5846,13 @@
    "overview": "These variants filter rating changes to periods when analyst-rating dispersion/coverage increases, then fit separate upgrade and downgrade regressions. A production variant cubes the rating change to amplify large revisions.",
    "criteria": "US equities with IBES rating history and rating-dispersion time series.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Set rating-change signal to zero unless `std_diff>0`; `rating_diff_updn.py` uses sign(x)·x² and separate up/down models, while `prod_rtg.py` uses rating_diff_mean³ with a 720-day fitting window.",
+   "entry": "Set rating-change signal to zero unless `std_diff>0`; `rating_diff_updn.py` uses sign(x)\u00c2\u00b7x\u00c2\u00b2 and separate up/down models, while `prod_rtg.py` uses rating_diff_mean\u00c2\u00b3 with a 720-day fitting window.",
    "exit": "Daily lagged forecasts are applied with fitted coefficients; no discrete exit or holding limit is specified.",
    "trade_management": "Forecast factors feed the portfolio optimizer; production coefficients are stored and reused.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
    "risk": "not specified in source Suggested: per-trade stop and a portfolio-level drawdown guard.",
    "best_timeframes": "Daily factor forecasts updated on analyst event dates.",
-   "parameter_variants": "Linear coverage-filtered rating change; sign(x)·x² with asymmetric fits; production x³ signal.",
+   "parameter_variants": "Linear coverage-filtered rating change; sign(x)\u00c2\u00b7x\u00c2\u00b2 with asymmetric fits; production x\u00c2\u00b3 signal.",
    "variant_notes": "",
    "reported_metrics": "none reported",
    "priority": "Low",
@@ -6596,7 +6596,7 @@
    "overview": "The notebook trains multiple SVR models to estimate a pair leg's fair value from the other leg and uses a weighted vote across model predictions. The vote fades the asset when observed price is above predicted fair value and favors it when below.",
    "criteria": "Pairs selected from the notebook's stock universe; no stable universe rule specified.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "For each pair and date, compute votes as −sign(observed price − each SVR prediction), then take the dot product with model-vote weights. The notebook tests a 20-session training lookback and PCA component counts 1–3.",
+   "entry": "For each pair and date, compute votes as \u00e2\u02c6\u2019sign(observed price \u00e2\u02c6\u2019 each SVR prediction), then take the dot product with model-vote weights. The notebook tests a 20-session training lookback and PCA component counts 1\u00e2\u20ac\u201c3.",
    "exit": "The source evaluates directional votes and applies a 0.2% fee on position reversals; a complete fixed exit threshold is not specified in source.",
    "trade_management": "Long/short vote is converted into a directional position; 0.2% fee is charged when the position reverses.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
@@ -6611,7 +6611,7 @@
     {
      "repo": "financialnoob/pairs_trading",
      "url": "https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/7.pair_trading.svr_v1.ipynb",
-     "note": "PCA/SVR fair-value voting, 20-day lookback and transaction-cost calculation; code cells 10–16 and 22"
+     "note": "PCA/SVR fair-value voting, 20-day lookback and transaction-cost calculation; code cells 10\u00e2\u20ac\u201c16 and 22"
     }
    ],
    "external_refs": "",
@@ -7076,7 +7076,7 @@
     {
      "repo": "wywongbd/pairstrade-fyp-2019",
      "url": "https://github.com/wywongbd/pairstrade-fyp-2019/blob/078c84b6ad0b941a0ccd497e4a803cbec78f7165/model/trading_model_with_comission.ipynb",
-     "note": "Pair-slice training and validation/test evaluation; code cells 3–12 and 20"
+     "note": "Pair-slice training and validation/test evaluation; code cells 3\u00e2\u20ac\u201c12 and 20"
     }
    ],
    "external_refs": "",
@@ -7100,7 +7100,7 @@
    "exit": "The agent may hold until a subsequent buy/sell action; the environment has no fixed stop, target, or time exit.",
    "trade_management": "Fixed 100-share lots per leg in the environment; no transaction costs or risk limits are specified.",
    "target": "Reward maximization through sequential buy/sell/hold actions.",
-   "risk": "The repository uses 2008–2009-style sample data, has no costs, and does not document a chronological OOS protocol.",
+   "risk": "The repository uses 2008\u00e2\u20ac\u201c2009-style sample data, has no costs, and does not document a chronological OOS protocol.",
    "best_timeframes": "Daily data are used; learned state length defaults to 50 observations.",
    "parameter_variants": "",
    "variant_notes": "",
@@ -7826,7 +7826,7 @@
    "overview": "The model treats bid/ask depth asymmetry as a predictive signal, scales the imbalance by spread, and fits coefficients to forward returns. One variant adds beta-adjusted returns and six time-of-day coefficient buckets.",
    "criteria": "US equities with quote-depth, spread, price and industry data.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Signal=(ask_size−bid_size)/(ask_size+bid_size), normalized by sqrt(spread) and scaled by 1/10000; winsorize and industry-demean. `bsz.py` combines daily/intraday and market-adjusted returns; `bsz1.py` uses a simpler non-beta-adjusted fit.",
+   "entry": "Signal=(ask_size\u00e2\u02c6\u2019bid_size)/(ask_size+bid_size), normalized by sqrt(spread) and scaled by 1/10000; winsorize and industry-demean. `bsz.py` combines daily/intraday and market-adjusted returns; `bsz1.py` uses a simpler non-beta-adjusted fit.",
    "exit": "Forecast positions are updated through qsim; explicit price exits are not specified.",
    "trade_management": "Portfolio optimizer/simulator handles order sizing; no standalone stop/target.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
@@ -7866,7 +7866,7 @@
    "overview": "The signal combines absolute order-flow imbalance with daily lags and intraday flow, normalizing by square-root spread and demeaning within industry. Positive ask-hit imbalance is treated as buying pressure, with regression coefficients translating it to a forecast.",
    "criteria": "US equities with intraday order-flow and spread data plus daily price/industry data.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Compute bd0=(askHitDollars−bidHitDollars)/(askHitDollars+midHitDollars+bidHitDollars), divide by sqrt(spread_bps), winsorize and industry-demean; apply fitted daily-lag and six hourly intraday coefficients.",
+   "entry": "Compute bd0=(askHitDollars\u00e2\u02c6\u2019bidHitDollars)/(askHitDollars+midHitDollars+bidHitDollars), divide by sqrt(spread_bps), winsorize and industry-demean; apply fitted daily-lag and six hourly intraday coefficients.",
    "exit": "Forecast is updated daily/intraday; order-level exits and stops are not specified in the alpha module.",
    "trade_management": "Alpha feeds the qsim/order-level simulator; trade execution and position limits are separate.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",
@@ -7906,7 +7906,7 @@
    "overview": "This simplified order-flow strategy uses changes in aggressive order flow rather than absolute imbalance levels, attempting to capture acceleration in buying/selling pressure.",
    "criteria": "US equities with intraday order-flow data.",
    "avoid_and_failure": "not specified in source Suggested: avoid low-liquidity names and regime mismatches (trend strategies in chop, mean reversion in sustained trends).",
-   "entry": "Compute (diff(askHitDollars)−diff(bidHitDollars))/(diff(askHitDollars)+diff(midHitDollars)+diff(bidHitDollars)); winsorize and industry-demean, then apply the fitted forecast coefficient.",
+   "entry": "Compute (diff(askHitDollars)\u00e2\u02c6\u2019diff(bidHitDollars))/(diff(askHitDollars)+diff(midHitDollars)+diff(bidHitDollars)); winsorize and industry-demean, then apply the fitted forecast coefficient.",
    "exit": "Forecast changes at each intraday timestamp; the notebook/code does not specify a standalone exit.",
    "trade_management": "not specified in source Suggested: unit or volatility-scaled sizing; cap concurrent positions.",
    "target": "not specified in source Suggested: exit at the signal's natural objective or a multiple of ATR.",

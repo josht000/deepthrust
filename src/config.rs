@@ -598,6 +598,22 @@ pub struct Config {
     pub volume_mode: String,
     #[serde(default = "d_require_macd_positive")]
     pub require_macd_positive: bool,
+    #[serde(default = "d_pair_dist")]
+    pub pair_dist: f64,
+    #[serde(default = "d_max_half_life")]
+    pub max_half_life: f64,
+    #[serde(default = "d_corr_min")]
+    pub corr_min: f64,
+    #[serde(default = "d_corr_keep")]
+    pub corr_keep: f64,
+    #[serde(default = "d_hurst_lt")]
+    pub hurst_lt: f64,
+    #[serde(default = "d_norm_mode")]
+    pub norm_mode: String,
+    #[serde(default)]
+    pub factor_invert: bool,
+    #[serde(default = "d_n_lags")]
+    pub n_lags: usize,
     /// Resolved variant name ("baseline" when no overlay is applied).
     #[serde(skip, default = "d_baseline")]
     pub variant: String,
@@ -1133,6 +1149,27 @@ fn d_volume_mode() -> String {
 }
 fn d_require_macd_positive() -> bool {
     true
+}
+fn d_pair_dist() -> f64 {
+    2.0
+}
+fn d_max_half_life() -> f64 {
+    30.0
+}
+fn d_corr_min() -> f64 {
+    0.75
+}
+fn d_corr_keep() -> f64 {
+    0.9
+}
+fn d_hurst_lt() -> f64 {
+    0.5
+}
+fn d_norm_mode() -> String {
+    "rebase".into()
+}
+fn d_n_lags() -> usize {
+    1
 }
 fn d_traded_symbol() -> String {
     "SPY".into()

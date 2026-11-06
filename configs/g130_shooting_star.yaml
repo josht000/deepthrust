@@ -1,0 +1,57 @@
+# G130 shooting-star short: upwick>=2x body, lower wick<=20% range, body<=50%
+# range; exit |move|>5% or 7 sessions. rsi_threshold/100 = body cap,
+# weakness_threshold = lower-wick cap.
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+start_date: "2016-01-01"
+min_price: 5.0
+min_history: 60
+universe_top_n: 300
+borrow_bps_annual: 75.0
+cost_bps_per_side: 10.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 10
+max_units: 1
+rsi_threshold: 50.0
+weakness_threshold: 0.2
+stop_loss: 0.05
+max_hold: 7
+
+variants:
+  top500: {universe_top_n: 500}
+  top1000: {universe_top_n: 1000}
+  minp10: {min_price: 10.0}
+  minp20: {min_price: 20.0}
+  cost5: {cost_bps_per_side: 5.0}
+  cost2: {cost_bps_per_side: 2.0}
+  cost25: {cost_bps_per_side: 25.0}
+  hist126: {min_history: 126}
+  hist252: {min_history: 252}
+  body30: {rsi_threshold: 30.0}
+  body70: {rsi_threshold: 70.0}
+  wick10: {weakness_threshold: 0.10}
+  wick30: {weakness_threshold: 0.30}
+  stop3: {stop_loss: 0.03}
+  stop8: {stop_loss: 0.08}
+  stop10: {stop_loss: 0.10}
+  hold5: {max_hold: 5}
+  hold10: {max_hold: 10}
+  hold14: {max_hold: 14}
+  stop3_hold5: {stop_loss: 0.03, max_hold: 5}
+  stop8_hold10: {stop_loss: 0.08, max_hold: 10}
+  body30_wick10: {rsi_threshold: 30.0, weakness_threshold: 0.10}
+  body70_wick30: {rsi_threshold: 70.0, weakness_threshold: 0.30}
+  stop10_hold14: {stop_loss: 0.10, max_hold: 14}
+  wick15_stop8: {weakness_threshold: 0.15, stop_loss: 0.08}
+  body40: {rsi_threshold: 40.0}
+  body60: {rsi_threshold: 60.0}
+  wick25: {weakness_threshold: 0.25}

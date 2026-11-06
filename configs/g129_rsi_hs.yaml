@@ -1,0 +1,57 @@
+# G129 RSI(14) head-and-shoulders short: three peaks, head>shoulders within
+# tolerance; exit after RSI +4pts from entry or 5 sessions.
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+start_date: "2016-01-01"
+min_price: 5.0
+min_history: 60
+universe_top_n: 300
+borrow_bps_annual: 75.0
+cost_bps_per_side: 10.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 10
+max_units: 1
+rsi_len: 14
+rsi_threshold: 5.0
+add_rsi: 4.0
+max_hold: 5
+
+variants:
+  top500: {universe_top_n: 500}
+  top1000: {universe_top_n: 1000}
+  minp10: {min_price: 10.0}
+  minp20: {min_price: 20.0}
+  cost5: {cost_bps_per_side: 5.0}
+  cost2: {cost_bps_per_side: 2.0}
+  cost25: {cost_bps_per_side: 25.0}
+  hist126: {min_history: 126}
+  hist252: {min_history: 252}
+  rsi10: {rsi_len: 10}
+  rsi21: {rsi_len: 21}
+  rsi7: {rsi_len: 7}
+  tol3: {rsi_threshold: 3.0}
+  tol8: {rsi_threshold: 8.0}
+  tol10: {rsi_threshold: 10.0}
+  exit2: {add_rsi: 2.0}
+  exit6: {add_rsi: 6.0}
+  exit8: {add_rsi: 8.0}
+  hold3: {max_hold: 3}
+  hold10: {max_hold: 10}
+  hold15: {max_hold: 15}
+  rsi10_tol8: {rsi_len: 10, rsi_threshold: 8.0}
+  rsi21_exit6: {rsi_len: 21, add_rsi: 6.0}
+  tol8_hold10: {rsi_threshold: 8.0, max_hold: 10}
+  exit6_hold3: {add_rsi: 6.0, max_hold: 3}
+  tol3_rsi10: {rsi_threshold: 3.0, rsi_len: 10}
+  tol10_rsi21: {rsi_threshold: 10.0, rsi_len: 21}
+  hold10_exit6: {max_hold: 10, add_rsi: 6.0}
+  rsi7_hold3: {rsi_len: 7, max_hold: 3}
