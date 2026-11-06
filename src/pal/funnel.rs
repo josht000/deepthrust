@@ -752,8 +752,16 @@ pub fn run_funnel(
     struct VerOutcome {
         nq: Option<Metrics>,
         es: Option<Metrics>,
-        share: Option<f64>,
         daily: Vec<(Market, BTreeMap<NaiveDate, f64>)>,
+    }
+
+    // stage-4 job: a version whose NQ metrics passed stages 1-3. The
+    // twin test itself runs in a second parallel phase so s4-dense
+    // keys cannot strand a few workers while the rest idle.
+    struct S4Job {
+        ver: usize,
+        trades: Vec<crate::pal::engine::Trade>,
+        twins: Vec<TwinInfo>,
     }
 
     let groups_vec: Vec<(&DetKey, &Vec<usize>)> = groups.iter().collect();
@@ -772,62 +780,66 @@ pub fn run_funnel(
     let groups_ref = &groups_vec;
 
     let mut shard_results: Vec<Vec<(usize, VerOutcome)>> = Vec::with_capacity(n_workers);
+    let mut s4_jobs: Vec<S4Job> = Vec::new();
     std::thread::scope(|s| {
         let mut handles = Vec::new();
         for w in 0..n_workers.min(groups_vec.len().max(1)) {
             let (done, n_s4) = (&done, &n_s4);
             let spill = parts_dir.join(format!("part_{w:03}.jsonl"));
-            let handle = s.spawn(move || -> Result<Vec<(usize, VerOutcome)>, String> {
-                let mut out: Vec<(usize, VerOutcome)> = Vec::new();
-                let mut sf = std::io::BufWriter::new(
-                    std::fs::File::create(&spill).map_err(|e| e.to_string())?,
-                );
-                for (off, (key, idxs)) in groups_ref[w.min(groups_ref.len())..]
-                    .iter()
-                    .step_by(n_workers)
-                    .enumerate()
-                {
-                    let pos = w + off * n_workers;
-                    let gi = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                    if gi % 500 == 0 {
-                        eprintln!(
-                            "funnel: key {gi}/{n_keys} (s4 runs: {})",
-                            n_s4.load(std::sync::atomic::Ordering::Relaxed)
-                        );
-                    }
-                    let setup = Setup::ALL[key.setup as usize];
-                    let cfg = cfg_of(key);
-                    let mut per_ver: Vec<VerOutcome> = idxs
+            let handle = s.spawn(
+                move || -> Result<(Vec<(usize, VerOutcome)>, Vec<S4Job>), String> {
+                    let mut out: Vec<(usize, VerOutcome)> = Vec::new();
+                    let mut jobs: Vec<S4Job> = Vec::new();
+                    let mut sf = std::io::BufWriter::new(
+                        std::fs::File::create(&spill).map_err(|e| e.to_string())?,
+                    );
+                    for (off, (key, idxs)) in groups_ref[w.min(groups_ref.len())..]
                         .iter()
-                        .map(|_| VerOutcome {
-                            nq: None,
-                            es: None,
-                            share: None,
-                            daily: Vec::new(),
-                        })
-                        .collect();
-                    for market in [Market::Nq, Market::Es] {
-                        let ctx = if market == Market::Nq { nq_ref } else { es_ref };
-                        let events: Vec<Event> = detect_events(ctx, setup, &cfg);
-                        for (oi, &i) in idxs.iter().enumerate() {
-                            let fv = &versions_ref[i];
-                            let rr = run_version(ctx, market, &events, &fv.v, news);
-                            let m = metrics(&rr, &ctx.session_dates);
-                            let oc = &mut per_ver[oi];
-                            if market == Market::Nq {
-                                if m.n_trades >= MIN_NQ_TRADES
-                                    && m.pnl > 0.0
-                                    && m.sharpe >= SHARPE_NQ
-                                {
-                                    n_s4.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                                    oc.share = Some(matched_random_share(
-                                        ctx, market, &rr.trades, &rr.twins, &fv.sha,
-                                    ));
+                        .step_by(n_workers)
+                        .enumerate()
+                    {
+                        let pos = w + off * n_workers;
+                        let gi = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        if gi % 500 == 0 {
+                            eprintln!(
+                                "funnel: key {gi}/{n_keys} (s4 queued: {})",
+                                n_s4.load(std::sync::atomic::Ordering::Relaxed)
+                            );
+                        }
+                        let setup = Setup::ALL[key.setup as usize];
+                        let cfg = cfg_of(key);
+                        let mut per_ver: Vec<VerOutcome> = idxs
+                            .iter()
+                            .map(|_| VerOutcome {
+                                nq: None,
+                                es: None,
+                                daily: Vec::new(),
+                            })
+                            .collect();
+                        for market in [Market::Nq, Market::Es] {
+                            let ctx = if market == Market::Nq { nq_ref } else { es_ref };
+                            let events: Vec<Event> = detect_events(ctx, setup, &cfg);
+                            for (oi, &i) in idxs.iter().enumerate() {
+                                let fv = &versions_ref[i];
+                                let rr = run_version(ctx, market, &events, &fv.v, news);
+                                let m = metrics(&rr, &ctx.session_dates);
+                                let oc = &mut per_ver[oi];
+                                if market == Market::Nq {
+                                    if m.n_trades >= MIN_NQ_TRADES
+                                        && m.pnl > 0.0
+                                        && m.sharpe >= SHARPE_NQ
+                                    {
+                                        n_s4.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                                        jobs.push(S4Job {
+                                            ver: i,
+                                            trades: rr.trades.clone(),
+                                            twins: rr.twins.clone(),
+                                        });
+                                    }
+                                    oc.nq = Some(m);
+                                } else {
+                                    oc.es = Some(m);
                                 }
-                                oc.nq = Some(m);
-                            } else {
-                                oc.es = Some(m);
-                            }
                             // every run's daily P&L goes to the spill file;
                             // only potentially-kept versions also keep it in RAM
                             let obj = serde_json::json!({
@@ -849,16 +861,70 @@ pub fn run_funnel(
                             }
                         }
                     }
-                    out.extend(idxs.iter().copied().zip(per_ver));
-                }
-                Ok(out)
-            });
+                        out.extend(idxs.iter().copied().zip(per_ver));
+                    }
+                    Ok((out, jobs))
+                },
+            );
             handles.push(handle);
         }
         for h in handles {
-            shard_results.push(h.join().expect("funnel worker panicked").expect("funnel worker failed"));
+            let (out, jobs) = h
+                .join()
+                .expect("funnel worker panicked")
+                .expect("funnel worker failed");
+            shard_results.push(out);
+            s4_jobs.extend(jobs);
         }
     });
+
+    // phase B: matched-random twins over all stage-3 survivors, shared
+    // round-robin across every worker. The twin RNG is keyed on each
+    // version's sha, so the split changes scheduling only — results
+    // are identical to computing s4 inside the key loop.
+    let n_jobs = s4_jobs.len();
+    eprintln!("funnel: {n_jobs} stage-4 twin tests");
+    let s4_done = std::sync::atomic::AtomicUsize::new(0);
+    let mut s4_shares: Vec<(usize, f64)> = Vec::new();
+    {
+        let jobs = &s4_jobs;
+        let vers = versions_ref;
+        let done2 = &s4_done;
+        std::thread::scope(|s| {
+            let mut hs = Vec::new();
+            for w in 0..n_workers.min(n_jobs.max(1)) {
+                let h = s.spawn(move || {
+                    let mut out = Vec::new();
+                    for job in jobs.iter().skip(w).step_by(n_workers) {
+                        let gi = done2.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                        if gi % 100 == 0 {
+                            eprintln!("funnel: s4 {gi}/{n_jobs}");
+                        }
+                        out.push((
+                            job.ver,
+                            matched_random_share(
+                                nq_ref,
+                                Market::Nq,
+                                &job.trades,
+                                &job.twins,
+                                &vers[job.ver].sha,
+                            ),
+                        ));
+                    }
+                    out
+                });
+                hs.push(h);
+            }
+            for h in hs {
+                s4_shares.extend(h.join().expect("funnel s4 worker panicked"));
+            }
+        });
+    }
+    for (i, share) in s4_shares {
+        rows[i].s4_twin_share = Some(share);
+        rows[i].s4_pass = share < TWIN_P;
+    }
+    drop(s4_jobs);
 
     // k-way merge of spill files by key position -> daily_pnl.jsonl
     {
@@ -909,10 +975,6 @@ pub fn run_funnel(
                 r.era1_pos = m.era1_pnl > 0.0;
                 r.era2_pos = m.era2_pnl > 0.0;
                 r.nq = Some(m);
-            }
-            if let Some(share) = oc.share {
-                rows[i].s4_twin_share = Some(share);
-                rows[i].s4_pass = share < TWIN_P;
             }
             if let Some(m) = oc.es {
                 rows[i].s5_es_hold = m.pnl > 0.0 && m.sharpe >= SHARPE_ES;
@@ -1013,6 +1075,10 @@ pub fn run_funnel(
         });
     }
 
+    setups.sort_by(|a, b| {
+        (a.setup.as_str(), a.chart.as_str(), a.market.as_str())
+            .cmp(&(b.setup.as_str(), b.chart.as_str(), b.market.as_str()))
+    });
     for r in &mut rows {
         r.candidate = r.kept
             && r.s1_trades
