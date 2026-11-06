@@ -324,6 +324,10 @@ pub struct Config {
     pub resp_exp: f64,
     #[serde(default = "d_sig_vol_window")]
     pub sig_vol_window: usize,
+    #[serde(default = "d_ao_fast")]
+    pub ao_fast: usize,
+    #[serde(default = "d_ao_slow")]
+    pub ao_slow: usize,
     #[serde(default = "d_levered_cap")]
     pub levered_cap: f64,
     #[serde(default = "d_z_entry")]
@@ -1089,6 +1093,12 @@ fn d_vix_ratio_hold_sessions() -> usize {
 }
 fn d_risk_symbol() -> String {
     "SPY".into()
+}
+fn d_ao_fast() -> usize {
+    5
+}
+fn d_ao_slow() -> usize {
+    34
 }
 fn d_setup_mode() -> String {
     "nr7_or_inside".into()

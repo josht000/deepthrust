@@ -1,0 +1,38 @@
+# G076 Awesome Oscillator: AO = SMA(5)-SMA(34) of median price; enter on flip
+# to positive, exit on flip to <=0. Long-only (engine has no short leg) — DELTA.
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY
+benchmark: SPY
+start_date: "2005-01-01"
+min_history: 50
+ao_fast: 5
+ao_slow: 34
+strategy_mode: zero
+disaster_stop_atr: 0.0
+cost_bps_per_side: 5.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+n_timing_draws: 500
+seed: 20261101
+book_slots: 15
+
+variants:
+  saucer: {strategy_mode: saucer}
+  either: {strategy_mode: either}
+  fast3: {ao_fast: 3}
+  fast8: {ao_fast: 8}
+  fast13: {ao_fast: 13}
+  slow21: {ao_slow: 21}
+  slow55: {ao_slow: 55}
+  slow89: {ao_slow: 89}
+  quick: {ao_fast: 3, ao_slow: 21}
+  lazy: {ao_fast: 13, ao_slow: 89}
+  spy_only: {symbols: SPY, book_slots: 1}
+  qqq_only: {symbols: QQQ, book_slots: 1}
+  tlt_only: {symbols: TLT, book_slots: 1}
+  gld_only: {symbols: GLD, book_slots: 1}
+  saucer_fast8: {strategy_mode: saucer, ao_fast: 8}
+  either_slow55: {strategy_mode: either, ao_slow: 55}

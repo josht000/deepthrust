@@ -2977,6 +2977,13 @@ pub fn compute_g033_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
 /// (prev %K > 80 -> < 75, RSI < 50) has no engine support.
 pub fn compute_g068_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
     let mut stoch_all = Vec::with_capacity(panel.symbols.len());
+/// G076 Awesome Oscillator: AO = SMA(ao_fast) - SMA(ao_slow) of median price.
+/// "zero" mode: enter on AO flip to >0, exit on flip to <=0.
+/// "saucer" mode: enter on saucer trigger (bearish bar, prior 2 bullish, AO
+/// rising, last two AO < 0); exit on AO > 0 flip down... long-only either way.
+/// "either": union of both entries.
+pub fn compute_g076_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let mut ao_all = Vec::with_capacity(panel.symbols.len());
     let mut signal = Vec::with_capacity(panel.symbols.len());
     let mut exit_now = Vec::with_capacity(panel.symbols.len());
     let mut tradable = Vec::with_capacity(panel.symbols.len());
@@ -3153,6 +3160,22 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                 -1
             };
         }
+        let n = panel.close[j].len();
+        let med: Vec<f64> = (0..n)
+            .map(|t| (panel.high[j][t] + panel.low[j][t]) / 2.0)
+        let fast = rolling_mean(&med, cfg.ao_fast);
+        let slow = rolling_mean(&med, cfg.ao_slow);
+        let ao: Vec<f64> = (0..n).map(|t| fast[t] - slow[t]).collect();
+        let open = &panel.open[j];
+        let saucer_ok = |t: usize| -> bool {
+            t >= 2
+                && close[t] < open[t]
+                && close[t - 1] > open[t - 1]
+                && close[t - 2] > open[t - 2]
+                && ao[t] > ao[t - 1]
+                && ao[t - 1] > ao[t - 2]
+                && ao[t] < 0.0
+                && ao[t - 1] < 0.0
         let mut history = 0usize;
         let trad: Vec<bool> = close
             .iter()
@@ -3184,6 +3207,15 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                         && trend[t - 1] == -1
                         && (!use_gate || (sma[t].is_finite() && close[t] > sma[t]))
                         && (!use_rsi || (rsi_v[t].is_finite() && rsi_v[t] > cfg.rsi_threshold))
+                    if t == 0 || !trad[t] || !ao[t].is_finite() || !ao[t - 1].is_finite() {
+                        return false;
+                    }
+                    let zero_cross = ao[t - 1] <= 0.0 && ao[t] > 0.0;
+                    match cfg.strategy_mode.as_str() {
+                        "saucer" => saucer_ok(t),
+                        "either" => zero_cross || saucer_ok(t),
+                        _ => zero_cross,
+                    }
                 })
                 .collect(),
         );
@@ -3195,6 +3227,11 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                     } else {
                         trend[t] == -1
                     }
+                    t > 0
+                        && ao[t].is_finite()
+                        && ao[t - 1].is_finite()
+                        && ao[t - 1] > 0.0
+                        && ao[t] <= 0.0
                 })
                 .collect(),
         );
@@ -3215,6 +3252,10 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
         } else {
             None
         },
+        ao_all.push(ao);
+        rsi: ao_all,
+        indicator_name: "AO".into(),
+        atr: None,
         stop_pct: None,
         pool: tradable.clone(),
         tradable,
