@@ -332,8 +332,6 @@ pub struct Config {
     pub sar_step: f64,
     #[serde(default = "d_sar_max")]
     pub sar_max: f64,
-    #[serde(default = "d_pos_cap")]
-    pub pos_cap: f64,
     #[serde(default = "d_dip_a")]
     pub dip_a: f64,
     #[serde(default = "d_dip_b")]
@@ -718,7 +716,6 @@ fn d_target_vol() -> f64 {
 }
 fn d_pos_cap() -> f64 {
     0.95
-    1.0
 }
 fn d_vol_window() -> usize {
     20
@@ -1286,42 +1283,58 @@ fn d_s059_routine_years() -> usize {
 }
 fn d_s059_exit_mode() -> String {
     "fixed63".into()
+}
 fn d_corr_len() -> usize {
+    9
+}
 fn d_ret_len() -> usize {
+    20
+}
 fn d_corr_max() -> f64 {
     0.9
 }
 fn d_stoch_len() -> usize {
     14
+}
 fn d_stoch_in() -> f64 {
     20.0
+}
 fn d_stoch_out() -> f64 {
     25.0
+}
 fn d_chan_mult() -> f64 {
     2.0
 }
 fn d_st_mult() -> f64 {
     3.0
+}
 fn d_ewma_fast() -> String {
     "8,16,32".into()
+}
 fn d_ewma_slow() -> String {
     "24,48,96".into()
+}
 fn d_resp_scale() -> f64 {
     0.89
+}
 fn d_resp_exp() -> f64 {
     4.0
+}
 fn d_sig_vol_window() -> usize {
     252
+}
 fn d_sar_step() -> f64 {
     0.02
+}
 fn d_sar_max() -> f64 {
     0.2
-fn d_pos_cap() -> f64 {
-    0.95
+}
 fn d_dip_a() -> f64 {
     5.0
+}
 fn d_dip_b() -> f64 {
     1.0
+}
 fn d_vol_gate() -> f64 {
     0.0
 }

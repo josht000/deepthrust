@@ -2971,35 +2971,6 @@ pub fn compute_g033_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
             .map(|t| {
                 if t >= cfg.ret_len && closes[0][t].is_finite() && closes[0][t - cfg.ret_len].is_finite() {
                     closes[0][t] / closes[0][t - cfg.ret_len] - 1.0
-/// G068: long when the stochastic just leaves oversold (prev %K < stoch_in, now > stoch_out)
-/// with RSI(14) >= rsi_threshold confirmation; exit at Chandelier(lookback, chan_mult):
-/// close < HHV(lookback) - chan_mult * ATR(atr_len). Long-only; the source's short leg
-/// (prev %K > 80 -> < 75, RSI < 50) has no engine support.
-pub fn compute_g068_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
-    let mut stoch_all = Vec::with_capacity(panel.symbols.len());
-/// G076 Awesome Oscillator: AO = SMA(ao_fast) - SMA(ao_slow) of median price.
-/// "zero" mode: enter on AO flip to >0, exit on flip to <=0.
-/// "saucer" mode: enter on saucer trigger (bearish bar, prior 2 bullish, AO
-/// rising, last two AO < 0); exit on AO > 0 flip down... long-only either way.
-/// "either": union of both entries.
-pub fn compute_g076_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
-    let mut ao_all = Vec::with_capacity(panel.symbols.len());
-/// G091: Wilder Parabolic SAR stop-and-reverse, long side only.
-/// signal on SAR crossing below close (flip -1 -> +1); exit_now when SAR above close.
-pub fn compute_g091_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
-    let mut sar_all = Vec::with_capacity(panel.symbols.len());
-    let mut signal = Vec::with_capacity(panel.symbols.len());
-    let mut exit_now = Vec::with_capacity(panel.symbols.len());
-    let mut tradable = Vec::with_capacity(panel.symbols.len());
-    for j in 0..panel.symbols.len() {
-        let close = &panel.close[j];
-        let n = close.len();
-        let llv = rolling_extreme(&panel.low[j], cfg.stoch_len, true);
-        let hhv = rolling_extreme(&panel.high[j], cfg.stoch_len, false);
-        let stoch: Vec<f64> = (0..n)
-                let span = hhv[t] - llv[t];
-                if span.is_finite() && span > 0.0 && close[t].is_finite() {
-                    100.0 * (close[t] - llv[t]) / span
                 } else {
                     f64::NAN
                 }
@@ -3049,21 +3020,6 @@ pub fn compute_g091_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
         signal.push(
             (0..n)
                 .map(|t| gate[t] && ret1[j][t].is_finite() && ret1[j][t] < ret1[other][t])
-        let rsi_v = wilder_rsi(close, cfg.rsi_len)?;
-        let hhv_chan = rolling_extreme(&panel.high[j], cfg.lookback, false);
-        let atr = wilder_atr(&panel.high[j], &panel.low[j], close, cfg.atr_len);
-        let mut history = 0usize;
-        let trad: Vec<bool> = close
-            .iter()
-            .map(|value| {
-                if value.is_finite() {
-                    history += 1;
-                value.is_finite() && history >= cfg.min_history
-                    t > 0
-                        && trad[t]
-                        && stoch[t - 1] < cfg.stoch_in
-                        && stoch[t] > cfg.stoch_out
-                        && rsi_v[t] >= cfg.rsi_threshold
                 .collect(),
         );
         exit_now.push(
@@ -3092,13 +3048,78 @@ pub fn compute_g091_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
     Ok(Signals {
         rsi: ind,
         indicator_name: "leg_ret1_gated".into(),
+        signal,
+        exit_now,
+        add_signal: None,
+        atr: None,
+        stop_pct: None,
+        pool: tradable.clone(),
+        tradable,
+        trade_weights: None,
+        entry_mat: None,
+        exit_mat: None,
+        benchmark_returns: None,
+    })
+}
+
+pub fn compute_g068_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let mut stoch_all = Vec::with_capacity(panel.symbols.len());
+    let mut signal = Vec::with_capacity(panel.symbols.len());
+    let mut exit_now = Vec::with_capacity(panel.symbols.len());
+    let mut tradable = Vec::with_capacity(panel.symbols.len());
+    for j in 0..panel.symbols.len() {
+        let close = &panel.close[j];
+        let n = close.len();
+        let llv = rolling_extreme(&panel.low[j], cfg.stoch_len, true);
+        let hhv = rolling_extreme(&panel.high[j], cfg.stoch_len, false);
+        let stoch: Vec<f64> = (0..n)
+            .map(|t| {
+                let span = hhv[t] - llv[t];
+                if span.is_finite() && span > 0.0 && close[t].is_finite() {
+                    100.0 * (close[t] - llv[t]) / span
+                } else {
+                    f64::NAN
+                }
+            })
+            .collect();
+        let rsi_v = wilder_rsi(close, cfg.rsi_len)?;
+        let hhv_chan = rolling_extreme(&panel.high[j], cfg.lookback, false);
+        let atr = wilder_atr(&panel.high[j], &panel.low[j], close, cfg.atr_len);
+        let mut history = 0usize;
+        let trad: Vec<bool> = close
+            .iter()
+            .map(|value| {
+                if value.is_finite() {
+                    history += 1;
+                }
+                value.is_finite() && history >= cfg.min_history
+            })
+            .collect();
+        signal.push(
+            (0..n)
+                .map(|t| {
+                    t > 0
+                        && trad[t]
+                        && stoch[t - 1] < cfg.stoch_in
+                        && stoch[t] > cfg.stoch_out
+                        && rsi_v[t] >= cfg.rsi_threshold
+                })
+                .collect(),
+        );
+        exit_now.push(
+            (0..n)
                 .map(|t| {
                     close[t].is_finite()
                         && hhv_chan[t].is_finite()
                         && atr[t].is_finite()
                         && close[t] < hhv_chan[t] - cfg.chan_mult * atr[t]
+                })
+                .collect(),
+        );
         tradable.push(trad);
         stoch_all.push(stoch);
+    }
+    Ok(Signals {
         rsi: stoch_all,
         indicator_name: "stoch%K".into(),
         signal,
@@ -3115,9 +3136,188 @@ pub fn compute_g091_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
     })
 }
 
-/// G070: ATR SuperTrend direction-reversal. Bands = hl2 +/- st_mult * ATR(atr_len);
-/// enter long on trend flip -1 -> +1, exit on flip +1 -> -1. Long-only; the
-/// source's short leg has no engine support.
+/// G076 Awesome Oscillator: AO = SMA(ao_fast) - SMA(ao_slow) of median price.
+/// "zero" mode: enter on AO flip to >0, exit on flip to <=0.
+/// "saucer" mode: enter on saucer trigger (bearish bar, prior 2 bullish, AO
+/// rising, last two AO < 0); exit on AO > 0 flip down... long-only either way.
+/// "either": union of both entries.
+pub fn compute_g076_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let mut ao_all = Vec::with_capacity(panel.symbols.len());
+    let mut signal = Vec::with_capacity(panel.symbols.len());
+    let mut exit_now = Vec::with_capacity(panel.symbols.len());
+    let mut tradable = Vec::with_capacity(panel.symbols.len());
+    for j in 0..panel.symbols.len() {
+        let n = panel.close[j].len();
+        let med: Vec<f64> = (0..n)
+            .map(|t| (panel.high[j][t] + panel.low[j][t]) / 2.0)
+            .collect();
+        let fast = rolling_mean(&med, cfg.ao_fast);
+        let slow = rolling_mean(&med, cfg.ao_slow);
+        let ao: Vec<f64> = (0..n).map(|t| fast[t] - slow[t]).collect();
+        let close = &panel.close[j];
+        let open = &panel.open[j];
+        let saucer_ok = |t: usize| -> bool {
+            t >= 2
+                && close[t] < open[t]
+                && close[t - 1] > open[t - 1]
+                && close[t - 2] > open[t - 2]
+                && ao[t] > ao[t - 1]
+                && ao[t - 1] > ao[t - 2]
+                && ao[t] < 0.0
+                && ao[t - 1] < 0.0
+        };
+        let mut history = 0usize;
+        let trad: Vec<bool> = close
+            .iter()
+            .map(|value| {
+                if value.is_finite() {
+                    history += 1;
+                }
+                value.is_finite() && history >= cfg.min_history
+            })
+            .collect();
+        signal.push(
+            (0..n)
+                .map(|t| {
+                    if t == 0 || !trad[t] || !ao[t].is_finite() || !ao[t - 1].is_finite() {
+                        return false;
+                    }
+                    let zero_cross = ao[t - 1] <= 0.0 && ao[t] > 0.0;
+                    match cfg.strategy_mode.as_str() {
+                        "saucer" => saucer_ok(t),
+                        "either" => zero_cross || saucer_ok(t),
+                        _ => zero_cross,
+                    }
+                })
+                .collect(),
+        );
+        exit_now.push(
+            (0..n)
+                .map(|t| {
+                    t > 0
+                        && ao[t].is_finite()
+                        && ao[t - 1].is_finite()
+                        && ao[t - 1] > 0.0
+                        && ao[t] <= 0.0
+                })
+                .collect(),
+        );
+        tradable.push(trad);
+        ao_all.push(ao);
+    }
+    Ok(Signals {
+        rsi: ao_all,
+        indicator_name: "AO".into(),
+        signal,
+        exit_now,
+        add_signal: None,
+        atr: None,
+        stop_pct: None,
+        pool: tradable.clone(),
+        tradable,
+        trade_weights: None,
+        entry_mat: None,
+        exit_mat: None,
+        benchmark_returns: None,
+    })
+}
+
+pub fn compute_g091_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let mut sar_all = Vec::with_capacity(panel.symbols.len());
+    let mut signal = Vec::with_capacity(panel.symbols.len());
+    let mut exit_now = Vec::with_capacity(panel.symbols.len());
+    let mut tradable = Vec::with_capacity(panel.symbols.len());
+    for j in 0..panel.symbols.len() {
+        let high = &panel.high[j];
+        let low = &panel.low[j];
+        let close = &panel.close[j];
+        let n = close.len();
+        let mut sar = vec![f64::NAN; n];
+        let mut dir = vec![0i8; n];
+        let start = (0..n).find(|&t| close[t].is_finite());
+        if let Some(t0) = start {
+            let mut up = close[t0 + 1.min(n - 1)] >= close[t0];
+            let mut af = cfg.sar_step;
+            let mut ep = if up { high[t0] } else { low[t0] };
+            sar[t0] = if up { low[t0] } else { high[t0] };
+            dir[t0] = if up { 1 } else { -1 };
+            for t in t0 + 1..n {
+                if !close[t].is_finite() {
+                    continue;
+                }
+                let mut s = sar[t - 1] + af * (ep - sar[t - 1]);
+                if up {
+                    if t > 0 {
+                        s = s.min(low[t - 1]);
+                    }
+                    if t > 1 {
+                        s = s.min(low[t - 2]);
+                    }
+                } else {
+                    if t > 0 {
+                        s = s.max(high[t - 1]);
+                    }
+                    if t > 1 {
+                        s = s.max(high[t - 2]);
+                    }
+                }
+                if up && low[t] < s {
+                    up = false;
+                    s = ep;
+                    ep = low[t];
+                    af = cfg.sar_step;
+                } else if !up && high[t] > s {
+                    up = true;
+                    s = ep;
+                    ep = high[t];
+                    af = cfg.sar_step;
+                } else if up && high[t] > ep {
+                    ep = high[t];
+                    af = (af + cfg.sar_step).min(cfg.sar_max);
+                } else if !up && low[t] < ep {
+                    ep = low[t];
+                    af = (af + cfg.sar_step).min(cfg.sar_max);
+                }
+                sar[t] = s;
+                dir[t] = if up { 1 } else { -1 };
+            }
+        }
+        let mut history = 0usize;
+        let trad: Vec<bool> = close
+            .iter()
+            .map(|value| {
+                if value.is_finite() {
+                    history += 1;
+                }
+                value.is_finite() && history >= cfg.min_history
+            })
+            .collect();
+        signal.push(
+            (0..n)
+                .map(|t| t > 0 && trad[t] && dir[t] == 1 && dir[t - 1] == -1)
+                .collect(),
+        );
+        exit_now.push((0..n).map(|t| dir[t] == -1).collect());
+        tradable.push(trad);
+        sar_all.push(sar);
+    }
+    Ok(Signals {
+        rsi: sar_all,
+        indicator_name: "psar".into(),
+        signal,
+        exit_now,
+        add_signal: None,
+        atr: None,
+        stop_pct: None,
+        pool: tradable.clone(),
+        tradable,
+        trade_weights: None,
+        entry_mat: None,
+        exit_mat: None,
+        benchmark_returns: None,
+    })
+}
+
 pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
     let mut trend_all = Vec::with_capacity(panel.symbols.len());
     let mut signal = Vec::with_capacity(panel.symbols.len());
@@ -3164,61 +3364,6 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                 -1
             };
         }
-        let n = panel.close[j].len();
-        let med: Vec<f64> = (0..n)
-            .map(|t| (panel.high[j][t] + panel.low[j][t]) / 2.0)
-        let fast = rolling_mean(&med, cfg.ao_fast);
-        let slow = rolling_mean(&med, cfg.ao_slow);
-        let ao: Vec<f64> = (0..n).map(|t| fast[t] - slow[t]).collect();
-        let open = &panel.open[j];
-        let saucer_ok = |t: usize| -> bool {
-            t >= 2
-                && close[t] < open[t]
-                && close[t - 1] > open[t - 1]
-                && close[t - 2] > open[t - 2]
-                && ao[t] > ao[t - 1]
-                && ao[t - 1] > ao[t - 2]
-                && ao[t] < 0.0
-                && ao[t - 1] < 0.0
-        let mut sar = vec![f64::NAN; n];
-        let mut dir = vec![0i8; n];
-        let start = (0..n).find(|&t| close[t].is_finite());
-        if let Some(t0) = start {
-            let mut up = close[t0 + 1.min(n - 1)] >= close[t0];
-            let mut af = cfg.sar_step;
-            let mut ep = if up { high[t0] } else { low[t0] };
-            sar[t0] = if up { low[t0] } else { high[t0] };
-            dir[t0] = if up { 1 } else { -1 };
-            for t in t0 + 1..n {
-                if !close[t].is_finite() {
-                let mut s = sar[t - 1] + af * (ep - sar[t - 1]);
-                if up {
-                    if t > 0 {
-                        s = s.min(low[t - 1]);
-                    if t > 1 {
-                        s = s.min(low[t - 2]);
-                    if t > 0 {
-                        s = s.max(high[t - 1]);
-                    if t > 1 {
-                        s = s.max(high[t - 2]);
-                if up && low[t] < s {
-                    up = false;
-                    s = ep;
-                    ep = low[t];
-                    af = cfg.sar_step;
-                } else if !up && high[t] > s {
-                    up = true;
-                    s = ep;
-                    ep = high[t];
-                    af = cfg.sar_step;
-                } else if up && high[t] > ep {
-                    ep = high[t];
-                    af = (af + cfg.sar_step).min(cfg.sar_max);
-                } else if !up && low[t] < ep {
-                    ep = low[t];
-                    af = (af + cfg.sar_step).min(cfg.sar_max);
-                sar[t] = s;
-                dir[t] = if up { 1 } else { -1 };
         let mut history = 0usize;
         let trad: Vec<bool> = close
             .iter()
@@ -3250,15 +3395,6 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                         && trend[t - 1] == -1
                         && (!use_gate || (sma[t].is_finite() && close[t] > sma[t]))
                         && (!use_rsi || (rsi_v[t].is_finite() && rsi_v[t] > cfg.rsi_threshold))
-                    if t == 0 || !trad[t] || !ao[t].is_finite() || !ao[t - 1].is_finite() {
-                        return false;
-                    }
-                    let zero_cross = ao[t - 1] <= 0.0 && ao[t] > 0.0;
-                    match cfg.strategy_mode.as_str() {
-                        "saucer" => saucer_ok(t),
-                        "either" => zero_cross || saucer_ok(t),
-                        _ => zero_cross,
-                    }
                 })
                 .collect(),
         );
@@ -3270,11 +3406,6 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                     } else {
                         trend[t] == -1
                     }
-                    t > 0
-                        && ao[t].is_finite()
-                        && ao[t - 1].is_finite()
-                        && ao[t - 1] > 0.0
-                        && ao[t] <= 0.0
                 })
                 .collect(),
         );
@@ -3295,15 +3426,6 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
         } else {
             None
         },
-        ao_all.push(ao);
-        rsi: ao_all,
-        indicator_name: "AO".into(),
-                .map(|t| t > 0 && trad[t] && dir[t] == 1 && dir[t - 1] == -1)
-        exit_now.push((0..n).map(|t| dir[t] == -1).collect());
-        sar_all.push(sar);
-        rsi: sar_all,
-        indicator_name: "psar".into(),
-        atr: None,
         stop_pct: None,
         pool: tradable.clone(),
         tradable,

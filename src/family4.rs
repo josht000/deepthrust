@@ -2476,139 +2476,6 @@ pub fn compute_g097_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                         if var > 0.0 {
                             vol_ann[j][t] = var.sqrt() * (252.0f64).sqrt();
                         }
-/// G096 ANTICOR: two consecutive w-length log-return blocks; weight flows from
-/// stocks whose recent gains were "predicted" by other stocks' prior moves
-/// toward the lagging predictors (long-only simplex, daily rebalance).
-pub fn compute_g096_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
-    let w = cfg.lookback.max(5);
-    let mut result = blank_rebalance_signals(panel, "anticor");
-    let ret: Vec<Vec<f64>> = (0..ns)
-        .map(|j| {
-            v.extend((1..n).map(|t| {
-                if a.is_finite() && b.is_finite() && b > 0.0 {
-            }));
-    let mut weights = vec![vec![0.0; n]; ns];
-    let mut prev_b = vec![1.0 / ns as f64; ns];
-    let mom_mode = cfg.strategy_mode.contains("mom");
-    let sma_gate = cfg.sma_window > 0 && cfg.strategy_mode.contains("sma");
-    let smas: Vec<Vec<f64>> = if sma_gate {
-        panel
-            .close
-            .iter()
-            .map(|c| signals::rolling_mean(c, cfg.sma_window))
-            .collect()
-        vec![]
-    let mut last_reb = 0usize;
-    for &day in &days {
-        if day < 2 * w {
-        if cfg.skip_days > 0 && day.saturating_sub(last_reb) < cfg.skip_days {
-                if prev_b[j] >= 0.001 {
-                    weights[j][day] = prev_b[j];
-                    result.signal[j][day] = true;
-        last_reb = day;
-        // LX1_i = ret[day-w+1..=day], LX2_i = ret[day-2w+1..=day-w]
-        let mut mu1 = vec![0.0; ns];
-        let mut mu2 = vec![0.0; ns];
-        let mut ok = vec![false; ns];
-        let mut x1 = vec![vec![0.0; w]; ns];
-        let mut x2 = vec![vec![0.0; w]; ns];
-            let mut s1 = 0.0;
-            let mut good = true;
-            for k in 0..w {
-                let r1 = ret[j][day - w + 1 + k];
-                let r2 = ret[j][day - 2 * w + 1 + k];
-                if !r1.is_finite() || !r2.is_finite() {
-                    good = false;
-                    break;
-                x1[j][k] = r1;
-                x2[j][k] = r2;
-                s1 += r1;
-                s2 += r2;
-            if good {
-                ok[j] = true;
-                mu1[j] = s1 / w as f64;
-                mu2[j] = s2 / w as f64;
-        let active: Vec<usize> = (0..ns).filter(|&j| ok[j]).collect();
-        if active.len() < 3 {
-        // cross-correlation LC[i][j] = corr(x1_i, x2_j); claim = max(0, mu_i-mu_j)*max(0,LC)
-        let mut b = vec![0.0; ns];
-        for &i in &active {
-            b[i] = prev_b[i];
-        let mut claim = vec![vec![0.0; ns]; ns];
-        for &i in &active {
-            let sd1: f64 = {
-                let mean = mu1[i];
-                (x1[i].iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (w - 1) as f64).sqrt()
-            if sd1 <= 0.0 {
-            for &j in &active {
-                if i == j {
-                let diff = mu1[i] - mu1[j];
-                if diff <= 0.0 {
-                let mean2 = mu2[j];
-                let sd2: f64 = (x2[j]
-                    .iter()
-                    .map(|v| (v - mean2).powi(2))
-                    .sum::<f64>()
-                    / (w - 1) as f64)
-                    .sqrt();
-                if sd2 <= 0.0 {
-                let cov: f64 = (0..w)
-                    .map(|k| (x1[i][k] - mu1[i]) * (x2[j][k] - mean2))
-                    .sum::<f64>()
-                    / (w - 1) as f64;
-                let lc = cov / (sd1 * sd2);
-                claim[i][j] = diff * lc.max(0.0);
-        let mut b_new = b.clone();
-        for &i in &active {
-            let row: f64 = claim[i].iter().sum();
-            if row <= 0.0 {
-            for &j in &active {
-                let t = b[i] * claim[i][j] / row;
-                if mom_mode {
-                    b_new[i] += t;
-                    b_new[j] -= t;
-                    b_new[i] -= t;
-                    b_new[j] += t;
-        let gross: f64 = b_new.iter().map(|v| v.max(0.0)).sum();
-        if gross <= 0.0 {
-            b_new[j] = if ok[j] { b_new[j].max(0.0) / gross } else { 0.0 };
-            if sma_gate
-                && smas[j][day].is_finite()
-                && panel.close[j][day] < smas[j][day]
-                b_new[j] = 0.0;
-        let gated_sum: f64 = b_new.iter().sum();
-        if gated_sum <= 0.0 {
-                b_new[j] = b[j];
-        } else if (gated_sum - 1.0).abs() > 1e-9 {
-            for v in &mut b_new {
-                *v /= gated_sum;
-        if cfg.breadth > 0 && cfg.breadth < ns {
-            let mut order: Vec<usize> = (0..ns).filter(|&j| b_new[j] > 0.0).collect();
-            order.sort_by(|&a, &b| b_new[b].total_cmp(&b_new[a]));
-            for (rank, j) in order.into_iter().enumerate() {
-                if rank >= cfg.breadth {
-                    b_new[j] = 0.0;
-            let g2: f64 = b_new.iter().sum();
-            if g2 > 0.0 {
-                for v in &mut b_new {
-                    *v /= g2;
-        if cfg.pos_cap < 1.0 {
-            for _ in 0..3 {
-                let excess: f64 = b_new
-                    .iter()
-                    .map(|v| (v - cfg.pos_cap).max(0.0))
-                    .sum();
-                if excess <= 0.0 {
-                    break;
-                let room: f64 = b_new
-                    .iter()
-                    .map(|v| (cfg.pos_cap - v).max(0.0))
-                    .sum();
-                for v in &mut b_new {
-                    if *v > cfg.pos_cap {
-                        *v = cfg.pos_cap;
-                    } else if room > 0.0 {
-                        *v += excess * (cfg.pos_cap - *v) / room;
                     }
                 }
             }
@@ -2638,6 +2505,230 @@ pub fn compute_g096_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
             let w = sign * cfg.pos_cap.min(cfg.target_vol / vol);
             if w.abs() >= 0.001 {
                 weights[j][day] = w;
+                result.signal[j][day] = true;
+            }
+        }
+    }
+    result.trade_weights = Some(weights);
+    result.benchmark_returns = benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
+/// G096 ANTICOR: two consecutive w-length log-return blocks; weight flows from
+/// stocks whose recent gains were "predicted" by other stocks' prior moves
+/// toward the lagging predictors (long-only simplex, daily rebalance).
+pub fn compute_g096_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let w = cfg.lookback.max(5);
+    let n = panel.dates.len();
+    let ns = panel.symbols.len();
+    let days = rebalance_days(panel, &cfg.rebalance)?;
+    let mut result = blank_rebalance_signals(panel, "anticor");
+    let ret: Vec<Vec<f64>> = (0..ns)
+        .map(|j| {
+            let mut v = vec![f64::NAN];
+            v.extend((1..n).map(|t| {
+                let a = panel.close[j][t];
+                let b = panel.close[j][t - 1];
+                if a.is_finite() && b.is_finite() && b > 0.0 {
+                    (a / b).ln()
+                } else {
+                    f64::NAN
+                }
+            }));
+            v
+        })
+        .collect();
+    let mut weights = vec![vec![0.0; n]; ns];
+    let mut prev_b = vec![1.0 / ns as f64; ns];
+    let mom_mode = cfg.strategy_mode.contains("mom");
+    let sma_gate = cfg.sma_window > 0 && cfg.strategy_mode.contains("sma");
+    let smas: Vec<Vec<f64>> = if sma_gate {
+        panel
+            .close
+            .iter()
+            .map(|c| signals::rolling_mean(c, cfg.sma_window))
+            .collect()
+    } else {
+        vec![]
+    };
+    let mut last_reb = 0usize;
+    for &day in &days {
+        if day < 2 * w {
+            continue;
+        }
+        if cfg.skip_days > 0 && day.saturating_sub(last_reb) < cfg.skip_days {
+            for j in 0..ns {
+                if prev_b[j] >= 0.001 {
+                    weights[j][day] = prev_b[j];
+                    result.signal[j][day] = true;
+                }
+            }
+            continue;
+        }
+        last_reb = day;
+        // LX1_i = ret[day-w+1..=day], LX2_i = ret[day-2w+1..=day-w]
+        let mut mu1 = vec![0.0; ns];
+        let mut mu2 = vec![0.0; ns];
+        let mut ok = vec![false; ns];
+        let mut x1 = vec![vec![0.0; w]; ns];
+        let mut x2 = vec![vec![0.0; w]; ns];
+        for j in 0..ns {
+            let mut s1 = 0.0;
+            let mut s2 = 0.0;
+            let mut good = true;
+            for k in 0..w {
+                let r1 = ret[j][day - w + 1 + k];
+                let r2 = ret[j][day - 2 * w + 1 + k];
+                if !r1.is_finite() || !r2.is_finite() {
+                    good = false;
+                    break;
+                }
+                x1[j][k] = r1;
+                x2[j][k] = r2;
+                s1 += r1;
+                s2 += r2;
+            }
+            if good {
+                ok[j] = true;
+                mu1[j] = s1 / w as f64;
+                mu2[j] = s2 / w as f64;
+            }
+        }
+        let active: Vec<usize> = (0..ns).filter(|&j| ok[j]).collect();
+        if active.len() < 3 {
+            continue;
+        }
+        // cross-correlation LC[i][j] = corr(x1_i, x2_j); claim = max(0, mu_i-mu_j)*max(0,LC)
+        let mut b = vec![0.0; ns];
+        for &i in &active {
+            b[i] = prev_b[i];
+        }
+        let mut claim = vec![vec![0.0; ns]; ns];
+        for &i in &active {
+            let sd1: f64 = {
+                let mean = mu1[i];
+                (x1[i].iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (w - 1) as f64).sqrt()
+            };
+            if sd1 <= 0.0 {
+                continue;
+            }
+            for &j in &active {
+                if i == j {
+                    continue;
+                }
+                let diff = mu1[i] - mu1[j];
+                if diff <= 0.0 {
+                    continue;
+                }
+                let mean2 = mu2[j];
+                let sd2: f64 = (x2[j]
+                    .iter()
+                    .map(|v| (v - mean2).powi(2))
+                    .sum::<f64>()
+                    / (w - 1) as f64)
+                    .sqrt();
+                if sd2 <= 0.0 {
+                    continue;
+                }
+                let cov: f64 = (0..w)
+                    .map(|k| (x1[i][k] - mu1[i]) * (x2[j][k] - mean2))
+                    .sum::<f64>()
+                    / (w - 1) as f64;
+                let lc = cov / (sd1 * sd2);
+                claim[i][j] = diff * lc.max(0.0);
+            }
+        }
+        let mut b_new = b.clone();
+        for &i in &active {
+            let row: f64 = claim[i].iter().sum();
+            if row <= 0.0 {
+                continue;
+            }
+            for &j in &active {
+                let t = b[i] * claim[i][j] / row;
+                if mom_mode {
+                    b_new[i] += t;
+                    b_new[j] -= t;
+                } else {
+                    b_new[i] -= t;
+                    b_new[j] += t;
+                }
+            }
+        }
+        let gross: f64 = b_new.iter().map(|v| v.max(0.0)).sum();
+        if gross <= 0.0 {
+            continue;
+        }
+        for j in 0..ns {
+            b_new[j] = if ok[j] { b_new[j].max(0.0) / gross } else { 0.0 };
+            if sma_gate
+                && smas[j][day].is_finite()
+                && panel.close[j][day] < smas[j][day]
+            {
+                b_new[j] = 0.0;
+            }
+        }
+        let gated_sum: f64 = b_new.iter().sum();
+        if gated_sum <= 0.0 {
+            for j in 0..ns {
+                b_new[j] = b[j];
+            }
+        } else if (gated_sum - 1.0).abs() > 1e-9 {
+            for v in &mut b_new {
+                *v /= gated_sum;
+            }
+        }
+        if cfg.breadth > 0 && cfg.breadth < ns {
+            let mut order: Vec<usize> = (0..ns).filter(|&j| b_new[j] > 0.0).collect();
+            order.sort_by(|&a, &b| b_new[b].total_cmp(&b_new[a]));
+            for (rank, j) in order.into_iter().enumerate() {
+                if rank >= cfg.breadth {
+                    b_new[j] = 0.0;
+                }
+            }
+            let g2: f64 = b_new.iter().sum();
+            if g2 > 0.0 {
+                for v in &mut b_new {
+                    *v /= g2;
+                }
+            }
+        }
+        if cfg.pos_cap < 1.0 {
+            for _ in 0..3 {
+                let excess: f64 = b_new
+                    .iter()
+                    .map(|v| (v - cfg.pos_cap).max(0.0))
+                    .sum();
+                if excess <= 0.0 {
+                    break;
+                }
+                let room: f64 = b_new
+                    .iter()
+                    .map(|v| (cfg.pos_cap - v).max(0.0))
+                    .sum();
+                for v in &mut b_new {
+                    if *v > cfg.pos_cap {
+                        *v = cfg.pos_cap;
+                    } else if room > 0.0 {
+                        *v += excess * (cfg.pos_cap - *v) / room;
+                    }
+                }
+            }
+        }
+        for j in 0..ns {
+            let wj = b_new[j];
+            prev_b[j] = wj;
+            if wj >= 0.001 {
+                weights[j][day] = wj;
+                result.signal[j][day] = true;
+            }
+        }
+    }
+    result.trade_weights = Some(weights);
+    result.benchmark_returns = benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
 /// G072 MBBS three-speed EWMA CTA: per asset, EWMA(fast)-EWMA(slow) trend for each
 /// of the ewma_fast/ewma_slow span pairs, each normalized by its trailing
 /// sig_vol_window stdev, mixed equally, then sign-preserving response
@@ -2647,129 +2738,149 @@ pub fn compute_g072_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
     let fast: Vec<usize> = crate::config::split_csv(&cfg.ewma_fast)
         .iter()
         .filter_map(|v| v.parse().ok())
+        .collect();
     let slow: Vec<usize> = crate::config::split_csv(&cfg.ewma_slow)
         .iter()
         .filter_map(|v| v.parse().ok())
+        .collect();
     if fast.is_empty() || fast.len() != slow.len() || cfg.vol_window < 2 {
         return Err("G072 requires matched ewma_fast/ewma_slow spans and vol_window >= 2".into());
+    }
     if !matches!(cfg.strategy_mode.as_str(), "volparity" | "equal") {
         return Err(format!("unknown G072 strategy_mode {:?}", cfg.strategy_mode));
+    }
+    let n = panel.dates.len();
+    let ns = panel.symbols.len();
     let mut mixed = vec![vec![f64::NAN; n]; ns];
     let mut vols = vec![vec![f64::NAN; n]; ns];
+    for j in 0..ns {
         let close = &panel.close[j];
         let mut acc = vec![0.0; n];
         for k in 0..fast.len() {
             let ef = signals::ewm(close, 2.0 / (fast[k] as f64 + 1.0), fast[k]);
             let es = signals::ewm(close, 2.0 / (slow[k] as f64 + 1.0), slow[k]);
             let raw: Vec<f64> = (0..n).map(|t| ef[t] - es[t]).collect();
+            for t in 0..n {
                 if t + 1 < cfg.sig_vol_window || !raw[t].is_finite() {
+                    continue;
+                }
                 let win = &raw[t + 1 - cfg.sig_vol_window..=t];
                 if win.iter().any(|v| !v.is_finite()) {
+                    continue;
+                }
                 let m: f64 = win.iter().sum::<f64>() / cfg.sig_vol_window as f64;
                 let var: f64 = win.iter().map(|v| (v - m) * (v - m)).sum::<f64>()
                     / (cfg.sig_vol_window as f64 - 1.0);
+                if var > 0.0 {
                     acc[t] += raw[t] / var.sqrt();
+                }
+            }
+        }
         mixed[j] = acc
             .iter()
             .map(|v| {
                 if v.is_finite() && *v != 0.0 {
                     *v / fast.len() as f64
+                } else {
+                    f64::NAN
+                }
+            })
+            .collect();
         let mut m = 0.0;
         let mut m2 = 0.0;
         let mut k = 0usize;
+        for t in 0..n {
             let r = if t > 0 && close[t].is_finite() && close[t - 1].is_finite() {
                 Some(close[t] / close[t - 1] - 1.0)
+            } else {
                 None
+            };
             if let Some(r) = r {
                 m += r;
                 m2 += r * r;
                 k += 1;
+            }
             if k > cfg.vol_window {
                 let t0 = t - cfg.vol_window;
                 let r0 = close[t0] / close[t0 - 1] - 1.0;
                 if r0.is_finite() {
                     m -= r0;
                     m2 -= r0 * r0;
+                }
                 k -= 1;
+            }
             if k == cfg.vol_window {
                 let var = (m2 - m * m / k as f64) / (k as f64 - 1.0);
                 vols[j][t] = if var > 0.0 { var.sqrt() } else { f64::NAN };
+            }
+        }
+    }
+    let days = rebalance_days(panel, &cfg.rebalance)?;
     let mut result = blank_rebalance_signals(panel, "mbbs_ewma");
     result.rsi = mixed.clone();
+    let mut weights = vec![vec![0.0; n]; ns];
+    for &day in &days {
         let mut w = vec![0.0f64; ns];
+        for j in 0..ns {
             let s = mixed[j][day];
             if !s.is_finite() || vols[j][day].is_nan() {
+                continue;
+            }
             let clipped = s.clamp(-1.0, 1.0);
             let pos = cfg.resp_scale * clipped.signum() * clipped.abs().powf(cfg.resp_exp);
             w[j] = if cfg.strategy_mode == "equal" {
                 pos
+            } else {
                 (pos / vols[j][day]).clamp(-1000.0, 1000.0)
+            };
+        }
         let gross: f64 = w.iter().map(|v| (*v).abs()).sum();
         if gross <= 0.0 {
+            continue;
+        }
         for v in &mut w {
             *v /= gross;
+        }
         if cfg.target_vol > 0.0 {
             let lo = day.saturating_sub(cfg.vol_window - 1);
             let mut mean = vec![0.0; ns];
             let mut cnt = vec![0usize; ns];
+            for j in 0..ns {
                 for t in lo..=day {
                     let r = if t > 0 && panel.close[j][t].is_finite() && panel.close[j][t - 1].is_finite() {
                         Some(panel.close[j][t] / panel.close[j][t - 1] - 1.0)
+                    } else {
                         None
+                    };
                     if let Some(r) = r {
                         mean[j] += r;
                         cnt[j] += 1;
+                    }
+                }
                 if cnt[j] > 0 {
                     mean[j] /= cnt[j] as f64;
-/// G100 QARMII binary 252-day momentum: per asset, sign(trailing mom_window return)
-/// each rebalance day; vol-parity (baseline) or equal weights normalized to 1x gross,
-/// then scaled to target_vol using the trailing vol_window covariance (max_leverage cap).
-pub fn compute_g100_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
-    if cfg.mom_window == 0 || cfg.vol_window < 2 {
-        return Err("G100 requires positive mom_window and vol_window >= 2".into());
-        return Err(format!("unknown G100 strategy_mode {:?}", cfg.strategy_mode));
-    let rets = momentum_matrix(panel, cfg.mom_window, cfg.min_history);
-    let dr: Vec<Vec<f64>> = (0..ns)
-            (0..n)
-                .map(|t| {
-                    if t > 0 && panel.close[j][t].is_finite() && panel.close[j][t - 1].is_finite()
-                        panel.close[j][t] / panel.close[j][t - 1] - 1.0
-    let mut result = blank_rebalance_signals(panel, "binary_momentum");
-    result.rsi = rets.clone();
-            let r = rets[j][day];
-            if !r.is_finite() {
-            let sign = if r > 0.0 { 1.0 } else { -1.0 };
-                sign
-                let (mut m, mut m2, mut k) = (0.0, 0.0, 0usize);
-                    if dr[j][t].is_finite() {
-                        m += dr[j][t];
-                        m2 += dr[j][t] * dr[j][t];
-                if k < cfg.vol_window {
-                if var <= 0.0 {
-                sign / var.sqrt()
-        let gross: f64 = w.iter().map(|v| v.abs()).sum();
-                    if dr[j][t].is_finite() {
-                        mean[j] += dr[j][t];
+                }
+            }
             let mut port_var = 0.0;
             for a in 0..ns {
                 for b in 0..ns {
                     if w[a] == 0.0 || w[b] == 0.0 {
+                        continue;
+                    }
                     let (mut cov, mut k) = (0.0, 0usize);
                     for t in lo..=day {
                         if t == 0 {
+                            continue;
+                        }
                         let (ca, pa) = (panel.close[a][t], panel.close[a][t - 1]);
                         let (cb, pb) = (panel.close[b][t], panel.close[b][t - 1]);
                         if ca.is_finite() && pa.is_finite() && cb.is_finite() && pb.is_finite() {
                             cov += (ca / pa - 1.0 - mean[a]) * (cb / pb - 1.0 - mean[b]);
                             k += 1;
-                    if k >= 2 {
-                        port_var += w[a] * w[b] * cov / (k as f64 - 1.0);
-                        continue;
-                    }
-                        if dr[a][t].is_finite() && dr[b][t].is_finite() {
-                            cov += (dr[a][t] - mean[a]) * (dr[b][t] - mean[b]);
                         }
                     }
+                    if k >= 2 {
+                        port_var += w[a] * w[b] * cov / (k as f64 - 1.0);
                     }
                 }
             }
@@ -2778,55 +2889,211 @@ pub fn compute_g100_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                 let scale = (cfg.target_vol / port_vol).min(cfg.max_leverage);
                 for v in &mut w {
                     *v *= scale;
-        for (j, v) in w.iter().enumerate() {
-            if v.abs() >= 0.001 {
-                weights[j][day] = *v;
-            let wj = b_new[j];
-            prev_b[j] = wj;
-            if wj >= 0.001 {
-                weights[j][day] = wj;
-/// G098 Moskowitz(2012) TSMOM: per asset sign(trailing mom_window return) at each
-/// rebalance day, position = sign * min(pos_cap, target_vol / sigma_i) where sigma_i
-/// is EWM(com=vol_window) daily vol annualized by sqrt(periods_per_year).
-/// Futures universe proxied by TR ETFs (DELTA: no ag/financial contracts).
-pub fn compute_g098_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
-    if cfg.mom_window == 0 || cfg.vol_window == 0 {
-        return Err("G098 requires positive mom_window and vol_window".into());
-    if !matches!(cfg.strategy_mode.as_str(), "ewmvol" | "equal") {
-        return Err(format!("unknown G098 strategy_mode {:?}", cfg.strategy_mode));
-    let rets = momentum_matrix(panel, cfg.mom_window, cfg.min_history);
-    let alpha = 1.0 / (1.0 + cfg.vol_window as f64);
-    let mut ewm_var: Vec<Vec<f64>> = Vec::with_capacity(ns);
-        let mut var = vec![f64::NAN; n];
-        let mut state = f64::NAN;
-            let (a, b) = (panel.close[j][t], panel.close[j][t - 1]);
-            if !a.is_finite() || !b.is_finite() {
-            let r = a / b - 1.0;
-            state = if state.is_nan() {
-                r * r
-                alpha * r * r + (1.0 - alpha) * state
-            var[t] = state;
-        ewm_var.push(var);
-    let mut result = blank_rebalance_signals(panel, "tsmom");
-    result.rsi = rets.clone();
-            let r = rets[j][day];
-            if !r.is_finite() {
-            let sign = if r > 0.0 { 1.0 } else { -1.0 };
-                sign
-                let var = ewm_var[j][day];
-                if !var.is_finite() || var <= 0.0 {
-                let vol = (var * cfg.periods_per_year as f64).sqrt();
-                sign * cfg.pos_cap.min(cfg.target_vol / vol)
-        if cfg.strategy_mode == "equal" {
-            let active: f64 = w.iter().map(|v| v.abs()).sum();
-            if active > 0.0 {
-                    *v /= active;
-            if *v != 0.0 {
                 }
             }
         }
+        for (j, v) in w.iter().enumerate() {
+            if v.abs() >= 0.001 {
+                weights[j][day] = *v;
                 result.signal[j][day] = true;
             }
+        }
+    }
+    result.trade_weights = Some(weights);
+    result.benchmark_returns = benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
+pub fn compute_g100_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if cfg.mom_window == 0 || cfg.vol_window < 2 {
+        return Err("G100 requires positive mom_window and vol_window >= 2".into());
+    }
+    if !matches!(cfg.strategy_mode.as_str(), "volparity" | "equal") {
+        return Err(format!("unknown G100 strategy_mode {:?}", cfg.strategy_mode));
+    }
+    let n = panel.dates.len();
+    let ns = panel.symbols.len();
+    let rets = momentum_matrix(panel, cfg.mom_window, cfg.min_history);
+    let dr: Vec<Vec<f64>> = (0..ns)
+        .map(|j| {
+            (0..n)
+                .map(|t| {
+                    if t > 0 && panel.close[j][t].is_finite() && panel.close[j][t - 1].is_finite()
+                    {
+                        panel.close[j][t] / panel.close[j][t - 1] - 1.0
+                    } else {
+                        f64::NAN
+                    }
+                })
+                .collect()
+        })
+        .collect();
+    let days = rebalance_days(panel, &cfg.rebalance)?;
+    let mut result = blank_rebalance_signals(panel, "binary_momentum");
+    result.rsi = rets.clone();
+    let mut weights = vec![vec![0.0; n]; ns];
+    for &day in &days {
+        let lo = day.saturating_sub(cfg.vol_window - 1);
+        let mut w = vec![0.0f64; ns];
+        for j in 0..ns {
+            let r = rets[j][day];
+            if !r.is_finite() {
+                continue;
+            }
+            let sign = if r > 0.0 { 1.0 } else { -1.0 };
+            w[j] = if cfg.strategy_mode == "equal" {
+                sign
+            } else {
+                let (mut m, mut m2, mut k) = (0.0, 0.0, 0usize);
+                for t in lo..=day {
+                    if dr[j][t].is_finite() {
+                        m += dr[j][t];
+                        m2 += dr[j][t] * dr[j][t];
+                        k += 1;
+                    }
+                }
+                if k < cfg.vol_window {
+                    continue;
+                }
+                let var = (m2 - m * m / k as f64) / (k as f64 - 1.0);
+                if var <= 0.0 {
+                    continue;
+                }
+                sign / var.sqrt()
+            };
+        }
+        let gross: f64 = w.iter().map(|v| v.abs()).sum();
+        if gross <= 0.0 {
+            continue;
+        }
+        for v in &mut w {
+            *v /= gross;
+        }
+        if cfg.target_vol > 0.0 {
+            let mut mean = vec![0.0; ns];
+            let mut cnt = vec![0usize; ns];
+            for j in 0..ns {
+                for t in lo..=day {
+                    if dr[j][t].is_finite() {
+                        mean[j] += dr[j][t];
+                        cnt[j] += 1;
+                    }
+                }
+                if cnt[j] > 0 {
+                    mean[j] /= cnt[j] as f64;
+                }
+            }
+            let mut port_var = 0.0;
+            for a in 0..ns {
+                for b in 0..ns {
+                    if w[a] == 0.0 || w[b] == 0.0 {
+                        continue;
+                    }
+                    let (mut cov, mut k) = (0.0, 0usize);
+                    for t in lo..=day {
+                        if dr[a][t].is_finite() && dr[b][t].is_finite() {
+                            cov += (dr[a][t] - mean[a]) * (dr[b][t] - mean[b]);
+                            k += 1;
+                        }
+                    }
+                    if k >= 2 {
+                        port_var += w[a] * w[b] * cov / (k as f64 - 1.0);
+                    }
+                }
+            }
+            if port_var > 0.0 {
+                let port_vol = (port_var * cfg.periods_per_year as f64).sqrt();
+                let scale = (cfg.target_vol / port_vol).min(cfg.max_leverage);
+                for v in &mut w {
+                    *v *= scale;
+                }
+            }
+        }
+        for (j, v) in w.iter().enumerate() {
+            if *v != 0.0 {
+                weights[j][day] = *v;
+                result.signal[j][day] = true;
+            }
+        }
+    }
+    result.trade_weights = Some(weights);
+    result.benchmark_returns = benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
+pub fn compute_g098_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if cfg.mom_window == 0 || cfg.vol_window == 0 {
+        return Err("G098 requires positive mom_window and vol_window".into());
+    }
+    if !matches!(cfg.strategy_mode.as_str(), "ewmvol" | "equal") {
+        return Err(format!("unknown G098 strategy_mode {:?}", cfg.strategy_mode));
+    }
+    let n = panel.dates.len();
+    let ns = panel.symbols.len();
+    let rets = momentum_matrix(panel, cfg.mom_window, cfg.min_history);
+    let alpha = 1.0 / (1.0 + cfg.vol_window as f64);
+    let mut ewm_var: Vec<Vec<f64>> = Vec::with_capacity(ns);
+    for j in 0..ns {
+        let mut var = vec![f64::NAN; n];
+        let mut state = f64::NAN;
+        for t in 1..n {
+            let (a, b) = (panel.close[j][t], panel.close[j][t - 1]);
+            if !a.is_finite() || !b.is_finite() {
+                continue;
+            }
+            let r = a / b - 1.0;
+            state = if state.is_nan() {
+                r * r
+            } else {
+                alpha * r * r + (1.0 - alpha) * state
+            };
+            var[t] = state;
+        }
+        ewm_var.push(var);
+    }
+    let days = rebalance_days(panel, &cfg.rebalance)?;
+    let mut result = blank_rebalance_signals(panel, "tsmom");
+    result.rsi = rets.clone();
+    let mut weights = vec![vec![0.0; n]; ns];
+    for &day in &days {
+        let mut w = vec![0.0f64; ns];
+        for j in 0..ns {
+            let r = rets[j][day];
+            if !r.is_finite() {
+                continue;
+            }
+            let sign = if r > 0.0 { 1.0 } else { -1.0 };
+            w[j] = if cfg.strategy_mode == "equal" {
+                sign
+            } else {
+                let var = ewm_var[j][day];
+                if !var.is_finite() || var <= 0.0 {
+                    continue;
+                }
+                let vol = (var * cfg.periods_per_year as f64).sqrt();
+                sign * cfg.pos_cap.min(cfg.target_vol / vol)
+            };
+        }
+        if cfg.strategy_mode == "equal" {
+            let active: f64 = w.iter().map(|v| v.abs()).sum();
+            if active > 0.0 {
+                for v in &mut w {
+                    *v /= active;
+                }
+            }
+        }
+        for (j, v) in w.iter().enumerate() {
+            if *v != 0.0 {
+                weights[j][day] = *v;
+                result.signal[j][day] = true;
+            }
+        }
+    }
+    result.trade_weights = Some(weights);
+    result.benchmark_returns = benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
 /// G101 quadratic dip-depth sizing: daily, per risky asset target fraction
 /// min(1, (dip_a*d + dip_b*d^2)/100) with d = 100*(1 - close/HHV(lookback));
 /// risky legs scaled to fit capital, remainder goes to defensive_asset.
@@ -2834,48 +3101,85 @@ pub fn compute_g098_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
 pub fn compute_g101_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
     let cash = panel
         .symbols
+        .iter()
         .position(|s| s == &cfg.defensive_asset)
         .ok_or_else(|| {
             format!(
                 "G101 defensive asset {:?} not in panel",
                 cfg.defensive_asset
             )
+        })?;
     if cfg.lookback == 0 {
         return Err("G101 requires positive lookback".into());
+    }
+    let n = panel.dates.len();
+    let ns = panel.symbols.len();
+    let days = rebalance_days(panel, &cfg.rebalance)?;
     let mut result = blank_rebalance_signals(panel, "dip_sizing");
+    let mut weights = vec![vec![0.0; n]; ns];
     let mut dip_all = vec![vec![f64::NAN; n]; ns];
+    for j in 0..ns {
         if j == cash {
+            continue;
+        }
         let hhv = signals::rolling_extreme(&panel.close[j], cfg.lookback, false);
+        for t in 0..n {
             if hhv[t].is_finite() && panel.close[j][t].is_finite() {
                 dip_all[j][t] = (100.0 * (1.0 - panel.close[j][t] / hhv[t])).max(0.0);
+            }
+        }
+    }
     result.rsi = dip_all.clone();
+    for &day in &days {
         let mut t_sum = 0.0;
         let mut t_j = vec![0.0; ns];
+        for j in 0..ns {
             if j == cash || !dip_all[j][day].is_finite() {
+                continue;
+            }
             let d = dip_all[j][day];
             t_j[j] = ((cfg.dip_a * d + cfg.dip_b * d * d) / 100.0).min(1.0);
             t_sum += t_j[j];
+        }
         let scale = if t_sum > 1.0 { 1.0 / t_sum } else { 1.0 };
         let mut cash_w = 1.0;
+        for j in 0..ns {
             if j == cash {
+                continue;
+            }
             let w = t_j[j] * scale;
             if w >= 0.001 {
+                weights[j][day] = w;
+                result.signal[j][day] = true;
+            }
             cash_w -= w;
+        }
         if cash_w >= 0.001 {
             weights[cash][day] = cash_w;
             result.signal[cash][day] = true;
         }
-/// G067 MLM-style trend index: per contract +1 if close > SMA(sma_window) else -1,
-/// equal weight. Signals fire only on dom rebalance days and only when the
-/// universe-mean 20d realized vol exceeds vol_gate; gate-fail days hold prior weights.
-/// Futures universe proxied by liquid TR ETFs (no grains/cattle legs — DELTA).
+    }
+    result.trade_weights = Some(weights);
+    result.benchmark_returns = benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
 pub fn compute_g067_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
     if cfg.sma_window == 0 {
         return Err("G067 requires positive sma_window".into());
+    }
     let vol_len = cfg.vol_window.max(5);
+    let n = panel.dates.len();
+    let ns = panel.symbols.len();
     let smas: Vec<Vec<f64>> = panel
+        .close
+        .iter()
+        .map(|c| signals::rolling_mean(c, cfg.sma_window))
+        .collect();
+    let days = rebalance_days(panel, &cfg.rebalance)?;
     let mut result = blank_rebalance_signals(panel, "mlm_sma200");
     result.rsi = smas.clone();
+    let mut weights = vec![vec![0.0; n]; ns];
     let mut current = vec![0.0f64; ns];
     let mut vols = vec![0.0f64; ns];
     let mode = cfg.strategy_mode.as_str();
@@ -2885,69 +3189,136 @@ pub fn compute_g067_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
     let long_only = mode.contains("longonly");
     let short_only = mode.contains("shortonly");
     let rsimats: Vec<Vec<f64>> = if cfg.rsi_threshold > 0.0 && cfg.rsi_len > 0 {
+        panel
+            .close
+            .iter()
             .map(|c| {
                 signals::wilder_rsi(c, cfg.rsi_len)
                     .unwrap_or_else(|_| vec![f64::NAN; n])
+            })
+            .collect()
+    } else {
         vec![vec![f64::NAN; n]; ns]
+    };
     let mut last_flip = vec![0usize; ns];
     let cash_idx = if defensive {
         Some(
+            panel
+                .symbols
+                .iter()
+                .position(|s| s == &cfg.defensive_asset)
                 .ok_or("G067 defensive mode needs defensive_asset in panel")?,
+        )
+    } else {
+        None
+    };
+    for &day in &days {
         let (mut vsum, mut vk) = (0.0, 0usize);
+        for j in 0..ns {
             if day < vol_len {
+                continue;
+            }
+            let (mut m, mut m2, mut k) = (0.0, 0.0, 0usize);
             for t in day + 1 - vol_len..=day {
+                let (a, b) = (panel.close[j][t], panel.close[j][t - 1]);
                 if a.is_finite() && b.is_finite() {
+                    let r = a / b - 1.0;
+                    m += r;
+                    m2 += r * r;
+                    k += 1;
+                }
+            }
             if k >= vol_len {
+                let var = (m2 - m * m / k as f64) / (k as f64 - 1.0);
+                if var > 0.0 {
                     vols[j] = (var * cfg.periods_per_year as f64).sqrt();
                     vsum += vols[j];
                     vk += 1;
+                }
+            }
+        }
         let above = vk > 0 && vsum / vk as f64 > cfg.vol_gate;
         let gate_open = vk > 0 && (cfg.vol_gate <= 0.0 || (above ^ lowvol));
         if gate_open {
+            for j in 0..ns {
                 if smas[j][day].is_finite() && panel.close[j][day].is_finite() {
                     let dist = (panel.close[j][day] - smas[j][day]).abs() / smas[j][day];
                     let mut s = if panel.close[j][day] > smas[j][day] {
+                        1.0
+                    } else {
+                        -1.0
+                    };
                     if cfg.min_abs_resid > 0.0 && dist < cfg.min_abs_resid {
                         s = 0.0;
+                    }
                     if cfg.mom_window > 0 && day >= cfg.mom_window {
                         let m0 = panel.close[j][day - cfg.mom_window];
                         if m0.is_finite()
                             && m0 > 0.0
                             && (panel.close[j][day] - m0).signum() != s
+                        {
                             s = 0.0;
+                        }
+                    }
                     if cfg.rsi_threshold > 0.0
                         && rsimats[j][day].is_finite()
                         && s > 0.0
                         && rsimats[j][day] < cfg.rsi_threshold
+                    {
                         s = 0.0;
+                    }
                     if cfg.rsi_threshold > 0.0
                         && rsimats[j][day].is_finite()
                         && s < 0.0
                         && rsimats[j][day] > 100.0 - cfg.rsi_threshold
+                    {
                         s = 0.0;
+                    }
                     if long_only && s < 0.0 {
                         s = 0.0;
+                    }
                     if short_only && s > 0.0 {
                         s = 0.0;
+                    }
                     if cfg.skip_days > 0
                         && s != 0.0
                         && current[j] != 0.0
                         && s != current[j]
                         && day.saturating_sub(last_flip[j]) < cfg.skip_days
+                    {
                         s = current[j];
+                    }
                     if s != current[j] {
                         last_flip[j] = day;
+                    }
                     current[j] = s;
+                }
+            }
         } else if let Some(cash) = cash_idx {
             weights[cash][day] = 1.0;
+            result.signal[cash][day] = true;
+            continue;
+        }
         let scale = |j: usize| -> f64 {
             if vp && vols[j] > 0.0 {
                 1.0 / vols[j]
+            } else {
+                1.0
+            }
+        };
         let active: f64 = current
+            .iter()
             .enumerate()
             .map(|(j, v)| v.abs() * scale(j))
+            .sum();
+        if active > 0.0 {
+            for j in 0..ns {
                 if current[j] != 0.0 {
                     weights[j][day] = current[j] * scale(j) / active;
+                    result.signal[j][day] = true;
+                }
+            }
+        }
     }
     result.trade_weights = Some(weights);
     result.benchmark_returns = benchmark_returns(panel, "SPY");

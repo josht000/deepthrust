@@ -192,35 +192,155 @@ impl StrategyDefinition for G097StrategyDefinition {
 
     fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         crate::family4::compute_g097_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+    }
+}
+
 struct G072StrategyDefinition;
 impl StrategyDefinition for G072StrategyDefinition {
+    fn name(&self) -> &'static str {
         G072_NAME
+    }
+
+    fn title(&self) -> &'static str {
         G072_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         crate::family4::compute_g072_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+    }
+}
+
 struct G096StrategyDefinition;
 impl StrategyDefinition for G096StrategyDefinition {
+    fn name(&self) -> &'static str {
         G096_NAME
+    }
+
+    fn title(&self) -> &'static str {
         G096_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         crate::family4::compute_g096_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+    }
+}
+
 struct G098StrategyDefinition;
 impl StrategyDefinition for G098StrategyDefinition {
+    fn name(&self) -> &'static str {
         G098_NAME
+    }
+
+    fn title(&self) -> &'static str {
         G098_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         crate::family4::compute_g098_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+    }
+}
+
 struct G100StrategyDefinition;
 impl StrategyDefinition for G100StrategyDefinition {
+    fn name(&self) -> &'static str {
         G100_NAME
+    }
+
+    fn title(&self) -> &'static str {
         G100_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         crate::family4::compute_g100_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+    }
+}
+
 struct G101StrategyDefinition;
 impl StrategyDefinition for G101StrategyDefinition {
+    fn name(&self) -> &'static str {
         G101_NAME
+    }
+
+    fn title(&self) -> &'static str {
         G101_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         crate::family4::compute_g101_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+    }
+}
+
 struct G067StrategyDefinition;
 impl StrategyDefinition for G067StrategyDefinition {
+    fn name(&self) -> &'static str {
         G067_NAME
+    }
+
+    fn title(&self) -> &'static str {
         G067_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         crate::family4::compute_g067_signals(panel, cfg)
     }
 
@@ -232,15 +352,35 @@ impl StrategyDefinition for G067StrategyDefinition {
         fill: &str,
     ) -> Result<Vec<Trade>, String> {
         crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+    }
+}
+
 struct G033StrategyDefinition;
 impl StrategyDefinition for G033StrategyDefinition {
+    fn name(&self) -> &'static str {
         G033_NAME
+    }
+
+    fn title(&self) -> &'static str {
         G033_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         signals::compute_g033_signals(panel, cfg)
+    }
+}
+
 struct G068StrategyDefinition;
 impl StrategyDefinition for G068StrategyDefinition {
+    fn name(&self) -> &'static str {
         G068_NAME
+    }
+
+    fn title(&self) -> &'static str {
         G068_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         signals::compute_g068_signals(panel, cfg)
     }
 }
@@ -258,22 +398,36 @@ impl StrategyDefinition for G070StrategyDefinition {
 
     fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         signals::compute_g070_signals(panel, cfg)
+    }
+}
 
 struct G076StrategyDefinition;
 impl StrategyDefinition for G076StrategyDefinition {
+    fn name(&self) -> &'static str {
         G076_NAME
+    }
+
+    fn title(&self) -> &'static str {
         G076_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         signals::compute_g076_signals(panel, cfg)
+    }
+}
+
 struct G091StrategyDefinition;
 impl StrategyDefinition for G091StrategyDefinition {
+    fn name(&self) -> &'static str {
         G091_NAME
+    }
+
+    fn title(&self) -> &'static str {
         G091_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
         signals::compute_g091_signals(panel, cfg)
-
-
-
-
-
     }
 }
 
