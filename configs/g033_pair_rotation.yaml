@@ -1,0 +1,39 @@
+# G033 Decorrelation-gated buy-the-loser pair rotation (PEP/KO example).
+# Long-only daily rotation: hold the leg with the lower prior-day return while
+# rolling corr_len corr of ret_len-day returns < corr_max. book_slots=1.
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_split
+data_suffix: .parquet
+symbols: PEP,KO
+benchmark: SPY
+start_date: "2016-01-04"
+min_history: 250
+corr_len: 9
+ret_len: 20
+corr_max: 0.9
+disaster_stop_atr: 0.0
+cost_bps_per_side: 15.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+n_timing_draws: 500
+seed: 20261101
+book_slots: 1
+
+variants:
+  corr5: {corr_len: 5}
+  corr12: {corr_len: 12}
+  corr15: {corr_len: 15}
+  corr20: {corr_len: 20}
+  ret10: {ret_len: 10}
+  ret60: {ret_len: 60}
+  ret120: {ret_len: 120}
+  gate80: {corr_max: 0.8}
+  gate85: {corr_max: 0.85}
+  gate95: {corr_max: 0.95}
+  gldslv: {data_dir: C:\data\trading\trading_framework\data\cache\etf_tr, symbols: "GLD,SLV", cost_bps_per_side: 5.0}
+  xlexom: {data_dir: C:\data\trading\trading_framework\data\cache\etf_tr, symbols: "XLE,USO", cost_bps_per_side: 5.0}
+  spyivv: {data_dir: C:\data\trading\trading_framework\data\cache\etf_tr, symbols: "SPY,IVV", cost_bps_per_side: 5.0}
+  tight: {corr_len: 12, corr_max: 0.85, ret_len: 10}
+  loose: {corr_len: 5, corr_max: 0.95, ret_len: 60}
+  pepko_close: {corr_len: 12, ret_len: 10}

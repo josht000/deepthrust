@@ -93,6 +93,8 @@ pub const S097_NAME: &str = crate::family10::S097_NAME;
 pub const S097_TITLE: &str = crate::family10::S097_TITLE;
 pub const S099_NAME: &str = crate::family10::S099_NAME;
 pub const S099_TITLE: &str = crate::family10::S099_TITLE;
+pub const G033_NAME: &str = "g033_pair_rotation";
+pub const G033_TITLE: &str = "G033 Decorrelation-Gated Buy-the-Loser Pair Rotation";
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -180,6 +182,11 @@ impl StrategyDefinition for G097StrategyDefinition {
         fill: &str,
     ) -> Result<Vec<Trade>, String> {
         crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
+struct G033StrategyDefinition;
+impl StrategyDefinition for G033StrategyDefinition {
+        G033_NAME
+        G033_TITLE
+        signals::compute_g033_signals(panel, cfg)
     }
 }
 
@@ -1336,6 +1343,7 @@ static S003_STRATEGY: RsiStrategyDefinition = RsiStrategyDefinition {
 };
 static S006_STRATEGY: DoubleSevenStrategyDefinition = DoubleSevenStrategyDefinition;
 static G097_STRATEGY: G097StrategyDefinition = G097StrategyDefinition;
+static G033_STRATEGY: G033StrategyDefinition = G033StrategyDefinition;
 static S019_STRATEGY: GapAndGoStrategyDefinition = GapAndGoStrategyDefinition;
 static S021_STRATEGY: OvernightStrategyDefinition = OvernightStrategyDefinition {
     name: S021_NAME,
@@ -1510,7 +1518,7 @@ static S103_STRATEGY: Family10Definition = Family10Definition {
 static S100_STRATEGY: ThreeWhiteSoldiersStrategyDefinition =
     ThreeWhiteSoldiersStrategyDefinition;
 static S099_STRATEGY: OutsideDayReversalStrategyDefinition = OutsideDayReversalStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 63] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 64] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1543,6 +1551,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 63] = [
     &S079_STRATEGY,
     &S080_STRATEGY,
     &S082_STRATEGY,
+    &G033_STRATEGY,
     &S069_STRATEGY,
     &S070_STRATEGY,
     &S102_STRATEGY,

@@ -298,6 +298,12 @@ pub struct Config {
     pub oversold_in: f64,
     #[serde(default = "d_oversold_out")]
     pub oversold_out: f64,
+    #[serde(default = "d_corr_len")]
+    pub corr_len: usize,
+    #[serde(default = "d_ret_len")]
+    pub ret_len: usize,
+    #[serde(default = "d_corr_max")]
+    pub corr_max: f64,
     #[serde(default = "d_levered_cap")]
     pub levered_cap: f64,
     #[serde(default = "d_z_entry")]
@@ -1237,6 +1243,10 @@ fn d_s059_routine_years() -> usize {
 }
 fn d_s059_exit_mode() -> String {
     "fixed63".into()
+fn d_corr_len() -> usize {
+fn d_ret_len() -> usize {
+fn d_corr_max() -> f64 {
+    0.9
 }
 
 impl Config {
