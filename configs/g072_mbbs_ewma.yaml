@@ -1,0 +1,51 @@
+# G072 MBBS three-speed EWMA CTA: EWMA(8,16,32) - EWMA(24,48,96) crossovers,
+# signal-vol normalized mix, 0.89 sign-preserving response ^4, vol-parity
+# weights scaled to 10% vol target on 63d covariance (max 4x). ETF futures proxies.
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,EFA,EEM,IWM,RSP,AGG,TLT,IEF,LQD,HYG,EMB,GLD,SLV,GSG,DBC,USO,CPER,VNQ,IYR,UUP
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2005-01-01"
+min_history: 360
+ewma_fast: "8,16,32"
+ewma_slow: "24,48,96"
+resp_scale: 0.89
+resp_exp: 4.0
+sig_vol_window: 252
+rebalance: monthly
+strategy_mode: volparity
+vol_window: 63
+target_vol: 0.10
+max_leverage: 4.0
+periods_per_year: 252
+borrow_bps_annual: 25.0
+cost_bps_per_side: 10.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 20
+
+variants:
+  equal: {strategy_mode: equal}
+  single_fast: {ewma_fast: "8", ewma_slow: "24"}
+  single_mid: {ewma_fast: "16", ewma_slow: "48"}
+  single_slow: {ewma_fast: "32", ewma_slow: "96"}
+  faster: {ewma_fast: "4,8,16", ewma_slow: "12,24,48"}
+  slower: {ewma_fast: "16,32,64", ewma_slow: "48,96,192"}
+  exp2: {resp_exp: 2.0}
+  exp6: {resp_exp: 6.0}
+  linear: {resp_exp: 1.0}
+  scale50: {resp_scale: 0.50}
+  weekly: {rebalance: weekly}
+  sigvol126: {sig_vol_window: 126}
+  tv05: {target_vol: 0.05}
+  tv15: {target_vol: 0.15}
+  no_lev: {target_vol: 0.0}
+  vol126: {vol_window: 126}
+  eq_lin: {strategy_mode: equal, resp_exp: 1.0}
+  eq_tv15: {strategy_mode: equal, target_vol: 0.15}
+  eq_no_lev: {strategy_mode: equal, target_vol: 0.0}
