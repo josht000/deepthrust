@@ -2449,6 +2449,139 @@ pub fn compute_g097_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                         if var > 0.0 {
                             vol_ann[j][t] = var.sqrt() * (252.0f64).sqrt();
                         }
+/// G096 ANTICOR: two consecutive w-length log-return blocks; weight flows from
+/// stocks whose recent gains were "predicted" by other stocks' prior moves
+/// toward the lagging predictors (long-only simplex, daily rebalance).
+pub fn compute_g096_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let w = cfg.lookback.max(5);
+    let mut result = blank_rebalance_signals(panel, "anticor");
+    let ret: Vec<Vec<f64>> = (0..ns)
+        .map(|j| {
+            v.extend((1..n).map(|t| {
+                if a.is_finite() && b.is_finite() && b > 0.0 {
+            }));
+    let mut weights = vec![vec![0.0; n]; ns];
+    let mut prev_b = vec![1.0 / ns as f64; ns];
+    let mom_mode = cfg.strategy_mode.contains("mom");
+    let sma_gate = cfg.sma_window > 0 && cfg.strategy_mode.contains("sma");
+    let smas: Vec<Vec<f64>> = if sma_gate {
+        panel
+            .close
+            .iter()
+            .map(|c| signals::rolling_mean(c, cfg.sma_window))
+            .collect()
+        vec![]
+    let mut last_reb = 0usize;
+    for &day in &days {
+        if day < 2 * w {
+        if cfg.skip_days > 0 && day.saturating_sub(last_reb) < cfg.skip_days {
+                if prev_b[j] >= 0.001 {
+                    weights[j][day] = prev_b[j];
+                    result.signal[j][day] = true;
+        last_reb = day;
+        // LX1_i = ret[day-w+1..=day], LX2_i = ret[day-2w+1..=day-w]
+        let mut mu1 = vec![0.0; ns];
+        let mut mu2 = vec![0.0; ns];
+        let mut ok = vec![false; ns];
+        let mut x1 = vec![vec![0.0; w]; ns];
+        let mut x2 = vec![vec![0.0; w]; ns];
+            let mut s1 = 0.0;
+            let mut good = true;
+            for k in 0..w {
+                let r1 = ret[j][day - w + 1 + k];
+                let r2 = ret[j][day - 2 * w + 1 + k];
+                if !r1.is_finite() || !r2.is_finite() {
+                    good = false;
+                    break;
+                x1[j][k] = r1;
+                x2[j][k] = r2;
+                s1 += r1;
+                s2 += r2;
+            if good {
+                ok[j] = true;
+                mu1[j] = s1 / w as f64;
+                mu2[j] = s2 / w as f64;
+        let active: Vec<usize> = (0..ns).filter(|&j| ok[j]).collect();
+        if active.len() < 3 {
+        // cross-correlation LC[i][j] = corr(x1_i, x2_j); claim = max(0, mu_i-mu_j)*max(0,LC)
+        let mut b = vec![0.0; ns];
+        for &i in &active {
+            b[i] = prev_b[i];
+        let mut claim = vec![vec![0.0; ns]; ns];
+        for &i in &active {
+            let sd1: f64 = {
+                let mean = mu1[i];
+                (x1[i].iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (w - 1) as f64).sqrt()
+            if sd1 <= 0.0 {
+            for &j in &active {
+                if i == j {
+                let diff = mu1[i] - mu1[j];
+                if diff <= 0.0 {
+                let mean2 = mu2[j];
+                let sd2: f64 = (x2[j]
+                    .iter()
+                    .map(|v| (v - mean2).powi(2))
+                    .sum::<f64>()
+                    / (w - 1) as f64)
+                    .sqrt();
+                if sd2 <= 0.0 {
+                let cov: f64 = (0..w)
+                    .map(|k| (x1[i][k] - mu1[i]) * (x2[j][k] - mean2))
+                    .sum::<f64>()
+                    / (w - 1) as f64;
+                let lc = cov / (sd1 * sd2);
+                claim[i][j] = diff * lc.max(0.0);
+        let mut b_new = b.clone();
+        for &i in &active {
+            let row: f64 = claim[i].iter().sum();
+            if row <= 0.0 {
+            for &j in &active {
+                let t = b[i] * claim[i][j] / row;
+                if mom_mode {
+                    b_new[i] += t;
+                    b_new[j] -= t;
+                    b_new[i] -= t;
+                    b_new[j] += t;
+        let gross: f64 = b_new.iter().map(|v| v.max(0.0)).sum();
+        if gross <= 0.0 {
+            b_new[j] = if ok[j] { b_new[j].max(0.0) / gross } else { 0.0 };
+            if sma_gate
+                && smas[j][day].is_finite()
+                && panel.close[j][day] < smas[j][day]
+                b_new[j] = 0.0;
+        let gated_sum: f64 = b_new.iter().sum();
+        if gated_sum <= 0.0 {
+                b_new[j] = b[j];
+        } else if (gated_sum - 1.0).abs() > 1e-9 {
+            for v in &mut b_new {
+                *v /= gated_sum;
+        if cfg.breadth > 0 && cfg.breadth < ns {
+            let mut order: Vec<usize> = (0..ns).filter(|&j| b_new[j] > 0.0).collect();
+            order.sort_by(|&a, &b| b_new[b].total_cmp(&b_new[a]));
+            for (rank, j) in order.into_iter().enumerate() {
+                if rank >= cfg.breadth {
+                    b_new[j] = 0.0;
+            let g2: f64 = b_new.iter().sum();
+            if g2 > 0.0 {
+                for v in &mut b_new {
+                    *v /= g2;
+        if cfg.pos_cap < 1.0 {
+            for _ in 0..3 {
+                let excess: f64 = b_new
+                    .iter()
+                    .map(|v| (v - cfg.pos_cap).max(0.0))
+                    .sum();
+                if excess <= 0.0 {
+                    break;
+                let room: f64 = b_new
+                    .iter()
+                    .map(|v| (cfg.pos_cap - v).max(0.0))
+                    .sum();
+                for v in &mut b_new {
+                    if *v > cfg.pos_cap {
+                        *v = cfg.pos_cap;
+                    } else if room > 0.0 {
+                        *v += excess * (cfg.pos_cap - *v) / room;
                     }
                 }
             }
@@ -2583,6 +2716,10 @@ pub fn compute_g072_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
         for (j, v) in w.iter().enumerate() {
             if v.abs() >= 0.001 {
                 weights[j][day] = *v;
+            let wj = b_new[j];
+            prev_b[j] = wj;
+            if wj >= 0.001 {
+                weights[j][day] = wj;
                 result.signal[j][day] = true;
             }
         }

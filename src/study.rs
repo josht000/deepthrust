@@ -77,6 +77,8 @@ pub const S105_NAME: &str = "s105_overnight_carry";
 pub const S105_TITLE: &str = "S105 Volatility-Targeted Overnight Carry";
 pub const G097_NAME: &str = "g097_baltas_volscaled";
 pub const G097_TITLE: &str = "G097 Baltas-Style Vol-Scaled Trend (TSMOM x 1/vol)";
+pub const G096_NAME: &str = "g096_anticor";
+pub const G096_TITLE: &str = "G096 ANTICOR Anti-Correlation Wealth Transfer";
 pub const S088_NAME: &str = crate::family9::S088_NAME;
 pub const S088_TITLE: &str = crate::family9::S088_TITLE;
 pub const S091_NAME: &str = crate::family9::S091_NAME;
@@ -187,6 +189,11 @@ impl StrategyDefinition for G072StrategyDefinition {
         G072_NAME
         G072_TITLE
         crate::family4::compute_g072_signals(panel, cfg)
+struct G096StrategyDefinition;
+impl StrategyDefinition for G096StrategyDefinition {
+        G096_NAME
+        G096_TITLE
+        crate::family4::compute_g096_signals(panel, cfg)
     }
 
     fn build_trades(
@@ -234,6 +241,7 @@ impl StrategyDefinition for G091StrategyDefinition {
         G091_NAME
         G091_TITLE
         signals::compute_g091_signals(panel, cfg)
+
     }
 }
 
@@ -1396,6 +1404,7 @@ static G070_STRATEGY: G070StrategyDefinition = G070StrategyDefinition;
 static G072_STRATEGY: G072StrategyDefinition = G072StrategyDefinition;
 static G076_STRATEGY: G076StrategyDefinition = G076StrategyDefinition;
 static G091_STRATEGY: G091StrategyDefinition = G091StrategyDefinition;
+static G096_STRATEGY: G096StrategyDefinition = G096StrategyDefinition;
 static S019_STRATEGY: GapAndGoStrategyDefinition = GapAndGoStrategyDefinition;
 static S021_STRATEGY: OvernightStrategyDefinition = OvernightStrategyDefinition {
     name: S021_NAME,
@@ -1570,7 +1579,7 @@ static S103_STRATEGY: Family10Definition = Family10Definition {
 static S100_STRATEGY: ThreeWhiteSoldiersStrategyDefinition =
     ThreeWhiteSoldiersStrategyDefinition;
 static S099_STRATEGY: OutsideDayReversalStrategyDefinition = OutsideDayReversalStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 69] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 70] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1640,6 +1649,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 69] = [
     &G072_STRATEGY,
     &G076_STRATEGY,
     &G091_STRATEGY,
+    &G096_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {

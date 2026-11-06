@@ -710,6 +710,7 @@ fn d_target_vol() -> f64 {
 }
 fn d_pos_cap() -> f64 {
     0.95
+    1.0
 }
 fn d_vol_window() -> usize {
     20

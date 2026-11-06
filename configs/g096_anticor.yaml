@@ -1,0 +1,150 @@
+# G096 ANTICOR: daily wealth transfer via cross-autocorrelation between each
+# stock's recent w-day return block and other stocks' prior w-day block.
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,GLD,TLT,IEF,DBC,UUP
+benchmark: SPY
+start_date: "2005-01-01"
+min_history: 70
+lookback: 30
+rebalance: daily
+cost_bps_per_side: 5.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 20
+
+variants:
+  w10: {lookback: 10}
+  w20: {lookback: 20}
+  w40: {lookback: 40}
+  w60: {lookback: 60}
+  w90: {lookback: 90}
+  weekly: {rebalance: weekly}
+  monthly: {rebalance: monthly}
+  sectors: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11}
+  equity: {symbols: "SPY,QQQ,IWM,DIA,EFA,EEM,RSP,EWJ", book_slots: 8}
+  bonds_gold: {symbols: "TLT,IEF,SHY,AGG,LQD,HYG,GLD,BIL", book_slots: 8}
+  mixed8: {symbols: "SPY,QQQ,TLT,GLD,DBC,EEM,IEF,UUP", book_slots: 8}
+  sectors_w20: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, lookback: 20}
+  sectors_weekly: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly}
+  cost10: {cost_bps_per_side: 10.0}
+  cost20: {cost_bps_per_side: 20.0}
+  cost0: {cost_bps_per_side: 0.0}
+  sectors_w15: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 15}
+  sectors_w25: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 25}
+  sectors_w35: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 35}
+  sectors_w45: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 45}
+  sectors_monthly: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: monthly}
+  equity_weekly: {symbols: "SPY,QQQ,IWM,DIA,EFA,EEM,RSP,EWJ", book_slots: 8, rebalance: weekly}
+  mixed8_weekly: {symbols: "SPY,QQQ,TLT,GLD,DBC,EEM,IEF,UUP", book_slots: 8, rebalance: weekly}
+  bonds_weekly: {symbols: "TLT,IEF,SHY,AGG,LQD,HYG,GLD,BIL", book_slots: 8, rebalance: weekly}
+  sw_cap20: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, pos_cap: 0.20}
+  sw_cap25: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, pos_cap: 0.25}
+  sw_cap30: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, pos_cap: 0.30}
+  w25_weekly: {lookback: 25, rebalance: weekly}
+  w35_weekly: {lookback: 35, rebalance: weekly}
+  sw_cost10: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, cost_bps_per_side: 10.0}
+  sectors_w50: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 50}
+  sectors_w55: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 55}
+  sectors_w60: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 60}
+  w45_weekly: {lookback: 45, rebalance: weekly}
+  w60_weekly: {lookback: 60, rebalance: weekly}
+  sw45_cap20: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 45, pos_cap: 0.20}
+  sw45_cap25: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 45, pos_cap: 0.25}
+  sw45_cap30: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 45, pos_cap: 0.30}
+  equity_w45: {symbols: "SPY,QQQ,IWM,DIA,EFA,EEM,RSP,EWJ", book_slots: 8, rebalance: weekly, lookback: 45}
+  mixed8_w45: {symbols: "SPY,QQQ,TLT,GLD,DBC,EEM,IEF,UUP", book_slots: 8, rebalance: weekly, lookback: 45}
+  sw45_cost10: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 45, cost_bps_per_side: 10.0}
+  sw45_monthly: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: monthly, lookback: 45}
+  sw60_cap25: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 60, pos_cap: 0.25}
+  sectors_w45_wk2: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: weekly, lookback: 45, mom_window: 45}
+  r3w30: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 30}
+  r3w35: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 35}
+  r3w40: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40}
+  r3w42: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 42}
+  r3w48: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 48}
+  r3w50: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50}
+  r3w55: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 55}
+  r3w60: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 60}
+  r3w65: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 65}
+  r3w70: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 70}
+  r3w40c15: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, pos_cap: 0.15}
+  r3w40c20: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, pos_cap: 0.2}
+  r3w40c25: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, pos_cap: 0.25}
+  r3w40c30: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, pos_cap: 0.3}
+  r3w40c40: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, pos_cap: 0.4}
+  r3w45c15: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, pos_cap: 0.15}
+  r3w45c20: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, pos_cap: 0.2}
+  r3w45c25: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, pos_cap: 0.25}
+  r3w45c30: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, pos_cap: 0.3}
+  r3w45c40: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, pos_cap: 0.4}
+  r3w50c15: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, pos_cap: 0.15}
+  r3w50c20: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, pos_cap: 0.2}
+  r3w50c25: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, pos_cap: 0.25}
+  r3w50c30: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, pos_cap: 0.3}
+  r3w50c40: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, pos_cap: 0.4}
+  r3w40s50: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, sma_window: 50, strategy_mode: "sma"}
+  r3w40s100: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, sma_window: 100, strategy_mode: "sma"}
+  r3w40s200: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, sma_window: 200, strategy_mode: "sma"}
+  r3w45s50: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, sma_window: 50, strategy_mode: "sma"}
+  r3w45s100: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, sma_window: 100, strategy_mode: "sma"}
+  r3w45s200: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, sma_window: 200, strategy_mode: "sma"}
+  r3w50s50: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, sma_window: 50, strategy_mode: "sma"}
+  r3w50s100: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, sma_window: 100, strategy_mode: "sma"}
+  r3w50s200: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, sma_window: 200, strategy_mode: "sma"}
+  r3w60s50: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 60, sma_window: 50, strategy_mode: "sma"}
+  r3w60s100: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 60, sma_window: 100, strategy_mode: "sma"}
+  r3w60s200: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 60, sma_window: 200, strategy_mode: "sma"}
+  r3w40b4: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, breadth: 4}
+  r3w40b6: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, breadth: 6}
+  r3w40b8: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, breadth: 8}
+  r3w45b4: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, breadth: 4}
+  r3w45b6: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, breadth: 6}
+  r3w45b8: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, breadth: 8}
+  r3w50b4: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, breadth: 4}
+  r3w50b6: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, breadth: 6}
+  r3w50b8: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, breadth: 8}
+  r3w60b4: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 60, breadth: 4}
+  r3w60b6: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 60, breadth: 6}
+  r3w60b8: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 60, breadth: 8}
+  r3w40k5: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, skip_days: 5}
+  r3w40k10: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, skip_days: 10}
+  r3w40k15: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, skip_days: 15}
+  r3w45k5: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, skip_days: 5}
+  r3w45k10: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, skip_days: 10}
+  r3w45k15: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, skip_days: 15}
+  r3w50k5: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, skip_days: 5}
+  r3w50k10: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, skip_days: 10}
+  r3w50k15: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, skip_days: 15}
+  r3w60k5: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 60, skip_days: 5}
+  r3w60k10: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 60, skip_days: 10}
+  r3w60k15: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 60, skip_days: 15}
+  r3w40mom: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 40, strategy_mode: "mom"}
+  r3w45mom: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, strategy_mode: "mom"}
+  r3w50mom: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 50, strategy_mode: "mom"}
+  r3w60mom: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 60, strategy_mode: "mom"}
+  r3w45s100c25: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, sma_window: 100, pos_cap: 0.25, strategy_mode: "sma"}
+  r3w45s100b6: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, sma_window: 100, breadth: 6, strategy_mode: "sma"}
+  r3w45s100k10: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, sma_window: 100, skip_days: 10, strategy_mode: "sma"}
+  r3w45s200c25: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, sma_window: 200, pos_cap: 0.25, strategy_mode: "sma"}
+  r3w45s200b6: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, sma_window: 200, breadth: 6, strategy_mode: "sma"}
+  r3w45s200k10: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, sma_window: 200, skip_days: 10, strategy_mode: "sma"}
+  r3w45s200_mom: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, sma_window: 200, strategy_mode: "momsma"}
+  r3w45b6c25: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, breadth: 6, pos_cap: 0.25}
+  r3w45k10c25: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 45, skip_days: 10, pos_cap: 0.25}
+  r3w60s200b6: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "weekly", lookback: 60, sma_window: 200, breadth: 6, strategy_mode: "sma"}
+  r3eqw45: {symbols: "SPY,QQQ,IWM,DIA,EFA,EEM,RSP,EWJ", book_slots: 8, rebalance: "weekly", lookback: 45}
+  r3eqw60: {symbols: "SPY,QQQ,IWM,DIA,EFA,EEM,RSP,EWJ", book_slots: 8, rebalance: "weekly", lookback: 60}
+  r3mxw45: {symbols: "SPY,QQQ,TLT,GLD,DBC,EEM,IEF,UUP", book_slots: 8, rebalance: "weekly", lookback: 45}
+  r3mxw60: {symbols: "SPY,QQQ,TLT,GLD,DBC,EEM,IEF,UUP", book_slots: 8, rebalance: "weekly", lookback: 60}
+  r3w45mo: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "monthly", lookback: 45}
+  r3w60mo: {symbols: "XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY", book_slots: 11, rebalance: "monthly", lookback: 60}
+  r3u20w50: {symbols: "SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,GLD,TLT,IEF,DBC,UUP", book_slots: 20, rebalance: "weekly", lookback: 50}
+  r3u20w55: {symbols: "SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,GLD,TLT,IEF,DBC,UUP", book_slots: 20, rebalance: "weekly", lookback: 55}
+  r3u20w65: {symbols: "SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,GLD,TLT,IEF,DBC,UUP", book_slots: 20, rebalance: "weekly", lookback: 65}
+  r3u20w70: {symbols: "SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,GLD,TLT,IEF,DBC,UUP", book_slots: 20, rebalance: "weekly", lookback: 70}
+  r3u20w60s200: {symbols: "SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,GLD,TLT,IEF,DBC,UUP", book_slots: 20, rebalance: "weekly", lookback: 60, sma_window: 200, strategy_mode: "sma"}
+  r3u20w60b8: {symbols: "SPY,QQQ,IWM,DIA,XLB,XLC,XLE,XLF,XLI,XLK,XLP,XLRE,XLU,XLV,XLY,GLD,TLT,IEF,DBC,UUP", book_slots: 20, rebalance: "weekly", lookback: 60, breadth: 8}
