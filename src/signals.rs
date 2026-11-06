@@ -2984,6 +2984,10 @@ pub fn compute_g068_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
 /// "either": union of both entries.
 pub fn compute_g076_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
     let mut ao_all = Vec::with_capacity(panel.symbols.len());
+/// G091: Wilder Parabolic SAR stop-and-reverse, long side only.
+/// signal on SAR crossing below close (flip -1 -> +1); exit_now when SAR above close.
+pub fn compute_g091_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let mut sar_all = Vec::with_capacity(panel.symbols.len());
     let mut signal = Vec::with_capacity(panel.symbols.len());
     let mut exit_now = Vec::with_capacity(panel.symbols.len());
     let mut tradable = Vec::with_capacity(panel.symbols.len());
@@ -3176,6 +3180,45 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                 && ao[t - 1] > ao[t - 2]
                 && ao[t] < 0.0
                 && ao[t - 1] < 0.0
+        let mut sar = vec![f64::NAN; n];
+        let mut dir = vec![0i8; n];
+        let start = (0..n).find(|&t| close[t].is_finite());
+        if let Some(t0) = start {
+            let mut up = close[t0 + 1.min(n - 1)] >= close[t0];
+            let mut af = cfg.sar_step;
+            let mut ep = if up { high[t0] } else { low[t0] };
+            sar[t0] = if up { low[t0] } else { high[t0] };
+            dir[t0] = if up { 1 } else { -1 };
+            for t in t0 + 1..n {
+                if !close[t].is_finite() {
+                let mut s = sar[t - 1] + af * (ep - sar[t - 1]);
+                if up {
+                    if t > 0 {
+                        s = s.min(low[t - 1]);
+                    if t > 1 {
+                        s = s.min(low[t - 2]);
+                    if t > 0 {
+                        s = s.max(high[t - 1]);
+                    if t > 1 {
+                        s = s.max(high[t - 2]);
+                if up && low[t] < s {
+                    up = false;
+                    s = ep;
+                    ep = low[t];
+                    af = cfg.sar_step;
+                } else if !up && high[t] > s {
+                    up = true;
+                    s = ep;
+                    ep = high[t];
+                    af = cfg.sar_step;
+                } else if up && high[t] > ep {
+                    ep = high[t];
+                    af = (af + cfg.sar_step).min(cfg.sar_max);
+                } else if !up && low[t] < ep {
+                    ep = low[t];
+                    af = (af + cfg.sar_step).min(cfg.sar_max);
+                sar[t] = s;
+                dir[t] = if up { 1 } else { -1 };
         let mut history = 0usize;
         let trad: Vec<bool> = close
             .iter()
@@ -3255,6 +3298,11 @@ pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
         ao_all.push(ao);
         rsi: ao_all,
         indicator_name: "AO".into(),
+                .map(|t| t > 0 && trad[t] && dir[t] == 1 && dir[t - 1] == -1)
+        exit_now.push((0..n).map(|t| dir[t] == -1).collect());
+        sar_all.push(sar);
+        rsi: sar_all,
+        indicator_name: "psar".into(),
         atr: None,
         stop_pct: None,
         pool: tradable.clone(),

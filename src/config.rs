@@ -328,6 +328,10 @@ pub struct Config {
     pub ao_fast: usize,
     #[serde(default = "d_ao_slow")]
     pub ao_slow: usize,
+    #[serde(default = "d_sar_step")]
+    pub sar_step: f64,
+    #[serde(default = "d_sar_max")]
+    pub sar_max: f64,
     #[serde(default = "d_levered_cap")]
     pub levered_cap: f64,
     #[serde(default = "d_z_entry")]
@@ -1299,6 +1303,10 @@ fn d_resp_exp() -> f64 {
     4.0
 fn d_sig_vol_window() -> usize {
     252
+fn d_sar_step() -> f64 {
+    0.02
+fn d_sar_max() -> f64 {
+    0.2
 }
 
 impl Config {
