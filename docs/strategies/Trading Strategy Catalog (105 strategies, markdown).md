@@ -75,11 +75,11 @@
     - [S056 | LLM Daily News Sentiment Long/Short](#s056--llm-daily-news-sentiment-longshort) — IMPLEMENTED — DAILY, DELTA
     - [S057 | LLM Top-Down Sector Allocation (forward test only)](#s057--llm-top-down-sector-allocation-forward-test-only)
     - [S058 | News-Topic Conditioned Sentiment (feature design for S056)](#s058--news-topic-conditioned-sentiment-feature-design-for-s056) — IMPLEMENTED — DAILY, DELTA
-    - [S059 | Insider Cluster Buying](#s059--insider-cluster-buying)
+    - [S059 | Insider Cluster Buying](#s059--insider-cluster-buying) - IMPLEMENTED - DAILY, DELTA
     - [S060 | News-Intensity Overnight Drift (conditioning feature of S056)](#s060--news-intensity-overnight-drift-conditioning-feature-of-s056) — NOT_DAILY, DEFER
 - [Family 6 — Volatility Regime and Market Timing](#family-6--volatility-regime-and-market-timing)
     - [S061 | VIX Spike Mean Reversion (SPY)](#s061--vix-spike-mean-reversion-spy) — NOT_DAILY, DEFER
-    - [S062 | VIX/VXV Ratio Spike (Term Structure)](#s062--vixvxv-ratio-spike-term-structure)
+    - [S062 | VIX/VXV Ratio Spike (Term Structure)](#s062--vixvxv-ratio-spike-term-structure) - IMPLEMENTED - DAILY, DELTA
     - [S063 | VIX Moving-Average Crossover Regime](#s063--vix-moving-average-crossover-regime) — IMPLEMENTED — DAILY, DELTA
     - [S064 | Hurst Exponent Regime Switch](#s064--hurst-exponent-regime-switch)
     - [S065 | Realized-Vol Compression Breakout (compression cluster champion candidate)](#s065--realized-vol-compression-breakout-compression-cluster-champion-candidate) — IMPLEMENTED — DAILY, DELTA
@@ -224,9 +224,9 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 | Code | Content | Script / status |
 |---|---|---|
 | DP-ETF | ETF/index daily bars with separate `close_raw`, `close_tr`, `dividend`, `split_factor` (Alpaca adjustment=all cross-checked with raw + dividends; Yahoo/Stooq for pre-2016). Needed: SPY, QQQ, IWM, DIA, the SPDR sectors, TLT, IEF, SHY, BIL, LQD, HYG, EEM, EFA, EMB, IYR, GSG, GLD, SLV, TIP, a dollar ETF, RSP, AGG, TQQQ. In the stock cache today: only GLD, SLV, USO, CPER, GSG; SPY/QQQ/IWM only from 2023-09 in data/pit/market. | scripts/fetch_etf_daily.py (to build) |
-| DP-VIX | CBOE VIX, VIX3M (former VXV) and VIX9D daily history (free CSVs; re-verify URLs). | scripts/fetch_cboe_vol.py (to build) |
+| DP-VIX | CBOE VIX 1990+, VIX3M 2009+ and VIX9D 2011+; CBOE-sourced FRED VXVCLS supplements VIX3M back to 2007-12-04 (overlap validated). | tools/fetch_cboe_vol.py |
 | DP-FRED | 3-month T-bill (cash proxy before BIL, 2007) and 10Y/2Y yields from FRED. | scripts/fetch_fred_rates.py (to build) |
-| DP-FORM4 | SEC Insider Transactions Data Sets (quarterly bulk TSV, 2006+); no Form 4 in data/pit/edgar today. | scripts/fetch_form4.py (to build) |
+| DP-FORM4 | SEC Form 3/4/5 quarterly bulk TSVs (2006Q1-2026Q3) are in the sibling trading_framework cache; normalized owner events use AFF10B5ONE where available and linked-footnote/remarks regex as a voluntary-disclosure proxy before 2023. | tools/build_form4_dataset.py |
 | DP-EARN | Earnings-event table from SimFin `Publish Date` (3,705 tickers from 2009), quarterly EPS for SUE, EDGAR 8-K Item 2.02 `acceptance_utc` (2023-09+) for BMO/AMC classification. | scripts/build_earnings_events.py (to build) |
 | DP-CAL | Exchange holiday, FOMC, options-expiry and ex-dividend calendars (dividends 2016+ from Alpaca corporate actions or Polygon/Massive; SimFin Dividend only 2020-11 to 2025-10). | calendar builders (to build) |
 | D1 | data/cache/daily_10years: 11,024 stock symbols, 2016-01-04 onward, split-adjusted only, delisted names included. | exists |
@@ -1503,7 +1503,8 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - sources: [John Ryle (guest post on Ernest Chan's blog) - Building an Insider Trading Database and Predicting Future Equity Returns](http://epchan.blogspot.com/2017/07/building-insider-trading-database-and.html); Cohen, Malloy & Pomorski (2012) opportunistic vs routine insider trades (verify)
 - notes: CORRECTED: this is not Chan's research. The post documents a guest thesis whose random forest looked good in validation but in the 2014-2015 test 'the relationship broke down substantially... the actual returns on all remaining prediction deciles appeared no better than random; relative returns were negative for every decile'. No cluster rule is tested there, so the cluster rule, thresholds and exits are entirely the catalog's; the only documented evidence points to NO edge out of sample. Form 4 is not in the repo's EDGAR table (8-K, 10-Q, 13G, S-x only).
 - parameter_variants: cluster {>= 3 insiders primary; >= 3 and zero sells}; hold {63 sessions primary; 20-day-low exit}
-- data_needs: SEC Form 4 insider transactions bulk TSV 2006+ (DP-FORM4); daily_10years (D1)
+- implementation_results: Rust in `src/family5.rs` / `src/study.rs`, config `configs/s059_insider_cluster.yaml`; normalized SEC Form 4 owner-day events from `tools/build_form4_dataset.py` (AFF10B5ONE plus footnote/remarks proxy; `FILING_DATE` maps to the next session). Baseline (>=3 buyers/21 sessions, hold 63, next_open): DEV 8658 trades, +1.099 log, skill -0.680, Sharpe +0.661, max DD -48.1%; TEST 1517, +0.831, skill +0.240, Sharpe +0.878, PF 2.741 - DECAYED and test-PF>2 review flag. DEV-selected `buyers4_low20` (>=4 buyers, 20-day-low exit): DEV 7707, +4.698, skill +2.919, Sharpe +0.998, max DD -41.7%; TEST 1258, +0.778, skill +0.188, Sharpe +0.619, PF 1.414. DELTA: voluntary pre-2023 10b5-1 disclosure is incomplete; bulk TSV has filing date but no acceptance timestamp; joint-owner purchase rows are excluded because owner mapping is unavailable; no matched size/industry benchmark. Reproduce: `cargo run --release -- --strategy s059_insider_cluster --variant zero_sells,low20,buyers2,buyers4,buyers5,buyers6,win10,win14,win28,win42,win63,hold42,hold84,hold126,routine2,routine4,buyers2_win10,buyers2_win28,buyers4_win10,buyers4_win28,buyers4_win42,buyers5_win14,buyers5_win28,buyers5_win42,win10_hold42,win28_hold84,win42_hold84,buyers4_zero,buyers4_low20,routine2_buyers4`
+- data_needs: SEC Form 4 insider transactions bulk TSV 2006+ (DP-FORM4, pre-2023 10b5-1 flags are approximate); daily_10years_split (D1)
 - review: RESOLVED
 
 ### S060 | News-Intensity Overnight Drift (conditioning feature of S056)
@@ -1568,7 +1569,8 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - sources: [Schaeffer's Research — Another Way to Trade Volatility (VXV)](https://www.schaeffersresearch.com/content/analysis/2015/12/03/another-way-to-trade-volatility)
 - notes: Selectively quoted earlier: across ALL 113 days with ratio >= 1.10 the average one-month forward return was 0.22% vs 0.75% for randomly timed holds (median 2.69% vs 1.49%), the correlation of the ratio with forward returns is 'an uninspiring 0.0324', and the author attributes the pattern to data overlaps intersecting with 2008; data begin mid-2006. 25 de-overlapped incidents dominated by 2008 is not a validated edge; since 2016 the incidents are likely under 10. Report BOTH all-days and incident-based statistics, include 2008 through CBOE history so the drawdown is in sample, and trial-count the 1.10 threshold. Signal counts must not overlap (Schaeffer's incident convention); run in parallel with S061 as one vol-timing basket.
 - parameter_variants: ratio threshold {1.10 primary; 1.05, 1.15}; statistics {all signal days and de-overlapped incidents}
-- data_needs: CBOE VIX + VIX3M/VXV history 2006+ (DP-VIX) + SPY total-return series
+- implementation_results: Rust in `src/family7.rs` / `src/study.rs`, config `configs/s062_vix_vxv_ratio.yaml`; CBOE VIX + FRED/CBOE VXVCLS spliced into VIX3M from 2007-12-04, non-overlapping 21-session incidents, SPY total return. Baseline (ratio >=1.10, next_open): DEV 15 incidents, -0.045 log, skill +0.151, Sharpe +0.042, max DD -36.3%; TEST 3, +0.222, skill +0.014, Sharpe +0.951 - insufficient evidence. DEV-selected `ratio113`: DEV 12, +0.028, skill +0.161, Sharpe +0.075, max DD -31.1%; TEST 3, +0.222, skill +0.014, Sharpe +0.951. DELTA: no VXV before 2007-12-04 (source starts mid-2006); SPY panel starts 2008-01-02. Reproduce: `cargo run --release -- --strategy s062_vix_vxv_ratio --variant ratio101,ratio102,ratio103,ratio104,ratio105,ratio106,ratio107,ratio108,ratio109,ratio111,ratio112,ratio113,ratio114,ratio115,ratio116,ratio117,ratio118,ratio119,ratio120,ratio122,ratio125,ratio130,ratio135,ratio140,ratio145,ratio150,ratio160,ratio175,ratio200,ratio225`
+- data_needs: CBOE VIX + VIX3M/VXV history 2007-12-04+ (DP-VIX; includes 2008, no earlier VXV history) + SPY total-return series
 - review: RESOLVED
 
 ### S063 | VIX Moving-Average Crossover Regime

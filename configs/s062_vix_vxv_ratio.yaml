@@ -1,0 +1,51 @@
+data_dir: data/cache/s062_spy_tr
+data_suffix: .parquet
+symbols: SPY
+benchmark: SPY
+start_date: "2008-01-02"
+vix_file: data/cache/pit/cboe_volatility/VIX_History.csv
+vix3m_file: data/cache/pit/cboe_volatility/VIX3M_History.csv
+vxv_file: data/cache/pit/cboe_volatility/FRED_VXVCLS.csv
+
+vix_ratio_threshold: 1.10
+vix_ratio_hold_sessions: 21
+cost_bps_per_side: 1.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+n_timing_draws: 1000
+seed: 20261104
+book_slots: 1
+
+variants:
+  ratio101: {vix_ratio_threshold: 1.01}
+  ratio102: {vix_ratio_threshold: 1.02}
+  ratio103: {vix_ratio_threshold: 1.03}
+  ratio104: {vix_ratio_threshold: 1.04}
+  ratio105: {vix_ratio_threshold: 1.05}
+  ratio106: {vix_ratio_threshold: 1.06}
+  ratio107: {vix_ratio_threshold: 1.07}
+  ratio108: {vix_ratio_threshold: 1.08}
+  ratio109: {vix_ratio_threshold: 1.09}
+  ratio111: {vix_ratio_threshold: 1.11}
+  ratio112: {vix_ratio_threshold: 1.12}
+  ratio113: {vix_ratio_threshold: 1.13}
+  ratio114: {vix_ratio_threshold: 1.14}
+  ratio115: {vix_ratio_threshold: 1.15}
+  ratio116: {vix_ratio_threshold: 1.16}
+  ratio117: {vix_ratio_threshold: 1.17}
+  ratio118: {vix_ratio_threshold: 1.18}
+  ratio119: {vix_ratio_threshold: 1.19}
+  ratio120: {vix_ratio_threshold: 1.20}
+  ratio122: {vix_ratio_threshold: 1.22}
+  ratio125: {vix_ratio_threshold: 1.25}
+  ratio130: {vix_ratio_threshold: 1.30}
+  ratio135: {vix_ratio_threshold: 1.35}
+  ratio140: {vix_ratio_threshold: 1.40}
+  ratio145: {vix_ratio_threshold: 1.45}
+  ratio150: {vix_ratio_threshold: 1.50}
+  ratio160: {vix_ratio_threshold: 1.60}
+  ratio175: {vix_ratio_threshold: 1.75}
+  ratio200: {vix_ratio_threshold: 2.00}
+  ratio225: {vix_ratio_threshold: 2.25}

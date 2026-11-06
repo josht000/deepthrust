@@ -1366,9 +1366,10 @@
       "sources": "[John Ryle (guest post on Ernest Chan's blog) - Building an Insider Trading Database and Predicting Future Equity Returns](http://epchan.blogspot.com/2017/07/building-insider-trading-database-and.html); Cohen, Malloy & Pomorski (2012) opportunistic vs routine insider trades (verify)",
       "notes": "CORRECTED: this is not Chan's research. The post documents a guest thesis whose random forest looked good in validation but in the 2014-2015 test 'the relationship broke down substantially... the actual returns on all remaining prediction deciles appeared no better than random; relative returns were negative for every decile'. No cluster rule is tested there, so the cluster rule, thresholds and exits are entirely the catalog's; the only documented evidence points to NO edge out of sample. Form 4 is not in the repo's EDGAR table (8-K, 10-Q, 13G, S-x only).",
       "parameter_variants": "cluster {>= 3 insiders primary; >= 3 and zero sells}; hold {63 sessions primary; 20-day-low exit}",
-      "data_needs": "SEC Form 4 insider transactions bulk TSV 2006+ (DP-FORM4); daily_10years (D1)",
+      "data_needs": "SEC Form 4 insider transactions bulk TSV 2006+ (DP-FORM4, pre-2023 10b5-1 flags are approximate); daily_10years_split (D1)",
       "review": "RESOLVED",
-      "frequency_class": "slow"
+      "frequency_class": "slow",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S060",
@@ -1438,9 +1439,10 @@
       "sources": "[Schaeffer's Research — Another Way to Trade Volatility (VXV)](https://www.schaeffersresearch.com/content/analysis/2015/12/03/another-way-to-trade-volatility)",
       "notes": "Selectively quoted earlier: across ALL 113 days with ratio >= 1.10 the average one-month forward return was 0.22% vs 0.75% for randomly timed holds (median 2.69% vs 1.49%), the correlation of the ratio with forward returns is 'an uninspiring 0.0324', and the author attributes the pattern to data overlaps intersecting with 2008; data begin mid-2006. 25 de-overlapped incidents dominated by 2008 is not a validated edge; since 2016 the incidents are likely under 10. Report BOTH all-days and incident-based statistics, include 2008 through CBOE history so the drawdown is in sample, and trial-count the 1.10 threshold. Signal counts must not overlap (Schaeffer's incident convention); run in parallel with S061 as one vol-timing basket.",
       "parameter_variants": "ratio threshold {1.10 primary; 1.05, 1.15}; statistics {all signal days and de-overlapped incidents}",
-      "data_needs": "CBOE VIX + VIX3M/VXV history 2006+ (DP-VIX) + SPY total-return series",
+      "data_needs": "CBOE VIX + VIX3M/VXV history 2007-12-04+ (DP-VIX; includes 2008, no earlier VXV history) + SPY total-return series",
       "review": "RESOLVED",
-      "frequency_class": "calendar"
+      "frequency_class": "calendar",
+      "rust_status": "IMPLEMENTED"
     },
     {
       "id": "S063",
