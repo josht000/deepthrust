@@ -332,6 +332,8 @@ pub struct Config {
     pub sar_step: f64,
     #[serde(default = "d_sar_max")]
     pub sar_max: f64,
+    #[serde(default = "d_pos_cap")]
+    pub pos_cap: f64,
     #[serde(default = "d_levered_cap")]
     pub levered_cap: f64,
     #[serde(default = "d_z_entry")]
@@ -1308,6 +1310,8 @@ fn d_sar_step() -> f64 {
     0.02
 fn d_sar_max() -> f64 {
     0.2
+fn d_pos_cap() -> f64 {
+    0.95
 }
 
 impl Config {

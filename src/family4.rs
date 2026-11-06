@@ -2720,6 +2720,43 @@ pub fn compute_g072_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
             prev_b[j] = wj;
             if wj >= 0.001 {
                 weights[j][day] = wj;
+/// G098 Moskowitz(2012) TSMOM: per asset sign(trailing mom_window return) at each
+/// rebalance day, position = sign * min(pos_cap, target_vol / sigma_i) where sigma_i
+/// is EWM(com=vol_window) daily vol annualized by sqrt(periods_per_year).
+/// Futures universe proxied by TR ETFs (DELTA: no ag/financial contracts).
+pub fn compute_g098_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if cfg.mom_window == 0 || cfg.vol_window == 0 {
+        return Err("G098 requires positive mom_window and vol_window".into());
+    if !matches!(cfg.strategy_mode.as_str(), "ewmvol" | "equal") {
+        return Err(format!("unknown G098 strategy_mode {:?}", cfg.strategy_mode));
+    let rets = momentum_matrix(panel, cfg.mom_window, cfg.min_history);
+    let alpha = 1.0 / (1.0 + cfg.vol_window as f64);
+    let mut ewm_var: Vec<Vec<f64>> = Vec::with_capacity(ns);
+        let mut var = vec![f64::NAN; n];
+        let mut state = f64::NAN;
+            let (a, b) = (panel.close[j][t], panel.close[j][t - 1]);
+            if !a.is_finite() || !b.is_finite() {
+            let r = a / b - 1.0;
+            state = if state.is_nan() {
+                r * r
+                alpha * r * r + (1.0 - alpha) * state
+            var[t] = state;
+        ewm_var.push(var);
+    let mut result = blank_rebalance_signals(panel, "tsmom");
+    result.rsi = rets.clone();
+            let r = rets[j][day];
+            if !r.is_finite() {
+            let sign = if r > 0.0 { 1.0 } else { -1.0 };
+                sign
+                let var = ewm_var[j][day];
+                if !var.is_finite() || var <= 0.0 {
+                let vol = (var * cfg.periods_per_year as f64).sqrt();
+                sign * cfg.pos_cap.min(cfg.target_vol / vol)
+        if cfg.strategy_mode == "equal" {
+            let active: f64 = w.iter().map(|v| v.abs()).sum();
+            if active > 0.0 {
+                    *v /= active;
+            if *v != 0.0 {
                 result.signal[j][day] = true;
             }
         }

@@ -1,0 +1,43 @@
+# G098 Moskowitz(2012) TSMOM: month-end sign(252d return) per asset, position =
+# sign * min(pos_cap, target_vol / EWM-com60 vol). Futures legs proxied by ETFs.
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,EFA,EEM,IWM,RSP,AGG,TLT,IEF,LQD,HYG,EMB,GLD,SLV,GSG,DBC,USO,CPER,VNQ,IYR,UUP
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2005-01-01"
+min_history: 252
+mom_window: 252
+rebalance: monthly
+strategy_mode: ewmvol
+vol_window: 60
+target_vol: 0.40
+pos_cap: 0.95
+periods_per_year: 261
+borrow_bps_annual: 25.0
+cost_bps_per_side: 10.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 20
+
+variants:
+  equal: {strategy_mode: equal}
+  mom63: {mom_window: 63}
+  mom126: {mom_window: 126}
+  mom189: {mom_window: 189}
+  mom315: {mom_window: 315}
+  tv10: {target_vol: 0.10}
+  tv15: {target_vol: 0.15}
+  tv20: {target_vol: 0.20}
+  com20: {vol_window: 20}
+  com120: {vol_window: 120}
+  cap50: {pos_cap: 0.50}
+  cap30: {pos_cap: 0.30}
+  weekly: {rebalance: weekly}
+  mom63_tv15: {mom_window: 63, target_vol: 0.15}
+  mom126_tv15: {mom_window: 126, target_vol: 0.15}
+  eq_mom126: {strategy_mode: equal, mom_window: 126}
