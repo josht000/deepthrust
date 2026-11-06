@@ -2971,6 +2971,24 @@ pub fn compute_g033_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
             .map(|t| {
                 if t >= cfg.ret_len && closes[0][t].is_finite() && closes[0][t - cfg.ret_len].is_finite() {
                     closes[0][t] / closes[0][t - cfg.ret_len] - 1.0
+/// G068: long when the stochastic just leaves oversold (prev %K < stoch_in, now > stoch_out)
+/// with RSI(14) >= rsi_threshold confirmation; exit at Chandelier(lookback, chan_mult):
+/// close < HHV(lookback) - chan_mult * ATR(atr_len). Long-only; the source's short leg
+/// (prev %K > 80 -> < 75, RSI < 50) has no engine support.
+pub fn compute_g068_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let mut stoch_all = Vec::with_capacity(panel.symbols.len());
+    let mut signal = Vec::with_capacity(panel.symbols.len());
+    let mut exit_now = Vec::with_capacity(panel.symbols.len());
+    let mut tradable = Vec::with_capacity(panel.symbols.len());
+    for j in 0..panel.symbols.len() {
+        let close = &panel.close[j];
+        let n = close.len();
+        let llv = rolling_extreme(&panel.low[j], cfg.stoch_len, true);
+        let hhv = rolling_extreme(&panel.high[j], cfg.stoch_len, false);
+        let stoch: Vec<f64> = (0..n)
+                let span = hhv[t] - llv[t];
+                if span.is_finite() && span > 0.0 && close[t].is_finite() {
+                    100.0 * (close[t] - llv[t]) / span
                 } else {
                     f64::NAN
                 }
@@ -3020,6 +3038,21 @@ pub fn compute_g033_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
         signal.push(
             (0..n)
                 .map(|t| gate[t] && ret1[j][t].is_finite() && ret1[j][t] < ret1[other][t])
+        let rsi_v = wilder_rsi(close, cfg.rsi_len)?;
+        let hhv_chan = rolling_extreme(&panel.high[j], cfg.lookback, false);
+        let atr = wilder_atr(&panel.high[j], &panel.low[j], close, cfg.atr_len);
+        let mut history = 0usize;
+        let trad: Vec<bool> = close
+            .iter()
+            .map(|value| {
+                if value.is_finite() {
+                    history += 1;
+                value.is_finite() && history >= cfg.min_history
+                    t > 0
+                        && trad[t]
+                        && stoch[t - 1] < cfg.stoch_in
+                        && stoch[t] > cfg.stoch_out
+                        && rsi_v[t] >= cfg.rsi_threshold
                 .collect(),
         );
         exit_now.push(
@@ -3048,6 +3081,15 @@ pub fn compute_g033_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
     Ok(Signals {
         rsi: ind,
         indicator_name: "leg_ret1_gated".into(),
+                .map(|t| {
+                    close[t].is_finite()
+                        && hhv_chan[t].is_finite()
+                        && atr[t].is_finite()
+                        && close[t] < hhv_chan[t] - cfg.chan_mult * atr[t]
+        tradable.push(trad);
+        stoch_all.push(stoch);
+        rsi: stoch_all,
+        indicator_name: "stoch%K".into(),
         signal,
         exit_now,
         add_signal: None,

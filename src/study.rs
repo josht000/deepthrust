@@ -95,6 +95,8 @@ pub const S099_NAME: &str = crate::family10::S099_NAME;
 pub const S099_TITLE: &str = crate::family10::S099_TITLE;
 pub const G033_NAME: &str = "g033_pair_rotation";
 pub const G033_TITLE: &str = "G033 Decorrelation-Gated Buy-the-Loser Pair Rotation";
+pub const G068_NAME: &str = "g068_stoch_rsi_chandelier";
+pub const G068_TITLE: &str = "G068 Stochastic-Exit + RSI-50 + Chandelier(22,2)";
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -187,6 +189,11 @@ impl StrategyDefinition for G033StrategyDefinition {
         G033_NAME
         G033_TITLE
         signals::compute_g033_signals(panel, cfg)
+struct G068StrategyDefinition;
+impl StrategyDefinition for G068StrategyDefinition {
+        G068_NAME
+        G068_TITLE
+        signals::compute_g068_signals(panel, cfg)
     }
 }
 
@@ -1344,6 +1351,7 @@ static S003_STRATEGY: RsiStrategyDefinition = RsiStrategyDefinition {
 static S006_STRATEGY: DoubleSevenStrategyDefinition = DoubleSevenStrategyDefinition;
 static G097_STRATEGY: G097StrategyDefinition = G097StrategyDefinition;
 static G033_STRATEGY: G033StrategyDefinition = G033StrategyDefinition;
+static G068_STRATEGY: G068StrategyDefinition = G068StrategyDefinition;
 static S019_STRATEGY: GapAndGoStrategyDefinition = GapAndGoStrategyDefinition;
 static S021_STRATEGY: OvernightStrategyDefinition = OvernightStrategyDefinition {
     name: S021_NAME,
@@ -1518,7 +1526,7 @@ static S103_STRATEGY: Family10Definition = Family10Definition {
 static S100_STRATEGY: ThreeWhiteSoldiersStrategyDefinition =
     ThreeWhiteSoldiersStrategyDefinition;
 static S099_STRATEGY: OutsideDayReversalStrategyDefinition = OutsideDayReversalStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 64] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 65] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1552,6 +1560,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 64] = [
     &S080_STRATEGY,
     &S082_STRATEGY,
     &G033_STRATEGY,
+    &G068_STRATEGY,
     &S069_STRATEGY,
     &S070_STRATEGY,
     &S102_STRATEGY,

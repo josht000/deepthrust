@@ -304,6 +304,14 @@ pub struct Config {
     pub ret_len: usize,
     #[serde(default = "d_corr_max")]
     pub corr_max: f64,
+    #[serde(default = "d_stoch_len")]
+    pub stoch_len: usize,
+    #[serde(default = "d_stoch_in")]
+    pub stoch_in: f64,
+    #[serde(default = "d_stoch_out")]
+    pub stoch_out: f64,
+    #[serde(default = "d_chan_mult")]
+    pub chan_mult: f64,
     #[serde(default = "d_levered_cap")]
     pub levered_cap: f64,
     #[serde(default = "d_z_entry")]
@@ -1248,6 +1256,13 @@ fn d_ret_len() -> usize {
 fn d_corr_max() -> f64 {
     0.9
 }
+fn d_stoch_len() -> usize {
+    14
+fn d_stoch_in() -> f64 {
+    20.0
+fn d_stoch_out() -> f64 {
+    25.0
+fn d_chan_mult() -> f64 {
 
 impl Config {
     pub fn symbol_list(&self) -> Vec<String> {
