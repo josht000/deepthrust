@@ -238,6 +238,21 @@ fn detect_level_bounce(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
             if !(touched || poked && inside) {
                 continue;
             }
+            // one event per contact episode: skip bars continuing a
+            // touch that already started on the previous trigger bar
+            let prev_contact = ti > 0
+                && lv.born <= u.saturating_sub(2)
+                && {
+                    let pb = &tbars[ti - 1];
+                    (pb.low <= lv.line && lv.line <= pb.high)
+                        || match dir {
+                            Direction::Long => pb.low < lv.lo,
+                            Direction::Short => pb.high > lv.hi,
+                        }
+                };
+            if prev_contact {
+                continue;
+            }
             let mut ev = base_event(ctx, cfg, pos, session, minute, u);
             ev.dir = dir;
             ev.ref_price = lv.line;
@@ -417,6 +432,13 @@ fn detect_pullback(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
         if !touched {
             continue;
         }
+        // one event per contact episode
+        if ti > 0 {
+            let pb = &tbars[ti - 1];
+            if pb.low <= anchor.price && anchor.price <= pb.high {
+                continue;
+            }
+        }
         let inside = match dir {
             Direction::Long => tb.close >= anchor.price,
             Direction::Short => tb.close <= anchor.price,
@@ -466,6 +488,13 @@ fn detect_trendline(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
             let touched = tb.low <= price && price <= tb.high;
             if !touched {
                 continue;
+            }
+            // one event per contact episode
+            if ti > 0 {
+                let pb = &tbars[ti - 1];
+                if pb.low <= price && price <= pb.high {
+                    continue;
+                }
             }
             let inside = match dir {
                 Direction::Long => tb.close >= price,
@@ -632,6 +661,13 @@ fn detect_zone(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
             if !touched {
                 continue;
             }
+            // one event per contact episode
+            if ti > 0 && z.born <= u.saturating_sub(2) {
+                let pb = &tbars[ti - 1];
+                if pb.low <= z.hi && z.lo <= pb.high {
+                    continue;
+                }
+            }
             let count = entered.entry(zi).or_insert(0);
             *count += 1;
             let ordinal = *count;
@@ -695,6 +731,13 @@ fn detect_fvg(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
             let touched = tb.low <= g.hi && g.lo <= tb.high;
             if !touched {
                 continue;
+            }
+            // one event per contact episode
+            if ti > 0 && g.idx <= u.saturating_sub(2) {
+                let pb = &tbars[ti - 1];
+                if pb.low <= g.hi && g.lo <= pb.high {
+                    continue;
+                }
             }
             let count = entered.entry(gi).or_insert(0);
             *count += 1;
