@@ -111,6 +111,8 @@ pub const G098_NAME: &str = "g098_tsmom";
 pub const G098_TITLE: &str = "G098 Moskowitz(2012) Time-Series Momentum + EWM Vol Scaling";
 pub const G100_NAME: &str = "g100_binary_momentum";
 pub const G100_TITLE: &str = "G100 QARMII 252-Day Binary Momentum Portfolio";
+pub const G101_NAME: &str = "g101_dip_sizing";
+pub const G101_TITLE: &str = "G101 Quadratic Dip-Depth Sizing (VOO/QQQ + BIL)";
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -208,6 +210,11 @@ impl StrategyDefinition for G100StrategyDefinition {
         G100_NAME
         G100_TITLE
         crate::family4::compute_g100_signals(panel, cfg)
+struct G101StrategyDefinition;
+impl StrategyDefinition for G101StrategyDefinition {
+        G101_NAME
+        G101_TITLE
+        crate::family4::compute_g101_signals(panel, cfg)
     }
 
     fn build_trades(
@@ -255,6 +262,7 @@ impl StrategyDefinition for G091StrategyDefinition {
         G091_NAME
         G091_TITLE
         signals::compute_g091_signals(panel, cfg)
+
 
 
 
@@ -1423,6 +1431,7 @@ static G091_STRATEGY: G091StrategyDefinition = G091StrategyDefinition;
 static G096_STRATEGY: G096StrategyDefinition = G096StrategyDefinition;
 static G098_STRATEGY: G098StrategyDefinition = G098StrategyDefinition;
 static G100_STRATEGY: G100StrategyDefinition = G100StrategyDefinition;
+static G101_STRATEGY: G101StrategyDefinition = G101StrategyDefinition;
 static S019_STRATEGY: GapAndGoStrategyDefinition = GapAndGoStrategyDefinition;
 static S021_STRATEGY: OvernightStrategyDefinition = OvernightStrategyDefinition {
     name: S021_NAME,
@@ -1597,7 +1606,7 @@ static S103_STRATEGY: Family10Definition = Family10Definition {
 static S100_STRATEGY: ThreeWhiteSoldiersStrategyDefinition =
     ThreeWhiteSoldiersStrategyDefinition;
 static S099_STRATEGY: OutsideDayReversalStrategyDefinition = OutsideDayReversalStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 72] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 73] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1670,6 +1679,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 72] = [
     &G096_STRATEGY,
     &G098_STRATEGY,
     &G100_STRATEGY,
+    &G101_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {

@@ -1,0 +1,40 @@
+# G101 quadratic dip-depth sizing: daily target = min(1, (5*d + d^2)/100) with
+# d = % below 50-day high; remainder to BIL. VOO/QQQ + BIL subs for VTI/SGOV.
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: VOO,QQQ,BIL
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-01-04"
+min_history: 60
+lookback: 50
+dip_a: 5.0
+dip_b: 1.0
+defensive_asset: BIL
+rebalance: daily
+cost_bps_per_side: 5.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 3
+
+variants:
+  high20: {lookback: 20}
+  high100: {lookback: 100}
+  high150: {lookback: 150}
+  high252: {lookback: 252}
+  a2: {dip_a: 2.0}
+  a8: {dip_a: 8.0}
+  a3: {dip_a: 3.0}
+  b0_5: {dip_b: 0.5}
+  b2: {dip_b: 2.0}
+  linear: {dip_b: 0.0}
+  gentle: {dip_a: 3.0, dip_b: 0.5}
+  aggressive: {dip_a: 8.0, dip_b: 2.0}
+  qqq_only: {symbols: "QQQ,BIL", book_slots: 2}
+  spy_qqq: {symbols: "SPY,QQQ,BIL"}
+  shy_cash: {defensive_asset: SHY, symbols: "VOO,QQQ,SHY"}
+  weekly: {rebalance: weekly}

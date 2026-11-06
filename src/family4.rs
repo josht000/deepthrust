@@ -2800,6 +2800,43 @@ pub fn compute_g098_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
         }
                 result.signal[j][day] = true;
             }
+/// G101 quadratic dip-depth sizing: daily, per risky asset target fraction
+/// min(1, (dip_a*d + dip_b*d^2)/100) with d = 100*(1 - close/HHV(lookback));
+/// risky legs scaled to fit capital, remainder goes to defensive_asset.
+/// VOO/BIL substitute for VTI/SGOV (not in cache) — DELTA.
+pub fn compute_g101_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let cash = panel
+        .symbols
+        .position(|s| s == &cfg.defensive_asset)
+        .ok_or_else(|| {
+            format!(
+                "G101 defensive asset {:?} not in panel",
+                cfg.defensive_asset
+            )
+    if cfg.lookback == 0 {
+        return Err("G101 requires positive lookback".into());
+    let mut result = blank_rebalance_signals(panel, "dip_sizing");
+    let mut dip_all = vec![vec![f64::NAN; n]; ns];
+        if j == cash {
+        let hhv = signals::rolling_extreme(&panel.close[j], cfg.lookback, false);
+            if hhv[t].is_finite() && panel.close[j][t].is_finite() {
+                dip_all[j][t] = (100.0 * (1.0 - panel.close[j][t] / hhv[t])).max(0.0);
+    result.rsi = dip_all.clone();
+        let mut t_sum = 0.0;
+        let mut t_j = vec![0.0; ns];
+            if j == cash || !dip_all[j][day].is_finite() {
+            let d = dip_all[j][day];
+            t_j[j] = ((cfg.dip_a * d + cfg.dip_b * d * d) / 100.0).min(1.0);
+            t_sum += t_j[j];
+        let scale = if t_sum > 1.0 { 1.0 / t_sum } else { 1.0 };
+        let mut cash_w = 1.0;
+            if j == cash {
+            let w = t_j[j] * scale;
+            if w >= 0.001 {
+            cash_w -= w;
+        if cash_w >= 0.001 {
+            weights[cash][day] = cash_w;
+            result.signal[cash][day] = true;
         }
     }
     result.trade_weights = Some(weights);
