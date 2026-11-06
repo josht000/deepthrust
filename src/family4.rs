@@ -167,20 +167,7 @@ fn rolling_high_before(values: &[f64], day: usize, window: usize) -> f64 {
 }
 
 fn rolling_median_before(values: &[f64], day: usize, window: usize) -> f64 {
-    if window == 0 || day < window {
-        return f64::NAN;
-    }
-    let mut sample = values[day - window..day].to_vec();
-    if sample.iter().any(|value| !value.is_finite()) {
-        return f64::NAN;
-    }
-    sample.sort_by(f64::total_cmp);
-    let middle = sample.len() / 2;
-    if sample.len() % 2 == 0 {
-        (sample[middle - 1] + sample[middle]) / 2.0
-    } else {
-        sample[middle]
-    }
+    crate::ta_indicators::median_before(values, day, window)
 }
 
 pub(crate) fn read_earnings_dates(path: &str) -> Result<HashMap<String, Vec<NaiveDate>>, String> {
@@ -1857,6 +1844,7 @@ pub fn weighted_rebalance_trades(
             let direction = weight.signum();
             let borrow_cost = if weight < 0.0 && exit > entry {
                 cfg.borrow_bps_annual / 10_000.0 / cfg.periods_per_year as f64
+                    * (exit - entry + 1) as f64
             } else {
                 0.0
             };
@@ -1882,7 +1870,11 @@ pub fn weighted_rebalance_trades(
                 entry_turnover,
                 exit_turnover,
                 weighted: true,
-                borrow_cost_per_bar: borrow_cost / (exit - entry + 1) as f64,
+                borrow_cost_per_bar: if weight < 0.0 && exit > entry {
+                    cfg.borrow_bps_annual / 10_000.0 / cfg.periods_per_year as f64
+                } else {
+                    0.0
+                },
             });
         }
     }
@@ -2501,8 +2493,8 @@ mod tests {
         let trades = weighted_rebalance_trades(&panel, &sig, &cfg, "close").unwrap();
         assert_eq!(trades.len(), 1);
         assert!((trades[0].ret_gross - 0.1).abs() < 1e-12);
-        assert!((trades[0].ret - 0.09).abs() < 1e-12);
-        assert!((trades[0].borrow_cost_per_bar * 2.0 - 0.01).abs() < 1e-12);
+        assert!((trades[0].ret - 0.08).abs() < 1e-12);
+        assert!((trades[0].borrow_cost_per_bar * 2.0 - 0.02).abs() < 1e-12);
     }
 
     #[test]

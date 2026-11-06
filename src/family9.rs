@@ -5,6 +5,7 @@ use crate::data::{self, Panel};
 use crate::engine::{self, last_valid_rows, SwingParams, Trade};
 use crate::family4::blank_signals;
 use crate::signals::{rolling_mean, rolling_median, self, Mask, Signals};
+use crate::ta_indicators::{ema, mean_at, mean_before, median_at, median_before};
 use std::collections::BTreeSet;
 use ta_lib::Core;
 
@@ -60,62 +61,6 @@ fn macd_lines(
         macd_signal[offset..offset + range.count].copy_from_slice(&sig[..range.count]);
     }
     Ok((macd, macd_signal))
-}
-
-fn median_before(values: &[f64], day: usize, window: usize) -> f64 {
-    if window == 0 || day < window {
-        return f64::NAN;
-    }
-    let mut sample = values[day - window..day].to_vec();
-    if sample.iter().any(|value| !value.is_finite()) {
-        return f64::NAN;
-    }
-    sample.sort_by(f64::total_cmp);
-    let middle = sample.len() / 2;
-    if sample.len() % 2 == 0 {
-        (sample[middle - 1] + sample[middle]) / 2.0
-    } else {
-        sample[middle]
-    }
-}
-
-fn mean_before(values: &[f64], day: usize, window: usize) -> f64 {
-    if window == 0 || day < window {
-        return f64::NAN;
-    }
-    let sample = &values[day - window..day];
-    if sample.iter().any(|value| !value.is_finite()) {
-        return f64::NAN;
-    }
-    sample.iter().sum::<f64>() / window as f64
-}
-
-fn median_at(values: &[f64], day: usize, window: usize) -> f64 {
-    if window == 0 || day + 1 < window {
-        return f64::NAN;
-    }
-    let mut sample = values[day + 1 - window..=day].to_vec();
-    if sample.iter().any(|value| !value.is_finite()) {
-        return f64::NAN;
-    }
-    sample.sort_by(f64::total_cmp);
-    let middle = sample.len() / 2;
-    if sample.len() % 2 == 0 {
-        (sample[middle - 1] + sample[middle]) / 2.0
-    } else {
-        sample[middle]
-    }
-}
-
-fn mean_at(values: &[f64], day: usize, window: usize) -> f64 {
-    if window == 0 || day + 1 < window {
-        return f64::NAN;
-    }
-    let sample = &values[day + 1 - window..=day];
-    if sample.iter().any(|value| !value.is_finite()) {
-        return f64::NAN;
-    }
-    sample.iter().sum::<f64>() / window as f64
 }
 
 /// S088: MACD line crosses above its signal while MACD > 0, close > SMA(200),
@@ -873,38 +818,6 @@ pub fn s089_trades(
 }
 pub const S095_NAME: &str = "s095_keltner_breakout";
 pub const S095_TITLE: &str = "S095 Keltner Channel Breakout";
-
-/// TA-Lib-style EMA(n): seeded by the SMA of the first full finite window of n.
-/// Once seeded, non-finite inputs emit NaN but keep the state.
-fn ema(x: &[f64], n: usize) -> Vec<f64> {
-    let mut out = vec![f64::NAN; x.len()];
-    if n == 0 {
-        return out;
-    }
-    let k = 2.0 / (n as f64 + 1.0);
-    let (mut run, mut sum, mut state) = (0usize, 0.0, f64::NAN);
-    for (i, &v) in x.iter().enumerate() {
-        if !v.is_finite() {
-            if state.is_nan() {
-                run = 0;
-                sum = 0.0;
-            }
-            continue;
-        }
-        if state.is_nan() {
-            run += 1;
-            sum += v;
-            if run == n {
-                state = sum / n as f64;
-                out[i] = state;
-            }
-        } else {
-            state = k * v + (1.0 - k) * state;
-            out[i] = state;
-        }
-    }
-    out
-}
 
 // S095: close > EMA(ema_len) + keltner_mult x ATR(atr_len) on volume >
 // volume_mult x the prior volume_median_window median; exit close < EMA or

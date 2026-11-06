@@ -140,3 +140,96 @@ mod tests {
         assert!(atr(&[2.0], &[], &[1.5], 2).is_err());
     }
 }
+
+/// TA-Lib-convention EMA (SMA-seeded after `n` consecutive finite values; NaN
+/// warm-up; a non-finite input leaves state unchanged).
+pub fn ema(x: &[f64], n: usize) -> Vec<f64> {
+    let mut out = vec![f64::NAN; x.len()];
+    if n == 0 {
+        return out;
+    }
+    let k = 2.0 / (n as f64 + 1.0);
+    let (mut run, mut sum, mut state) = (0usize, 0.0, f64::NAN);
+    for (i, &v) in x.iter().enumerate() {
+        if !v.is_finite() {
+            if state.is_nan() {
+                run = 0;
+                sum = 0.0;
+            }
+            continue;
+        }
+        if state.is_nan() {
+            run += 1;
+            sum += v;
+            if run == n {
+                state = sum / n as f64;
+                out[i] = state;
+            }
+        } else {
+            state = k * v + (1.0 - k) * state;
+            out[i] = state;
+        }
+    }
+    out
+}
+
+/// Median of the `window` values ending the session BEFORE `day` (no NaN in
+/// the sample allowed).
+pub fn median_before(values: &[f64], day: usize, window: usize) -> f64 {
+    if window == 0 || day < window {
+        return f64::NAN;
+    }
+    let mut sample = values[day - window..day].to_vec();
+    if sample.iter().any(|value| !value.is_finite()) {
+        return f64::NAN;
+    }
+    sample.sort_by(f64::total_cmp);
+    let middle = sample.len() / 2;
+    if sample.len() % 2 == 0 {
+        (sample[middle - 1] + sample[middle]) / 2.0
+    } else {
+        sample[middle]
+    }
+}
+
+/// Mean of the `window` values ending the session BEFORE `day`.
+pub fn mean_before(values: &[f64], day: usize, window: usize) -> f64 {
+    if window == 0 || day < window {
+        return f64::NAN;
+    }
+    let sample = &values[day - window..day];
+    if sample.iter().any(|value| !value.is_finite()) {
+        return f64::NAN;
+    }
+    sample.iter().sum::<f64>() / window as f64
+}
+
+/// Median of the `window` values ending AT `day` (inclusive).
+pub fn median_at(values: &[f64], day: usize, window: usize) -> f64 {
+    if window == 0 || day + 1 < window {
+        return f64::NAN;
+    }
+    let mut sample = values[day + 1 - window..=day].to_vec();
+    if sample.iter().any(|value| !value.is_finite()) {
+        return f64::NAN;
+    }
+    sample.sort_by(f64::total_cmp);
+    let middle = sample.len() / 2;
+    if sample.len() % 2 == 0 {
+        (sample[middle - 1] + sample[middle]) / 2.0
+    } else {
+        sample[middle]
+    }
+}
+
+/// Mean of the `window` values ending AT `day` (inclusive).
+pub fn mean_at(values: &[f64], day: usize, window: usize) -> f64 {
+    if window == 0 || day + 1 < window {
+        return f64::NAN;
+    }
+    let sample = &values[day + 1 - window..=day];
+    if sample.iter().any(|value| !value.is_finite()) {
+        return f64::NAN;
+    }
+    sample.iter().sum::<f64>() / window as f64
+}
