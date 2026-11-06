@@ -22,11 +22,11 @@ pub struct BatchResult {
 
 /// `n` random market entries in the context with 1-ATR (1m chart) stop
 /// and 2R target. Deterministic via the master-seeded fork.
-pub fn random_entries(ctx: &mut DetCtx, n: usize) -> BatchResult {
+pub fn random_entries(ctx: &DetCtx, n: usize) -> BatchResult {
     let mut rng = Rng::fork("enginecheck/random_entries");
     let costs = CostModel::for_market(crate::pal::types::Market::Nq);
     ctx.atr(ChartId::M1);
-    let atr = ctx.atr[&ChartId::M1].clone();
+    let atr = ctx.atr(ChartId::M1);
     let mut total = 0.0;
     let mut wins = 0usize;
     let mut done = 0usize;

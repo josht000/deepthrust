@@ -563,24 +563,15 @@ pub fn metrics(rr: &RunResult, session_dates: &[NaiveDate]) -> Metrics {
 /// same costs. Returns the share of the 10,000 twin sets that made at
 /// least as much as the version.
 pub fn matched_random_share(
-    ctx: &mut DetCtx,
+    ctx: &DetCtx,
     market: Market,
     trades: &[crate::pal::engine::Trade],
     twins: &[TwinInfo],
     sha: &str,
 ) -> f64 {
-    ctx.atr(ChartId::M1);
-    let atr = ctx.atr[&ChartId::M1].clone();
+    let atr = ctx.atr(ChartId::M1);
+    let buckets = ctx.twin_buckets();
     let costs = CostModel::for_market(market);
-
-    // eligible entry positions per 30-minute bucket
-    let mut buckets: HashMap<usize, Vec<usize>> = HashMap::new();
-    for pos in 1..ctx.bars.len().saturating_sub(1) {
-        if ctx.ctx[pos].pre_roll || ctx.ctx[pos].last_before_roll {
-            continue;
-        }
-        buckets.entry(ctx.minute_of[pos] / 30).or_default().push(pos);
-    }
 
     // outcome pool per trade
     let mut pools: Vec<Vec<f64>> = Vec::with_capacity(trades.len());
@@ -693,14 +684,28 @@ pub struct FunnelOut {
     pub n_detect_keys: usize,
 }
 
+fn read_spill_line(r: &mut std::io::BufReader<std::fs::File>) -> Option<(usize, String)> {
+    use std::io::BufRead as _;
+    let mut line = String::new();
+    match r.read_line(&mut line) {
+        Ok(0) | Err(_) => None,
+        Ok(_) => {
+            let (pos, rest) = line.trim_end().split_once('\t')?;
+            Some((pos.parse().ok()?, rest.to_string()))
+        }
+    }
+}
+
 /// Run the whole funnel over both markets' discovery contexts.
-/// `limit` caps the version count (smoke runs).
+/// `limit` caps the version count (smoke runs). `out_dir` receives the
+/// streamed daily_pnl.jsonl and temporary spill files during the run.
 pub fn run_funnel(
-    nq: &mut DetCtx,
-    es: &mut DetCtx,
+    nq: &DetCtx,
+    es: &DetCtx,
     news: &HashSet<NaiveDate>,
     limit: Option<usize>,
-) -> FunnelOut {
+    out_dir: &Path,
+) -> Result<FunnelOut, String> {
     let versions = all_versions();
     let versions: Vec<FunnelVersion> = match limit {
         Some(n) => versions.into_iter().take(n).collect(),
@@ -738,38 +743,183 @@ pub fn run_funnel(
             candidate: false,
         })
         .collect();
+    // Parallel over detector-dial keys: workers share the read-only
+    // contexts (caches behind RwLock), each taking every n-th key so
+    // heavy keys spread evenly instead of piling into one tail chunk.
+    // Daily P&L streams to per-worker spill files (constant memory) and
+    // is k-way merged by key position afterwards — deterministic output.
     let mut daily: Vec<(usize, Market, BTreeMap<NaiveDate, f64>)> = Vec::new();
+    struct VerOutcome {
+        nq: Option<Metrics>,
+        es: Option<Metrics>,
+        share: Option<f64>,
+        daily: Vec<(Market, BTreeMap<NaiveDate, f64>)>,
+    }
 
-    for (gi, (key, idxs)) in groups.iter().enumerate() {
-        if gi % 50 == 0 {
-            println!("funnel: key {gi}/{n_keys}");
-        }
-        let setup = Setup::ALL[key.setup as usize];
-        let cfg = cfg_of(key);
-        for market in [Market::Nq, Market::Es] {
-            let ctx = if market == Market::Nq { &mut *nq } else { &mut *es };
-            let events: Vec<Event> = detect_events(ctx, setup, &cfg);
-            for &i in idxs {
-                let fv = &versions[i];
-                let rr = run_version(ctx, market, &events, &fv.v, news);
-                let m = metrics(&rr, &ctx.session_dates);
-                if market == Market::Nq {
-                    rows[i].s1_trades = m.n_trades >= MIN_NQ_TRADES;
-                    rows[i].s2_profit = m.pnl > 0.0;
-                    rows[i].s3_sharpe = m.sharpe >= SHARPE_NQ;
-                    rows[i].era1_pos = m.era1_pnl > 0.0;
-                    rows[i].era2_pos = m.era2_pnl > 0.0;
-                    if rows[i].s1_trades && rows[i].s2_profit && rows[i].s3_sharpe {
-                        let share = matched_random_share(ctx, market, &rr.trades, &rr.twins, &fv.sha);
-                        rows[i].s4_twin_share = Some(share);
-                        rows[i].s4_pass = share < TWIN_P;
+    let groups_vec: Vec<(&DetKey, &Vec<usize>)> = groups.iter().collect();
+    let n_workers = std::thread::available_parallelism()
+        .map(|n| n.get().saturating_sub(2).clamp(1, 14))
+        .unwrap_or(4);
+    let done = std::sync::atomic::AtomicUsize::new(0);
+    let n_s4 = std::sync::atomic::AtomicUsize::new(0);
+    let versions_ref = &versions;
+    let nq_ref = &*nq;
+    let es_ref = &*es;
+    println!("funnel: {n_workers} worker threads over {n_keys} keys");
+
+    let parts_dir = out_dir.join(".daily_parts");
+    std::fs::create_dir_all(&parts_dir).map_err(|e| e.to_string())?;
+    let groups_ref = &groups_vec;
+
+    let mut shard_results: Vec<Vec<(usize, VerOutcome)>> = Vec::with_capacity(n_workers);
+    std::thread::scope(|s| {
+        let mut handles = Vec::new();
+        for w in 0..n_workers.min(groups_vec.len().max(1)) {
+            let (done, n_s4) = (&done, &n_s4);
+            let spill = parts_dir.join(format!("part_{w:03}.jsonl"));
+            let handle = s.spawn(move || -> Result<Vec<(usize, VerOutcome)>, String> {
+                let mut out: Vec<(usize, VerOutcome)> = Vec::new();
+                let mut sf = std::io::BufWriter::new(
+                    std::fs::File::create(&spill).map_err(|e| e.to_string())?,
+                );
+                for (off, (key, idxs)) in groups_ref[w.min(groups_ref.len())..]
+                    .iter()
+                    .step_by(n_workers)
+                    .enumerate()
+                {
+                    let pos = w + off * n_workers;
+                    let gi = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    if gi % 500 == 0 {
+                        eprintln!(
+                            "funnel: key {gi}/{n_keys} (s4 runs: {})",
+                            n_s4.load(std::sync::atomic::Ordering::Relaxed)
+                        );
                     }
-                    rows[i].nq = Some(m);
-                } else {
-                    rows[i].s5_es_hold = m.pnl > 0.0 && m.sharpe >= SHARPE_ES;
-                    rows[i].es = Some(m);
+                    let setup = Setup::ALL[key.setup as usize];
+                    let cfg = cfg_of(key);
+                    let mut per_ver: Vec<VerOutcome> = idxs
+                        .iter()
+                        .map(|_| VerOutcome {
+                            nq: None,
+                            es: None,
+                            share: None,
+                            daily: Vec::new(),
+                        })
+                        .collect();
+                    for market in [Market::Nq, Market::Es] {
+                        let ctx = if market == Market::Nq { nq_ref } else { es_ref };
+                        let events: Vec<Event> = detect_events(ctx, setup, &cfg);
+                        for (oi, &i) in idxs.iter().enumerate() {
+                            let fv = &versions_ref[i];
+                            let rr = run_version(ctx, market, &events, &fv.v, news);
+                            let m = metrics(&rr, &ctx.session_dates);
+                            let oc = &mut per_ver[oi];
+                            if market == Market::Nq {
+                                if m.n_trades >= MIN_NQ_TRADES
+                                    && m.pnl > 0.0
+                                    && m.sharpe >= SHARPE_NQ
+                                {
+                                    n_s4.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                                    oc.share = Some(matched_random_share(
+                                        ctx, market, &rr.trades, &rr.twins, &fv.sha,
+                                    ));
+                                }
+                                oc.nq = Some(m);
+                            } else {
+                                oc.es = Some(m);
+                            }
+                            // every run's daily P&L goes to the spill file;
+                            // only potentially-kept versions also keep it in RAM
+                            let obj = serde_json::json!({
+                                "name": fv.v.name,
+                                "market": market.as_str(),
+                                "pnl": rr.daily_pnl.iter().map(|(d, p)| (d.to_string(), p)).collect::<BTreeMap<_, _>>(),
+                            });
+                            use std::io::Write as _;
+                            writeln!(sf, "{pos}\t{}", serde_json::to_string(&obj).map_err(|e| e.to_string())?)
+                                .map_err(|e| e.to_string())?;
+                            let keepable = fv.sets & (SET_COMMON | SET_NAMED) != 0
+                                || oc
+                                    .nq
+                                    .as_ref()
+                                    .map(|x| x.n_signals >= MIN_NQ_SIGNALS_SPREAD)
+                                    .unwrap_or(false);
+                            if keepable {
+                                oc.daily.push((market, rr.daily_pnl));
+                            }
+                        }
+                    }
+                    out.extend(idxs.iter().copied().zip(per_ver));
                 }
-                daily.push((i, market, rr.daily_pnl));
+                Ok(out)
+            });
+            handles.push(handle);
+        }
+        for h in handles {
+            shard_results.push(h.join().expect("funnel worker panicked").expect("funnel worker failed"));
+        }
+    });
+
+    // k-way merge of spill files by key position -> daily_pnl.jsonl
+    {
+        use std::io::Write as _;
+        let mut readers: Vec<Option<std::io::BufReader<std::fs::File>>> = (0..n_workers)
+            .map(|w| {
+                let p = parts_dir.join(format!("part_{w:03}.jsonl"));
+                p.exists().then(|| std::io::BufReader::new(std::fs::File::open(p).unwrap()))
+            })
+            .collect();
+        let mut heads: Vec<Option<(usize, String)>> = readers
+            .iter_mut()
+            .map(|r| r.as_mut().and_then(|r| read_spill_line(r)))
+            .collect();
+        let mut f = std::io::BufWriter::new(
+            std::fs::File::create(out_dir.join("daily_pnl.jsonl")).map_err(|e| e.to_string())?,
+        );
+        loop {
+            let mut best: Option<(usize, usize)> = None; // (pos, reader)
+            for (ri, h) in heads.iter().enumerate() {
+                if let Some((pos, _)) = h {
+                    if best.map(|(bp, _)| *pos < bp).unwrap_or(true) {
+                        best = Some((*pos, ri));
+                    }
+                }
+            }
+            let Some((_, ri)) = best else { break };
+            let line = heads[ri].take().unwrap().1;
+            writeln!(f, "{line}").map_err(|e| e.to_string())?;
+            heads[ri] = readers[ri].as_mut().and_then(|r| read_spill_line(r));
+        }
+        drop(f);
+        for w in 0..n_workers {
+            let _ = std::fs::remove_file(parts_dir.join(format!("part_{w:03}.jsonl")));
+        }
+        let _ = std::fs::remove_dir(&parts_dir);
+    }
+
+    // apply outcomes to version rows — order does not matter since each
+    // version's row is written exactly once
+    for shard in shard_results {
+        for (i, oc) in shard {
+            if let Some(m) = oc.nq {
+                let r = &mut rows[i];
+                r.s1_trades = m.n_trades >= MIN_NQ_TRADES;
+                r.s2_profit = m.pnl > 0.0;
+                r.s3_sharpe = m.sharpe >= SHARPE_NQ;
+                r.era1_pos = m.era1_pnl > 0.0;
+                r.era2_pos = m.era2_pnl > 0.0;
+                r.nq = Some(m);
+            }
+            if let Some(share) = oc.share {
+                rows[i].s4_twin_share = Some(share);
+                rows[i].s4_pass = share < TWIN_P;
+            }
+            if let Some(m) = oc.es {
+                rows[i].s5_es_hold = m.pnl > 0.0 && m.sharpe >= SHARPE_ES;
+                rows[i].es = Some(m);
+            }
+            for (market, dp) in oc.daily {
+                daily.push((i, market, dp));
             }
         }
     }
@@ -874,13 +1024,13 @@ pub fn run_funnel(
             && r.s5_es_hold;
     }
     let candidates: Vec<VersionRow> = rows.iter().filter(|r| r.candidate).cloned().collect();
-    FunnelOut {
+    Ok(FunnelOut {
         rows,
         daily,
         setups,
         candidates,
         n_detect_keys: n_keys,
-    }
+    })
 }
 
 fn sha256_file(p: &Path) -> String {
@@ -903,20 +1053,9 @@ pub fn write_outputs(out: &FunnelOut, dir: &Path) -> Result<(), String> {
     }
     drop(f);
 
-    // daily_pnl.jsonl — one line per version per market
-    let mut f = std::io::BufWriter::new(
-        std::fs::File::create(dir.join("daily_pnl.jsonl")).map_err(|e| e.to_string())?,
-    );
-    for (i, mkt, dm) in &out.daily {
-        let obj = serde_json::json!({
-            "name": out.rows[*i].name,
-            "market": mkt.as_str(),
-            "pnl": dm.iter().map(|(d, p)| (d.to_string(), p)).collect::<BTreeMap<_, _>>(),
-        });
-        writeln!(f, "{}", serde_json::to_string(&obj).map_err(|e| e.to_string())?)
-            .map_err(|e| e.to_string())?;
-    }
-    drop(f);
+    // daily_pnl.jsonl was streamed during the run (one line per version
+    // per market, in key order); out.daily only keeps keepable versions
+    // for setup judging, so nothing to write here.
 
     // stage shares by setup, setup+chart, dial value, filter
     let mut csv = String::from("group,kind,n,s1,s2,s3,s4,s5,candidates\n");

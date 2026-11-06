@@ -298,7 +298,7 @@ use crate::pal::detect::zones::{zones, ZoneKind};
 /// The touch-based tests: levels hold more than random lines. Run per
 /// chart on a DetCtx. Returns per-test results.
 pub struct Behavior<'a> {
-    pub ctx: &'a mut DetCtx,
+    pub ctx: &'a DetCtx,
 }
 
 impl<'a> Behavior<'a> {
@@ -311,8 +311,8 @@ impl<'a> Behavior<'a> {
     ) -> Vec<Measure> {
         self.ctx.swings(chart, BEHAVIOR_SWING);
         self.ctx.atr(chart);
-        let sw = self.ctx.swings[&(chart, BEHAVIOR_SWING)].clone();
-        let atr = self.ctx.atr[&chart].clone();
+        let sw = self.ctx.swings(chart, BEHAVIOR_SWING);
+        let atr = self.ctx.atr(chart);
         let cs = &self.ctx.charts[&chart];
         let bars = &cs.bars;
         let kind = if dir_long {
@@ -381,8 +381,8 @@ impl<'a> Behavior<'a> {
     ) -> Vec<Measure> {
         self.ctx.swings(chart, BEHAVIOR_SWING);
         self.ctx.atr(chart);
-        let sw = self.ctx.swings[&(chart, BEHAVIOR_SWING)].clone();
-        let atr = self.ctx.atr[&chart].clone();
+        let sw = self.ctx.swings(chart, BEHAVIOR_SWING);
+        let atr = self.ctx.atr(chart);
         let cs = &self.ctx.charts[&chart];
         let bars = &cs.bars;
         let breaks = structure_breaks(bars, &sw);
@@ -422,8 +422,8 @@ impl<'a> Behavior<'a> {
     pub fn sweep_vs_close(&mut self, chart: ChartId, dir_long: bool) -> Vec<Measure> {
         self.ctx.swings(chart, BEHAVIOR_SWING);
         self.ctx.atr(chart);
-        let sw = self.ctx.swings[&(chart, BEHAVIOR_SWING)].clone();
-        let atr = self.ctx.atr[&chart].clone();
+        let sw = self.ctx.swings(chart, BEHAVIOR_SWING);
+        let atr = self.ctx.atr(chart);
         let cs = &self.ctx.charts[&chart];
         let bars = &cs.bars;
         let kind = if dir_long { LevelKind::Support } else { LevelKind::Resistance };
@@ -478,7 +478,7 @@ impl<'a> Behavior<'a> {
     /// random moments.
     pub fn fvg_hold(&mut self, chart: ChartId, dir_long: bool) -> Vec<Measure> {
         self.ctx.atr(chart);
-        let atr = self.ctx.atr[&chart].clone();
+        let atr = self.ctx.atr(chart);
         let cs = &self.ctx.charts[&chart];
         let bars = &cs.bars;
         let want = if dir_long { GapKind::Bull } else { GapKind::Bear };
@@ -527,7 +527,7 @@ impl<'a> Behavior<'a> {
     /// returns (ctrl). Claim: first returns behave better.
     pub fn zone_first_vs_later(&mut self, chart: ChartId, dir_long: bool) -> Vec<Measure> {
         self.ctx.atr(chart);
-        let atr = self.ctx.atr[&chart].clone();
+        let atr = self.ctx.atr(chart);
         let cs = &self.ctx.charts[&chart];
         let bars = &cs.bars;
         let want = if dir_long { ZoneKind::Demand } else { ZoneKind::Supply };
@@ -580,8 +580,8 @@ impl<'a> Behavior<'a> {
     pub fn pullback_depth(&mut self, chart: ChartId, dir_long: bool) -> Vec<Measure> {
         self.ctx.swings(chart, BEHAVIOR_SWING);
         self.ctx.atr(chart);
-        let sw = self.ctx.swings[&(chart, BEHAVIOR_SWING)].clone();
-        let atr = self.ctx.atr[&chart].clone();
+        let sw = self.ctx.swings(chart, BEHAVIOR_SWING);
+        let atr = self.ctx.atr(chart);
         let cs = &self.ctx.charts[&chart];
         let bars = &cs.bars;
         let want_h = if dir_long { SwingKind::High } else { SwingKind::Low };
@@ -645,8 +645,8 @@ impl<'a> Behavior<'a> {
     pub fn candles_at_levels(&mut self, chart: ChartId, dir_long: bool) -> Vec<Measure> {
         self.ctx.swings(chart, BEHAVIOR_SWING);
         self.ctx.atr(chart);
-        let sw = self.ctx.swings[&(chart, BEHAVIOR_SWING)].clone();
-        let atr = self.ctx.atr[&chart].clone();
+        let sw = self.ctx.swings(chart, BEHAVIOR_SWING);
+        let atr = self.ctx.atr(chart);
         let cs = &self.ctx.charts[&chart];
         let bars = &cs.bars;
         let kind = if dir_long { LevelKind::Support } else { LevelKind::Resistance };
@@ -705,9 +705,9 @@ impl<'a> Behavior<'a> {
     pub fn trendline_touch(&mut self, chart: ChartId, dir_long: bool) -> Vec<Measure> {
         self.ctx.swings(chart, BEHAVIOR_SWING);
         self.ctx.atr(chart);
-        let sw = self.ctx.swings[&(chart, BEHAVIOR_SWING)].clone();
+        let sw = self.ctx.swings(chart, BEHAVIOR_SWING);
         let sidx = crate::pal::detect::swings::SwingIndex::new(&sw);
-        let atr = self.ctx.atr[&chart].clone();
+        let atr = self.ctx.atr(chart);
         let cs = &self.ctx.charts[&chart];
         let bars = &cs.bars;
         let kind = if dir_long { SwingKind::Low } else { SwingKind::High };
@@ -744,8 +744,8 @@ impl<'a> Behavior<'a> {
     pub fn flip_hold(&mut self, chart: ChartId, dir_long: bool) -> Vec<Measure> {
         self.ctx.swings(chart, BEHAVIOR_SWING);
         self.ctx.atr(chart);
-        let sw = self.ctx.swings[&(chart, BEHAVIOR_SWING)].clone();
-        let atr = self.ctx.atr[&chart].clone();
+        let sw = self.ctx.swings(chart, BEHAVIOR_SWING);
+        let atr = self.ctx.atr(chart);
         let cs = &self.ctx.charts[&chart];
         let bars = &cs.bars;
         let kind = if dir_long { LevelKind::Resistance } else { LevelKind::Support };

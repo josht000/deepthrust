@@ -99,7 +99,7 @@ fn candle_flags(tbars: &[ChartBar], ti: usize, dir: Direction) -> u16 {
     }
 }
 
-fn last_swing(ctx: &mut DetCtx, chart: ChartId, strength: usize, kind: SwingKind, u: usize) -> f64 {
+fn last_swing(ctx: &DetCtx, chart: ChartId, strength: usize, kind: SwingKind, u: usize) -> f64 {
     ctx.swing_index(chart, strength)
         .last_of(kind, u.saturating_sub(1), 1)
         .last()
@@ -108,7 +108,7 @@ fn last_swing(ctx: &mut DetCtx, chart: ChartId, strength: usize, kind: SwingKind
 }
 
 fn base_event(
-    ctx: &mut DetCtx,
+    ctx: &DetCtx,
     cfg: &DetectCfg,
     pos: usize,
     session: i32,
@@ -116,12 +116,13 @@ fn base_event(
     u: usize,
 ) -> Event {
     let atr = ctx
-        .atr
-        .get(&cfg.chart)
-        .and_then(|a| a.get(u.saturating_sub(1)).copied().flatten())
+        .atr(cfg.chart)
+        .get(u.saturating_sub(1))
+        .copied()
+        .flatten()
         .unwrap_or(f64::NAN);
     let trend = trend_idx(
-        ctx.swing_index(cfg.chart, cfg.swing_strength),
+        &ctx.swing_index(cfg.chart, cfg.swing_strength),
         u.saturating_sub(1),
     );
     Event {
@@ -169,7 +170,7 @@ impl MidIndex {
 /// Run detection for one setup at one dial combination over the whole
 /// context. This is the expensive, cacheable unit — every version with
 /// these detector dials shares it.
-pub fn detect_events(ctx: &mut DetCtx, setup: Setup, cfg: &DetectCfg) -> Vec<Event> {
+pub fn detect_events(ctx: &DetCtx, setup: Setup, cfg: &DetectCfg) -> Vec<Event> {
     match setup {
         Setup::LevelBounce => detect_level_bounce(ctx, cfg),
         Setup::Breakout => detect_breakout(ctx, cfg),
@@ -198,11 +199,11 @@ fn each_trigger(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<(usize, usize, i32, usize,
     out
 }
 
-fn detect_level_bounce(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
+fn detect_level_bounce(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     ctx.swings(cfg.chart, cfg.swing_strength);
     ctx.atr(cfg.chart);
-    let sw = ctx.swings[&(cfg.chart, cfg.swing_strength)].clone();
-    let atr = ctx.atr[&cfg.chart].clone();
+    let sw = ctx.swings(cfg.chart, cfg.swing_strength);
+    let atr = ctx.atr(cfg.chart);
     let sbars = &ctx.charts[&cfg.chart].bars;
     let mut lvls = Vec::new();
     for k in [LevelKind::Support, LevelKind::Resistance] {
@@ -263,11 +264,11 @@ fn detect_level_bounce(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     out
 }
 
-fn detect_breakout(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
+fn detect_breakout(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     ctx.swings(cfg.chart, cfg.swing_strength);
     ctx.atr(cfg.chart);
-    let sw = ctx.swings[&(cfg.chart, cfg.swing_strength)].clone();
-    let atr = ctx.atr[&cfg.chart].clone();
+    let sw = ctx.swings(cfg.chart, cfg.swing_strength);
+    let atr = ctx.atr(cfg.chart);
     let sbars = &ctx.charts[&cfg.chart].bars;
     let mut lvls = Vec::new();
     for k in [LevelKind::Support, LevelKind::Resistance] {
@@ -319,11 +320,11 @@ fn detect_breakout(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     out
 }
 
-fn detect_flip(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
+fn detect_flip(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     ctx.swings(cfg.chart, cfg.swing_strength);
     ctx.atr(cfg.chart);
-    let sw = ctx.swings[&(cfg.chart, cfg.swing_strength)].clone();
-    let atr = ctx.atr[&cfg.chart].clone();
+    let sw = ctx.swings(cfg.chart, cfg.swing_strength);
+    let atr = ctx.atr(cfg.chart);
     let sbars = &ctx.charts[&cfg.chart].bars;
     let mut lvls = Vec::new();
     for k in [LevelKind::Support, LevelKind::Resistance] {
@@ -390,10 +391,10 @@ fn detect_flip(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     out
 }
 
-fn detect_pullback(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
+fn detect_pullback(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     ctx.swings(cfg.chart, cfg.swing_strength);
     ctx.atr(cfg.chart);
-    let sw = ctx.swings[&(cfg.chart, cfg.swing_strength)].clone();
+    let sw = ctx.swings(cfg.chart, cfg.swing_strength);
     let sidx = SwingIndex::new(&sw);
     let tbars = ctx.charts[&cfg.trigger].bars.clone();
     let mut out = Vec::new();
@@ -445,10 +446,10 @@ fn detect_pullback(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     out
 }
 
-fn detect_trendline(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
+fn detect_trendline(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     ctx.swings(cfg.chart, cfg.swing_strength);
     ctx.atr(cfg.chart);
-    let sw = ctx.swings[&(cfg.chart, cfg.swing_strength)].clone();
+    let sw = ctx.swings(cfg.chart, cfg.swing_strength);
     let sidx = SwingIndex::new(&sw);
     let tbars = ctx.charts[&cfg.trigger].bars.clone();
     let mut out = Vec::new();
@@ -492,10 +493,10 @@ fn detect_trendline(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     out
 }
 
-fn detect_structure(ctx: &mut DetCtx, cfg: &DetectCfg, want: BreakKind) -> Vec<Event> {
+fn detect_structure(ctx: &DetCtx, cfg: &DetectCfg, want: BreakKind) -> Vec<Event> {
     ctx.swings(cfg.chart, cfg.swing_strength);
     ctx.atr(cfg.chart);
-    let sw = ctx.swings[&(cfg.chart, cfg.swing_strength)].clone();
+    let sw = ctx.swings(cfg.chart, cfg.swing_strength);
     let sidx = SwingIndex::new(&sw);
     let sbars = ctx.charts[&cfg.chart].bars.clone();
     let sup = ctx.charts[&cfg.chart].usable_pos.clone();
@@ -535,11 +536,11 @@ fn detect_structure(ctx: &mut DetCtx, cfg: &DetectCfg, want: BreakKind) -> Vec<E
     out
 }
 
-fn detect_sweep(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
+fn detect_sweep(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     ctx.swings(cfg.chart, cfg.swing_strength);
     ctx.atr(cfg.chart);
-    let sw = ctx.swings[&(cfg.chart, cfg.swing_strength)].clone();
-    let atr = ctx.atr[&cfg.chart].clone();
+    let sw = ctx.swings(cfg.chart, cfg.swing_strength);
+    let atr = ctx.atr(cfg.chart);
     let sbars = &ctx.charts[&cfg.chart].bars;
     let mut lvls = Vec::new();
     for k in [LevelKind::Support, LevelKind::Resistance] {
@@ -596,9 +597,9 @@ fn detect_sweep(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     out
 }
 
-fn detect_zone(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
+fn detect_zone(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     ctx.atr(cfg.chart);
-    let atr = ctx.atr[&cfg.chart].clone();
+    let atr = ctx.atr(cfg.chart);
     let sbars = &ctx.charts[&cfg.chart];
     let zs = zones(&sbars.bars, &atr);
     ctx.swings(cfg.chart, cfg.swing_strength);
@@ -669,7 +670,7 @@ fn detect_zone(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     out
 }
 
-fn detect_fvg(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
+fn detect_fvg(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
     ctx.atr(cfg.chart);
     let sbars = &ctx.charts[&cfg.chart];
     let gs = fvgs(&sbars.bars);
@@ -737,7 +738,7 @@ fn detect_fvg(ctx: &mut DetCtx, cfg: &DetectCfg) -> Vec<Event> {
 /// from trigger bars matching direction and time-of-day, with swing
 /// refs filled. Used by the matched-random controls.
 pub fn random_events(
-    _ctx: &mut DetCtx,
+    _ctx: &DetCtx,
     _cfg: &DetectCfg,
     _count: usize,
 ) -> Vec<Event> {

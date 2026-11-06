@@ -124,8 +124,15 @@ fn run_funnel(store: &Store, limit: Option<usize>) -> ExitCode {
     let mut nq = disc_ctx(store, Market::Nq, "funnel");
     let mut es = disc_ctx(store, Market::Es, "funnel");
     println!("funnel: {} news days", news.len());
-    let out = funnel::run_funnel(&mut nq, &mut es, &news, limit);
     let dir = store.results_dir().join("funnel");
+    std::fs::create_dir_all(&dir).unwrap_or_default();
+    let out = match funnel::run_funnel(&mut nq, &mut es, &news, limit, &dir) {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("funnel: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
     match funnel::write_outputs(&out, &dir) {
         Ok(()) => {
             println!("funnel: wrote {} ({} versions, {} candidates)",

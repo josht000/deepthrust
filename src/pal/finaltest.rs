@@ -224,8 +224,8 @@ fn year_split(
 /// Run all kept versions on both markets over the final-window ctxs.
 /// `window_dates` = sealed session dates (or all dates in rehearsal).
 pub fn run_final(
-    nq: &mut DetCtx,
-    es: &mut DetCtx,
+    nq: &DetCtx,
+    es: &DetCtx,
     nq_dates: &[NaiveDate],
     es_dates: &[NaiveDate],
     versions: &[Version],
@@ -313,9 +313,9 @@ pub fn run_final(
         };
         for market in [Market::Nq, Market::Es] {
             let (ctx, dates) = if market == Market::Nq {
-                (&mut *nq, nq_dates)
+                (&*nq, nq_dates)
             } else {
-                (&mut *es, es_dates)
+                (&*es, es_dates)
             };
             let events: Vec<Event> = detect_events(ctx, setup, &cfg);
             for &i in idxs {
@@ -357,7 +357,7 @@ pub fn run_final(
         if trades.len() < 10 {
             continue;
         }
-        let ctx = if *market == Market::Nq { &mut *nq } else { &mut *es };
+        let ctx = if *market == Market::Nq { &*nq } else { &*es };
         let share = matched_random_share(
             ctx,
             *market,

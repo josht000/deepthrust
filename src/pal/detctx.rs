@@ -5,6 +5,7 @@
 //! detectors only ever see structures confirmed before the trigger.
 
 use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
 use crate::pal::atr::atr_series;
 use crate::pal::detect::swings::{self, Swing, SwingIndex};
@@ -29,11 +30,14 @@ pub struct DetCtx {
     /// per-chart continuous series
     pub charts: HashMap<ChartId, ChartSeries>,
     /// per-(chart, strength) swing list, lazily filled
-    pub swings: HashMap<(ChartId, usize), Vec<Swing>>,
+    pub swings: RwLock<HashMap<(ChartId, usize), Arc<Vec<Swing>>>>,
     /// per-(chart, strength) binary-searchable swing index
-    pub swing_idx: HashMap<(ChartId, usize), SwingIndex>,
+    pub swing_idx: RwLock<HashMap<(ChartId, usize), Arc<SwingIndex>>>,
     /// per-chart ATR series (usable at bar i from bars[0..i])
-    pub atr: HashMap<ChartId, Vec<Option<f64>>>,
+    pub atr: RwLock<HashMap<ChartId, Arc<Vec<Option<f64>>>>>,
+    /// matched-random twin pool: eligible entry positions per 30-minute
+    /// bucket — depends only on ctx fields, so built once and shared
+    pub twin_buckets: RwLock<Option<Arc<HashMap<usize, Vec<usize>>>>>,
 }
 
 /// One chart's continuous bar series across all sessions.
@@ -175,33 +179,78 @@ impl DetCtx {
             session_dates,
             session_start,
             charts,
-            swings: HashMap::new(),
-            swing_idx: HashMap::new(),
-            atr: HashMap::new(),
+            swings: RwLock::new(HashMap::new()),
+            swing_idx: RwLock::new(HashMap::new()),
+            atr: RwLock::new(HashMap::new()),
+            twin_buckets: RwLock::new(None),
         }
     }
 
     /// Swings for (chart, strength), computed once.
-    pub fn swings(&mut self, chart: ChartId, strength: usize) -> &Vec<Swing> {
+    pub fn swings(&self, chart: ChartId, strength: usize) -> Arc<Vec<Swing>> {
+        if let Some(v) = self.swings.read().unwrap().get(&(chart, strength)) {
+            return v.clone();
+        }
+        let v = Arc::new(swings::swings(&self.charts[&chart].bars, strength));
         self.swings
+            .write()
+            .unwrap()
             .entry((chart, strength))
-            .or_insert_with(|| swings::swings(&self.charts[&chart].bars, strength))
+            .or_insert_with(|| v.clone());
+        v
     }
 
     /// Binary-searchable swing index for (chart, strength), built once.
-    pub fn swing_index(&mut self, chart: ChartId, strength: usize) -> &SwingIndex {
-        if !self.swing_idx.contains_key(&(chart, strength)) {
-            let si = SwingIndex::new(self.swings(chart, strength));
-            self.swing_idx.insert((chart, strength), si);
+    pub fn swing_index(&self, chart: ChartId, strength: usize) -> Arc<SwingIndex> {
+        if let Some(v) = self.swing_idx.read().unwrap().get(&(chart, strength)) {
+            return v.clone();
         }
-        &self.swing_idx[&(chart, strength)]
+        let v = Arc::new(SwingIndex::new(&self.swings(chart, strength)));
+        self.swing_idx
+            .write()
+            .unwrap()
+            .entry((chart, strength))
+            .or_insert_with(|| v.clone());
+        v
     }
 
     /// ATR series for a chart (usable at bar i from bars[..i]).
-    pub fn atr(&mut self, chart: ChartId) -> &Vec<Option<f64>> {
+    pub fn atr(&self, chart: ChartId) -> Arc<Vec<Option<f64>>> {
+        if let Some(v) = self.atr.read().unwrap().get(&chart) {
+            return v.clone();
+        }
+        let v = Arc::new(atr_series(
+            &self.charts[&chart].bars,
+            crate::pal::atr::ATR_PERIOD,
+        ));
         self.atr
+            .write()
+            .unwrap()
             .entry(chart)
-            .or_insert_with(|| atr_series(&self.charts[&chart].bars, crate::pal::atr::ATR_PERIOD))
+            .or_insert_with(|| v.clone());
+        v
+    }
+
+    /// Eligible twin entry positions per 30-minute bucket, built once —
+    /// an O(bars) scan that `matched_random_share` would otherwise redo
+    /// for every stage-4 version.
+    pub fn twin_buckets(&self) -> Arc<HashMap<usize, Vec<usize>>> {
+        if let Some(v) = self.twin_buckets.read().unwrap().as_ref() {
+            return v.clone();
+        }
+        let mut buckets: HashMap<usize, Vec<usize>> = HashMap::new();
+        for pos in 1..self.bars.len().saturating_sub(1) {
+            if self.ctx[pos].pre_roll || self.ctx[pos].last_before_roll {
+                continue;
+            }
+            buckets
+                .entry(self.minute_of[pos] / 30)
+                .or_default()
+                .push(pos);
+        }
+        let v = Arc::new(buckets);
+        *self.twin_buckets.write().unwrap() = Some(v.clone());
+        v
     }
 
     /// Number of chart bars usable at global 1-minute position `pos`
