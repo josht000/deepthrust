@@ -2694,6 +2694,35 @@ pub fn compute_g072_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                         cnt[j] += 1;
                 if cnt[j] > 0 {
                     mean[j] /= cnt[j] as f64;
+/// G100 QARMII binary 252-day momentum: per asset, sign(trailing mom_window return)
+/// each rebalance day; vol-parity (baseline) or equal weights normalized to 1x gross,
+/// then scaled to target_vol using the trailing vol_window covariance (max_leverage cap).
+pub fn compute_g100_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if cfg.mom_window == 0 || cfg.vol_window < 2 {
+        return Err("G100 requires positive mom_window and vol_window >= 2".into());
+        return Err(format!("unknown G100 strategy_mode {:?}", cfg.strategy_mode));
+    let rets = momentum_matrix(panel, cfg.mom_window, cfg.min_history);
+    let dr: Vec<Vec<f64>> = (0..ns)
+            (0..n)
+                .map(|t| {
+                    if t > 0 && panel.close[j][t].is_finite() && panel.close[j][t - 1].is_finite()
+                        panel.close[j][t] / panel.close[j][t - 1] - 1.0
+    let mut result = blank_rebalance_signals(panel, "binary_momentum");
+    result.rsi = rets.clone();
+            let r = rets[j][day];
+            if !r.is_finite() {
+            let sign = if r > 0.0 { 1.0 } else { -1.0 };
+                sign
+                let (mut m, mut m2, mut k) = (0.0, 0.0, 0usize);
+                    if dr[j][t].is_finite() {
+                        m += dr[j][t];
+                        m2 += dr[j][t] * dr[j][t];
+                if k < cfg.vol_window {
+                if var <= 0.0 {
+                sign / var.sqrt()
+        let gross: f64 = w.iter().map(|v| v.abs()).sum();
+                    if dr[j][t].is_finite() {
+                        mean[j] += dr[j][t];
             let mut port_var = 0.0;
             for a in 0..ns {
                 for b in 0..ns {
@@ -2708,6 +2737,15 @@ pub fn compute_g072_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
                             k += 1;
                     if k >= 2 {
                         port_var += w[a] * w[b] * cov / (k as f64 - 1.0);
+                        continue;
+                    }
+                        if dr[a][t].is_finite() && dr[b][t].is_finite() {
+                            cov += (dr[a][t] - mean[a]) * (dr[b][t] - mean[b]);
+                        }
+                    }
+                    }
+                }
+            }
             if port_var > 0.0 {
                 let port_vol = (port_var * cfg.periods_per_year as f64).sqrt();
                 let scale = (cfg.target_vol / port_vol).min(cfg.max_leverage);
@@ -2757,6 +2795,9 @@ pub fn compute_g098_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
             if active > 0.0 {
                     *v /= active;
             if *v != 0.0 {
+                }
+            }
+        }
                 result.signal[j][day] = true;
             }
         }
