@@ -1,0 +1,178 @@
+# G067 MLM-style trend index: +1/-1 per contract vs SMA200, equal weight,
+# day-25 monthly execution, universe-mean 20d vol gate.
+# Futures legs proxied by TR ETFs; no grains/cattle proxies exist (DELTA).
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,EFA,EEM,TLT,IEF,UUP,GLD,SLV,CPER,USO,GSG,DBC
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2005-01-01"
+min_history: 220
+sma_window: 200
+rebalance: dom25
+vol_gate: 0.15
+vol_window: 20
+defensive_asset: IEF
+strategy_mode: ""
+periods_per_year: 252
+borrow_bps_annual: 25.0
+cost_bps_per_side: 5.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+book_slots: 12
+
+variants:
+  sma100: {sma_window: 100}
+  sma150: {sma_window: 150}
+  sma250: {sma_window: 250}
+  sma50: {sma_window: 50}
+  dom1: {rebalance: dom1}
+  dom15: {rebalance: dom15}
+  monthend: {rebalance: monthly}
+  no_gate: {vol_gate: 0.0}
+  gate10: {vol_gate: 0.10}
+  gate20: {vol_gate: 0.20}
+  gate25: {vol_gate: 0.25}
+  gate10_sma150: {vol_gate: 0.10, sma_window: 150}
+  gate20_sma250: {vol_gate: 0.20, sma_window: 250}
+  no_gate_dom1: {vol_gate: 0.0, rebalance: dom1}
+  no_gate_end: {vol_gate: 0.0, rebalance: monthly}
+  vw10: {vol_window: 10}
+  vw15: {vol_window: 15}
+  vw30: {vol_window: 30}
+  vw42: {vol_window: 42}
+  vw63: {vol_window: 63}
+  gate17: {vol_gate: 0.17}
+  gate18: {vol_gate: 0.18}
+  gate22: {vol_gate: 0.22}
+  gate30: {vol_gate: 0.30}
+  def_g20s250: {vol_gate: 0.20, sma_window: 250, strategy_mode: defensive}
+  vp_g20s250: {vol_gate: 0.20, sma_window: 250, strategy_mode: volparity}
+  defvp_g20s250: {vol_gate: 0.20, sma_window: 250, strategy_mode: defvp}
+  lowvol_g20s250: {vol_gate: 0.20, sma_window: 250, strategy_mode: lowvol}
+  lowvol_def_g20s250: {vol_gate: 0.20, sma_window: 250, strategy_mode: lowvol_def}
+  sma300_g20: {sma_window: 300, vol_gate: 0.20}
+  g20s250_dom15: {vol_gate: 0.20, sma_window: 250, rebalance: dom15}
+  g20s250_dom1: {vol_gate: 0.20, sma_window: 250, rebalance: dom1}
+  g20s250_monthend: {vol_gate: 0.20, sma_window: 250, rebalance: monthly}
+  vw30_g20s250: {vol_window: 30, vol_gate: 0.20, sma_window: 250}
+  vw15_g20s250: {vol_window: 15, vol_gate: 0.20, sma_window: 250}
+  vw10_g20s250: {vol_window: 10, vol_gate: 0.20, sma_window: 250}
+  str01_g20s250: {min_abs_resid: 0.01, vol_gate: 0.20, sma_window: 250}
+  str02_g20s250: {min_abs_resid: 0.02, vol_gate: 0.20, sma_window: 250}
+  str03_g20s250: {min_abs_resid: 0.03, vol_gate: 0.20, sma_window: 250}
+  mom63_g20s250: {mom_window: 63, vol_gate: 0.20, sma_window: 250}
+  mom126_g20s250: {mom_window: 126, vol_gate: 0.20, sma_window: 250}
+  mom252_g20s250: {mom_window: 252, vol_gate: 0.20, sma_window: 250}
+  str02_mom126_g20s250: {min_abs_resid: 0.02, mom_window: 126, vol_gate: 0.20, sma_window: 250}
+  str01_vw15_g20s250: {min_abs_resid: 0.01, vol_window: 15, vol_gate: 0.20, sma_window: 250}
+  str02_vw15_g20s250: {min_abs_resid: 0.02, vol_window: 15, vol_gate: 0.20, sma_window: 250}
+  mom126_vw15_g20s250: {mom_window: 126, vol_window: 15, vol_gate: 0.20, sma_window: 250}
+  vw15_me: {vol_window: 15, vol_gate: 0.20, sma_window: 250, rebalance: monthly}
+  vw15_dom15: {vol_window: 15, vol_gate: 0.20, sma_window: 250, rebalance: dom15}
+  vw15_dom1: {vol_window: 15, vol_gate: 0.20, sma_window: 250, rebalance: dom1}
+  vw15_g18s250: {vol_window: 15, vol_gate: 0.18, sma_window: 250}
+  vw15_g22s250: {vol_window: 15, vol_gate: 0.22, sma_window: 250}
+  vw15_g25s250: {vol_window: 15, vol_gate: 0.25, sma_window: 250}
+  defvp_vw15_g20s250: {vol_window: 15, vol_gate: 0.20, sma_window: 250, strategy_mode: defvp}
+  vp_vw15_g20s250: {vol_window: 15, vol_gate: 0.20, sma_window: 250, strategy_mode: volparity}
+  def_vw15_g20s250: {vol_window: 15, vol_gate: 0.20, sma_window: 250, strategy_mode: defensive}
+  r3g12: {vol_gate: 0.12, sma_window: 250, vol_window: 15}
+  r3g14: {vol_gate: 0.14, sma_window: 250, vol_window: 15}
+  r3g16: {vol_gate: 0.16, sma_window: 250, vol_window: 15}
+  r3g17: {vol_gate: 0.17, sma_window: 250, vol_window: 15}
+  r3g19: {vol_gate: 0.19, sma_window: 250, vol_window: 15}
+  r3g21: {vol_gate: 0.21, sma_window: 250, vol_window: 15}
+  r3g23: {vol_gate: 0.23, sma_window: 250, vol_window: 15}
+  r3g24: {vol_gate: 0.24, sma_window: 250, vol_window: 15}
+  r3s100: {vol_gate: 0.2, sma_window: 100, vol_window: 15}
+  r3s150: {vol_gate: 0.2, sma_window: 150, vol_window: 15}
+  r3s200: {vol_gate: 0.2, sma_window: 200, vol_window: 15}
+  r3s300: {vol_gate: 0.2, sma_window: 300, vol_window: 15}
+  r3s350: {vol_gate: 0.2, sma_window: 350, vol_window: 15}
+  r3vw10: {vol_gate: 0.2, sma_window: 250, vol_window: 10}
+  r3vw12: {vol_gate: 0.2, sma_window: 250, vol_window: 12}
+  r3vw20: {vol_gate: 0.2, sma_window: 250, vol_window: 20}
+  r3vw25: {vol_gate: 0.2, sma_window: 250, vol_window: 25}
+  r3vw30: {vol_gate: 0.2, sma_window: 250, vol_window: 30}
+  r3str5: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.005}
+  r3str10: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.01}
+  r3str15: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.015}
+  r3str25: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.025}
+  r3str30: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.03}
+  r3str40: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.04}
+  r3mom21: {vol_gate: 0.2, sma_window: 250, vol_window: 15, mom_window: 21}
+  r3mom42: {vol_gate: 0.2, sma_window: 250, vol_window: 15, mom_window: 42}
+  r3mom63: {vol_gate: 0.2, sma_window: 250, vol_window: 15, mom_window: 63}
+  r3mom189: {vol_gate: 0.2, sma_window: 250, vol_window: 15, mom_window: 189}
+  r3mom252: {vol_gate: 0.2, sma_window: 250, vol_window: 15, mom_window: 252}
+  r3rsi45: {vol_gate: 0.2, sma_window: 250, vol_window: 15, rsi_len: 14, rsi_threshold: 45.0}
+  r3rsi50: {vol_gate: 0.2, sma_window: 250, vol_window: 15, rsi_len: 14, rsi_threshold: 50.0}
+  r3rsi55: {vol_gate: 0.2, sma_window: 250, vol_window: 15, rsi_len: 14, rsi_threshold: 55.0}
+  r3rsi60: {vol_gate: 0.2, sma_window: 250, vol_window: 15, rsi_len: 14, rsi_threshold: 60.0}
+  r3rsi65: {vol_gate: 0.2, sma_window: 250, vol_window: 15, rsi_len: 14, rsi_threshold: 65.0}
+  r3skip5: {vol_gate: 0.2, sma_window: 250, vol_window: 15, skip_days: 5}
+  r3skip10: {vol_gate: 0.2, sma_window: 250, vol_window: 15, skip_days: 10}
+  r3skip15: {vol_gate: 0.2, sma_window: 250, vol_window: 15, skip_days: 15}
+  r3skip21: {vol_gate: 0.2, sma_window: 250, vol_window: 15, skip_days: 21}
+  r3skip42: {vol_gate: 0.2, sma_window: 250, vol_window: 15, skip_days: 42}
+  r3dom5: {vol_gate: 0.2, sma_window: 250, vol_window: 15, rebalance: dom5}
+  r3dom10: {vol_gate: 0.2, sma_window: 250, vol_window: 15, rebalance: dom10}
+  r3dom20: {vol_gate: 0.2, sma_window: 250, vol_window: 15, rebalance: dom20}
+  r3weekly: {vol_gate: 0.2, sma_window: 250, vol_window: 15, rebalance: weekly}
+  r3dom28: {vol_gate: 0.2, sma_window: 250, vol_window: 15, rebalance: dom28}
+  r3s10g17: {vol_gate: 0.17, sma_window: 250, vol_window: 15, min_abs_resid: 0.01}
+  r3s10g18: {vol_gate: 0.18, sma_window: 250, vol_window: 15, min_abs_resid: 0.01}
+  r3s10g22: {vol_gate: 0.22, sma_window: 250, vol_window: 15, min_abs_resid: 0.01}
+  r3s10v10: {vol_gate: 0.2, sma_window: 250, vol_window: 10, min_abs_resid: 0.01}
+  r3s10v20: {vol_gate: 0.2, sma_window: 250, vol_window: 20, min_abs_resid: 0.01}
+  r3s10m63: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.01, mom_window: 63}
+  r3s10m126: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.01, mom_window: 126}
+  r3s10r50: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.01, rsi_len: 14, rsi_threshold: 50.0}
+  r3s10r55: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.01, rsi_len: 14, rsi_threshold: 55.0}
+  r3s10k10: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.01, skip_days: 10}
+  r3s10k21: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.01, skip_days: 21}
+  r3s10_volparity: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.01, strategy_mode: volparity}
+  r3s10_defensive: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.01, strategy_mode: defensive}
+  r3s10_longonly: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.01, strategy_mode: longonly}
+  r3s20g17: {vol_gate: 0.17, sma_window: 250, vol_window: 15, min_abs_resid: 0.02}
+  r3s20g18: {vol_gate: 0.18, sma_window: 250, vol_window: 15, min_abs_resid: 0.02}
+  r3s20g22: {vol_gate: 0.22, sma_window: 250, vol_window: 15, min_abs_resid: 0.02}
+  r3s20v10: {vol_gate: 0.2, sma_window: 250, vol_window: 10, min_abs_resid: 0.02}
+  r3s20v20: {vol_gate: 0.2, sma_window: 250, vol_window: 20, min_abs_resid: 0.02}
+  r3s20m63: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.02, mom_window: 63}
+  r3s20m126: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.02, mom_window: 126}
+  r3s20r50: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.02, rsi_len: 14, rsi_threshold: 50.0}
+  r3s20r55: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.02, rsi_len: 14, rsi_threshold: 55.0}
+  r3s20k10: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.02, skip_days: 10}
+  r3s20k21: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.02, skip_days: 21}
+  r3s20_volparity: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.02, strategy_mode: volparity}
+  r3s20_defensive: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.02, strategy_mode: defensive}
+  r3s20_longonly: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.02, strategy_mode: longonly}
+  r3s30g17: {vol_gate: 0.17, sma_window: 250, vol_window: 15, min_abs_resid: 0.03}
+  r3s30g18: {vol_gate: 0.18, sma_window: 250, vol_window: 15, min_abs_resid: 0.03}
+  r3s30g22: {vol_gate: 0.22, sma_window: 250, vol_window: 15, min_abs_resid: 0.03}
+  r3s30v10: {vol_gate: 0.2, sma_window: 250, vol_window: 10, min_abs_resid: 0.03}
+  r3s30v20: {vol_gate: 0.2, sma_window: 250, vol_window: 20, min_abs_resid: 0.03}
+  r3s30m63: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.03, mom_window: 63}
+  r3s30m126: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.03, mom_window: 126}
+  r3s30r50: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.03, rsi_len: 14, rsi_threshold: 50.0}
+  r3s30r55: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.03, rsi_len: 14, rsi_threshold: 55.0}
+  r3s30k10: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.03, skip_days: 10}
+  r3s30k21: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.03, skip_days: 21}
+  r3s30_volparity: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.03, strategy_mode: volparity}
+  r3s30_defensive: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.03, strategy_mode: defensive}
+  r3s30_longonly: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.03, strategy_mode: longonly}
+  r3s20_dom15: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.02, rebalance: dom15}
+  r3s20_dom20: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.02, rebalance: dom20}
+  r3s20_monthly: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.02, rebalance: monthly}
+  r3s20_dom1: {vol_gate: 0.2, sma_window: 250, vol_window: 15, min_abs_resid: 0.02, rebalance: dom1}
+  r3s20_nogate: {vol_gate: 0.0, sma_window: 250, vol_window: 15, min_abs_resid: 0.02}
+  r3s10_nogate: {vol_gate: 0.0, sma_window: 250, vol_window: 15, min_abs_resid: 0.01}
+  r3s30_nogate: {vol_gate: 0.0, sma_window: 250, vol_window: 15, min_abs_resid: 0.03}
+  r3mom126_nogate: {vol_gate: 0.0, sma_window: 250, vol_window: 15, mom_window: 126}
+  r3rsi50_nogate: {vol_gate: 0.0, sma_window: 250, vol_window: 15, rsi_len: 14, rsi_threshold: 50.0}

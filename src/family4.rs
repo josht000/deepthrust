@@ -695,6 +695,33 @@ pub fn s050_trades(
 }
 
 pub(crate) fn rebalance_days(panel: &Panel, frequency: &str) -> Result<Vec<usize>, String> {
+    if let Some(dom) = frequency.strip_prefix("dom") {
+        let dom: u32 = dom
+            .parse()
+            .map_err(|_| format!("unsupported rebalance frequency {frequency:?}"))?;
+        let mut days = Vec::new();
+        let mut month: Vec<usize> = Vec::new();
+        for i in 0..panel.dates.len() {
+            let d = panel.dates[i];
+            if i + 1 < panel.dates.len()
+                && panel.dates[i + 1].year() == d.year()
+                && panel.dates[i + 1].month() == d.month()
+            {
+                month.push(i);
+                continue;
+            }
+            month.push(i);
+            let picked = month
+                .iter()
+                .find(|&&t| panel.dates[t].day() >= dom)
+                .or_else(|| month.last());
+            if let Some(&t) = picked {
+                days.push(t);
+            }
+            month.clear();
+        }
+        return Ok(days);
+    }
     if !matches!(frequency, "monthly" | "weekly" | "daily") {
         return Err(format!("unsupported rebalance frequency {frequency:?}"));
     }
@@ -2838,6 +2865,89 @@ pub fn compute_g101_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
             weights[cash][day] = cash_w;
             result.signal[cash][day] = true;
         }
+/// G067 MLM-style trend index: per contract +1 if close > SMA(sma_window) else -1,
+/// equal weight. Signals fire only on dom rebalance days and only when the
+/// universe-mean 20d realized vol exceeds vol_gate; gate-fail days hold prior weights.
+/// Futures universe proxied by liquid TR ETFs (no grains/cattle legs — DELTA).
+pub fn compute_g067_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if cfg.sma_window == 0 {
+        return Err("G067 requires positive sma_window".into());
+    let vol_len = cfg.vol_window.max(5);
+    let smas: Vec<Vec<f64>> = panel
+    let mut result = blank_rebalance_signals(panel, "mlm_sma200");
+    result.rsi = smas.clone();
+    let mut current = vec![0.0f64; ns];
+    let mut vols = vec![0.0f64; ns];
+    let mode = cfg.strategy_mode.as_str();
+    let defensive = mode.contains("def");
+    let lowvol = mode.starts_with("lowvol");
+    let vp = mode.contains("vp") || mode == "volparity";
+    let long_only = mode.contains("longonly");
+    let short_only = mode.contains("shortonly");
+    let rsimats: Vec<Vec<f64>> = if cfg.rsi_threshold > 0.0 && cfg.rsi_len > 0 {
+            .map(|c| {
+                signals::wilder_rsi(c, cfg.rsi_len)
+                    .unwrap_or_else(|_| vec![f64::NAN; n])
+        vec![vec![f64::NAN; n]; ns]
+    let mut last_flip = vec![0usize; ns];
+    let cash_idx = if defensive {
+        Some(
+                .ok_or("G067 defensive mode needs defensive_asset in panel")?,
+        let (mut vsum, mut vk) = (0.0, 0usize);
+            if day < vol_len {
+            for t in day + 1 - vol_len..=day {
+                if a.is_finite() && b.is_finite() {
+            if k >= vol_len {
+                    vols[j] = (var * cfg.periods_per_year as f64).sqrt();
+                    vsum += vols[j];
+                    vk += 1;
+        let above = vk > 0 && vsum / vk as f64 > cfg.vol_gate;
+        let gate_open = vk > 0 && (cfg.vol_gate <= 0.0 || (above ^ lowvol));
+        if gate_open {
+                if smas[j][day].is_finite() && panel.close[j][day].is_finite() {
+                    let dist = (panel.close[j][day] - smas[j][day]).abs() / smas[j][day];
+                    let mut s = if panel.close[j][day] > smas[j][day] {
+                    if cfg.min_abs_resid > 0.0 && dist < cfg.min_abs_resid {
+                        s = 0.0;
+                    if cfg.mom_window > 0 && day >= cfg.mom_window {
+                        let m0 = panel.close[j][day - cfg.mom_window];
+                        if m0.is_finite()
+                            && m0 > 0.0
+                            && (panel.close[j][day] - m0).signum() != s
+                            s = 0.0;
+                    if cfg.rsi_threshold > 0.0
+                        && rsimats[j][day].is_finite()
+                        && s > 0.0
+                        && rsimats[j][day] < cfg.rsi_threshold
+                        s = 0.0;
+                    if cfg.rsi_threshold > 0.0
+                        && rsimats[j][day].is_finite()
+                        && s < 0.0
+                        && rsimats[j][day] > 100.0 - cfg.rsi_threshold
+                        s = 0.0;
+                    if long_only && s < 0.0 {
+                        s = 0.0;
+                    if short_only && s > 0.0 {
+                        s = 0.0;
+                    if cfg.skip_days > 0
+                        && s != 0.0
+                        && current[j] != 0.0
+                        && s != current[j]
+                        && day.saturating_sub(last_flip[j]) < cfg.skip_days
+                        s = current[j];
+                    if s != current[j] {
+                        last_flip[j] = day;
+                    current[j] = s;
+        } else if let Some(cash) = cash_idx {
+            weights[cash][day] = 1.0;
+        let scale = |j: usize| -> f64 {
+            if vp && vols[j] > 0.0 {
+                1.0 / vols[j]
+        let active: f64 = current
+            .enumerate()
+            .map(|(j, v)| v.abs() * scale(j))
+                if current[j] != 0.0 {
+                    weights[j][day] = current[j] * scale(j) / active;
     }
     result.trade_weights = Some(weights);
     result.benchmark_returns = benchmark_returns(panel, "SPY");

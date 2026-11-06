@@ -338,6 +338,8 @@ pub struct Config {
     pub dip_a: f64,
     #[serde(default = "d_dip_b")]
     pub dip_b: f64,
+    #[serde(default = "d_vol_gate")]
+    pub vol_gate: f64,
     #[serde(default = "d_levered_cap")]
     pub levered_cap: f64,
     #[serde(default = "d_z_entry")]
@@ -1320,6 +1322,8 @@ fn d_dip_a() -> f64 {
     5.0
 fn d_dip_b() -> f64 {
     1.0
+fn d_vol_gate() -> f64 {
+    0.0
 }
 
 impl Config {
