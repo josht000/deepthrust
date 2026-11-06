@@ -76,6 +76,8 @@ pub struct Config {
     pub participation_filter: String,
     #[serde(default = "d_target_vol")]
     pub target_vol: f64,
+    #[serde(default = "d_pos_cap")]
+    pub pos_cap: f64,
     #[serde(default = "d_vol_window")]
     pub vol_window: usize,
     #[serde(default = "d_max_leverage")]
@@ -671,6 +673,9 @@ fn d_participation_filter() -> String {
 }
 fn d_target_vol() -> f64 {
     0.10
+}
+fn d_pos_cap() -> f64 {
+    0.95
 }
 fn d_vol_window() -> usize {
     20
