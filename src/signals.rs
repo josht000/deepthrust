@@ -3104,6 +3104,127 @@ pub fn compute_g068_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
     })
 }
 
+/// G070: ATR SuperTrend direction-reversal. Bands = hl2 +/- st_mult * ATR(atr_len);
+/// enter long on trend flip -1 -> +1, exit on flip +1 -> -1. Long-only; the
+/// source's short leg has no engine support.
+pub fn compute_g070_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    let mut trend_all = Vec::with_capacity(panel.symbols.len());
+    let mut signal = Vec::with_capacity(panel.symbols.len());
+    let mut exit_now = Vec::with_capacity(panel.symbols.len());
+    let mut tradable = Vec::with_capacity(panel.symbols.len());
+    let mut atr_all = Vec::with_capacity(panel.symbols.len());
+    for j in 0..panel.symbols.len() {
+        let high = &panel.high[j];
+        let low = &panel.low[j];
+        let close = &panel.close[j];
+        let n = close.len();
+        let atr = wilder_atr(high, low, close, cfg.atr_len);
+        let mut fub = vec![f64::NAN; n];
+        let mut flb = vec![f64::NAN; n];
+        let mut trend = vec![0i8; n];
+        for t in 0..n {
+            if !atr[t].is_finite() {
+                continue;
+            }
+            let hl2 = (high[t] + low[t]) / 2.0;
+            let ub = hl2 + cfg.st_mult * atr[t];
+            let lb = hl2 - cfg.st_mult * atr[t];
+            if t == 0 || !fub[t - 1].is_finite() {
+                fub[t] = ub;
+                flb[t] = lb;
+                trend[t] = if close[t] > fub[t] { 1 } else { -1 };
+                continue;
+            }
+            fub[t] = if ub < fub[t - 1] || close[t - 1] > fub[t - 1] {
+                ub
+            } else {
+                fub[t - 1]
+            };
+            flb[t] = if lb > flb[t - 1] || close[t - 1] < flb[t - 1] {
+                lb
+            } else {
+                flb[t - 1]
+            };
+            trend[t] = if trend[t - 1] == 1 {
+                if close[t] < flb[t] { -1 } else { 1 }
+            } else if close[t] > fub[t] {
+                1
+            } else {
+                -1
+            };
+        }
+        let mut history = 0usize;
+        let trad: Vec<bool> = close
+            .iter()
+            .map(|value| {
+                if value.is_finite() {
+                    history += 1;
+                }
+                value.is_finite() && history >= cfg.min_history
+            })
+            .collect();
+        let use_gate = cfg.gate.starts_with("sma");
+        let sma = if use_gate {
+            rolling_mean(close, cfg.sma_window)
+        } else {
+            vec![f64::NAN; n]
+        };
+        let rsi_v = if cfg.rsi_threshold > 0.0 && cfg.rsi_len > 0 {
+            wilder_rsi(close, cfg.rsi_len).unwrap_or_else(|_| vec![f64::NAN; n])
+        } else {
+            vec![f64::NAN; n]
+        };
+        let use_rsi = cfg.rsi_threshold > 0.0;
+        signal.push(
+            (0..n)
+                .map(|t| {
+                    t > 0
+                        && trad[t]
+                        && trend[t] == 1
+                        && trend[t - 1] == -1
+                        && (!use_gate || (sma[t].is_finite() && close[t] > sma[t]))
+                        && (!use_rsi || (rsi_v[t].is_finite() && rsi_v[t] > cfg.rsi_threshold))
+                })
+                .collect(),
+        );
+        exit_now.push(
+            (0..n)
+                .map(|t| {
+                    if cfg.exit_mode == "sma" {
+                        sma[t].is_finite() && close[t] < sma[t]
+                    } else {
+                        trend[t] == -1
+                    }
+                })
+                .collect(),
+        );
+        tradable.push(trad);
+        trend_all.push(trend.iter().map(|&v| v as f64).collect());
+        if cfg.disaster_stop_atr > 0.0 {
+            atr_all.push(atr);
+        }
+    }
+    Ok(Signals {
+        rsi: trend_all,
+        indicator_name: "supertrend_dir".into(),
+        signal,
+        exit_now,
+        add_signal: None,
+        atr: if cfg.disaster_stop_atr > 0.0 {
+            Some(atr_all)
+        } else {
+            None
+        },
+        stop_pct: None,
+        pool: tradable.clone(),
+        tradable,
+        trade_weights: None,
+        entry_mat: None,
+        exit_mat: None,
+        benchmark_returns: None,
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

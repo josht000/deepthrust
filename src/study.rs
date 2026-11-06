@@ -97,6 +97,8 @@ pub const G033_NAME: &str = "g033_pair_rotation";
 pub const G033_TITLE: &str = "G033 Decorrelation-Gated Buy-the-Loser Pair Rotation";
 pub const G068_NAME: &str = "g068_stoch_rsi_chandelier";
 pub const G068_TITLE: &str = "G068 Stochastic-Exit + RSI-50 + Chandelier(22,2)";
+pub const G070_NAME: &str = "g070_supertrend";
+pub const G070_TITLE: &str = "G070 ATR SuperTrend Direction-Reversal";
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -194,6 +196,22 @@ impl StrategyDefinition for G068StrategyDefinition {
         G068_NAME
         G068_TITLE
         signals::compute_g068_signals(panel, cfg)
+    }
+}
+
+struct G070StrategyDefinition;
+
+impl StrategyDefinition for G070StrategyDefinition {
+    fn name(&self) -> &'static str {
+        G070_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        G070_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        signals::compute_g070_signals(panel, cfg)
     }
 }
 
@@ -1352,6 +1370,7 @@ static S006_STRATEGY: DoubleSevenStrategyDefinition = DoubleSevenStrategyDefinit
 static G097_STRATEGY: G097StrategyDefinition = G097StrategyDefinition;
 static G033_STRATEGY: G033StrategyDefinition = G033StrategyDefinition;
 static G068_STRATEGY: G068StrategyDefinition = G068StrategyDefinition;
+static G070_STRATEGY: G070StrategyDefinition = G070StrategyDefinition;
 static S019_STRATEGY: GapAndGoStrategyDefinition = GapAndGoStrategyDefinition;
 static S021_STRATEGY: OvernightStrategyDefinition = OvernightStrategyDefinition {
     name: S021_NAME,
@@ -1526,7 +1545,7 @@ static S103_STRATEGY: Family10Definition = Family10Definition {
 static S100_STRATEGY: ThreeWhiteSoldiersStrategyDefinition =
     ThreeWhiteSoldiersStrategyDefinition;
 static S099_STRATEGY: OutsideDayReversalStrategyDefinition = OutsideDayReversalStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 65] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 66] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1561,6 +1580,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 65] = [
     &S082_STRATEGY,
     &G033_STRATEGY,
     &G068_STRATEGY,
+    &G070_STRATEGY,
     &S069_STRATEGY,
     &S070_STRATEGY,
     &S102_STRATEGY,
