@@ -1,7 +1,8 @@
 //! Family 5 stock cross-section and earnings-event studies.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 use std::path::Path;
+use std::sync::{Arc, Mutex, OnceLock};
 
 use chrono::{Datelike, Duration, NaiveDate};
 
@@ -25,6 +26,8 @@ pub const S067_NAME: &str = "s067_sector_breadth_rotation";
 pub const S067_TITLE: &str = "S067 Relative Sector Breadth Rotation";
 pub const S078_NAME: &str = "s078_statarb_reversal";
 pub const S078_TITLE: &str = "S078 Chan-Style Statistical Arbitrage Basket";
+pub const S059_NAME: &str = "s059_insider_cluster";
+pub const S059_TITLE: &str = "S059 Insider Cluster Buying";
 
 pub(crate) struct PublishRecord {
     pub date: NaiveDate,
@@ -1142,4 +1145,461 @@ pub fn compute_s078_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
     result.trade_weights = Some(weights);
     result.benchmark_returns = ew_stock_benchmark(panel, &result.tradable, &BTreeSet::new());
     Ok(result)
+}
+
+#[derive(Clone)]
+struct S059OwnerEvent {
+    ticker: String,
+    owner: String,
+    filing_date: NaiveDate,
+    buy_eligible: bool,
+    routine_prior_years: usize,
+    has_sell: bool,
+}
+
+#[derive(Clone)]
+struct S059MappedEvent {
+    row: usize,
+    owner: String,
+    buy_eligible: bool,
+    routine_prior_years: usize,
+    has_sell: bool,
+}
+
+static S059_EVENT_CACHE: OnceLock<Mutex<HashMap<String, Arc<Vec<S059OwnerEvent>>>>> =
+    OnceLock::new();
+
+fn read_s059_owner_events(path: &str) -> Result<Arc<Vec<S059OwnerEvent>>, String> {
+    if path.trim().is_empty() {
+        return Err("S059 requires form4_transactions_file".into());
+    }
+    let key = Path::new(path)
+        .canonicalize()
+        .unwrap_or_else(|_| Path::new(path).to_path_buf())
+        .display()
+        .to_string();
+    let cache = S059_EVENT_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    if let Some(events) = cache
+        .lock()
+        .map_err(|_| "S059 event cache lock is poisoned".to_string())?
+        .get(&key)
+        .cloned()
+    {
+        return Ok(events);
+    }
+
+    let mut reader =
+        csv::Reader::from_path(path).map_err(|error| format!("{path}: {error}"))?;
+    let headers = reader
+        .headers()
+        .map_err(|error| format!("{path}: {error}"))?
+        .clone();
+    let column = |name: &str| {
+        headers
+            .iter()
+            .position(|header| header.eq_ignore_ascii_case(name))
+            .ok_or_else(|| format!("{path}: missing {name:?} column"))
+    };
+    let ticker_col = column("ticker")?;
+    let owner_col = column("owner_cik")?;
+    let filed_col = column("filing_date")?;
+    let buy_col = column("buy_eligible")?;
+    let routine_col = column("buy_prior_same_month_years")?;
+    let sell_col = column("has_sell")?;
+    let parse_bool =
+        |value: &str| matches!(value.trim().to_ascii_lowercase().as_str(), "1" | "true" | "yes");
+    let mut events = Vec::new();
+    for (row, record) in reader.records().enumerate() {
+        let record = record.map_err(|error| format!("{path} row {}: {error}", row + 2))?;
+        let ticker = canonical_symbol(record.get(ticker_col).unwrap_or_default());
+        let owner = record.get(owner_col).unwrap_or_default().trim().to_string();
+        let filed = record.get(filed_col).unwrap_or_default().trim();
+        let filing_date = data::parse_date(filed)
+            .map_err(|error| format!("{path} row {}: {error}", row + 2))?;
+        if ticker.is_empty() || owner.is_empty() {
+            continue;
+        }
+        let buy_eligible = parse_bool(record.get(buy_col).unwrap_or_default());
+        let has_sell = parse_bool(record.get(sell_col).unwrap_or_default());
+        if !buy_eligible && !has_sell {
+            continue;
+        }
+        let routine_prior_years = record
+            .get(routine_col)
+            .unwrap_or_default()
+            .trim()
+            .parse::<usize>()
+            .unwrap_or(0);
+        events.push(S059OwnerEvent {
+            ticker,
+            owner,
+            filing_date,
+            buy_eligible,
+            routine_prior_years,
+            has_sell,
+        });
+    }
+    let events = Arc::new(events);
+    cache
+        .lock()
+        .map_err(|_| "S059 event cache lock is poisoned".to_string())?
+        .insert(key, Arc::clone(&events));
+    Ok(events)
+}
+
+pub fn s059_symbols(path: &str) -> Result<BTreeSet<String>, String> {
+    if path.trim().is_empty() {
+        return Err("S059 requires form4_symbols_file".into());
+    }
+    let mut reader =
+        csv::Reader::from_path(path).map_err(|error| format!("{path}: {error}"))?;
+    let headers = reader
+        .headers()
+        .map_err(|error| format!("{path}: {error}"))?
+        .clone();
+    let ticker_col = headers
+        .iter()
+        .position(|header| header.eq_ignore_ascii_case("ticker"))
+        .ok_or_else(|| format!("{path}: missing \"ticker\" column"))?;
+    let mut symbols = BTreeSet::new();
+    for (row, record) in reader.records().enumerate() {
+        let record = record.map_err(|error| format!("{path} row {}: {error}", row + 2))?;
+        let symbol = canonical_symbol(record.get(ticker_col).unwrap_or_default());
+        if !symbol.is_empty() {
+            symbols.insert(symbol);
+        }
+    }
+    if symbols.is_empty() {
+        return Err(format!("{path}: no Form 4 issuer symbols"));
+    }
+    Ok(symbols)
+}
+
+pub fn compute_s059_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if cfg.s059_min_buyers == 0 || cfg.s059_cluster_window == 0 || cfg.s059_routine_years == 0 {
+        return Err("S059 cluster, window, and routine-year parameters must be positive".into());
+    }
+    if !matches!(cfg.s059_exit_mode.as_str(), "fixed63" | "low20") {
+        return Err(format!("unknown S059 exit_mode {:?}", cfg.s059_exit_mode));
+    }
+    let transactions = read_s059_owner_events(&cfg.form4_transactions_file)?;
+    let symbol_idx: HashMap<&str, usize> = panel
+        .symbols
+        .iter()
+        .enumerate()
+        .map(|(index, symbol)| (symbol.as_str(), index))
+        .collect();
+    let mut by_symbol = vec![Vec::<S059MappedEvent>::new(); panel.symbols.len()];
+    for event in transactions.iter() {
+        let Some(&j) = symbol_idx.get(event.ticker.as_str()) else {
+            continue;
+        };
+        // Date-only SEC filing time becomes available on the following market session.
+        let row = panel.dates.partition_point(|date| *date <= event.filing_date);
+        if row < panel.dates.len() {
+            by_symbol[j].push(S059MappedEvent {
+                row,
+                owner: event.owner.clone(),
+                buy_eligible: event.buy_eligible,
+                routine_prior_years: event.routine_prior_years,
+                has_sell: event.has_sell,
+            });
+        }
+    }
+
+    let n = panel.dates.len();
+    let mut result = blank_signals(panel, "insider_cluster");
+    for j in 0..panel.symbols.len() {
+        for t in 0..n {
+            result.tradable[j][t] = panel.close[j][t].is_finite() && panel.close[j][t] > 0.0;
+            result.pool[j][t] = result.tradable[j][t];
+        }
+        by_symbol[j].sort_by_key(|event| event.row);
+        let mut active = VecDeque::<S059MappedEvent>::new();
+        let (mut next, mut buyers, mut sellers) =
+            (0usize, HashMap::<String, usize>::new(), HashMap::<String, usize>::new());
+        for t in 0..n {
+            while next < by_symbol[j].len() && by_symbol[j][next].row <= t {
+                let event = by_symbol[j][next].clone();
+                if event.buy_eligible && event.routine_prior_years < cfg.s059_routine_years {
+                    *buyers.entry(event.owner.clone()).or_default() += 1;
+                }
+                if event.has_sell {
+                    *sellers.entry(event.owner.clone()).or_default() += 1;
+                }
+                active.push_back(event);
+                next += 1;
+            }
+            let first = t.saturating_add(1).saturating_sub(cfg.s059_cluster_window);
+            while active.front().is_some_and(|event| event.row < first) {
+                let event = active.pop_front().unwrap();
+                if event.buy_eligible && event.routine_prior_years < cfg.s059_routine_years {
+                    if let Some(count) = buyers.get_mut(&event.owner) {
+                        *count -= 1;
+                        if *count == 0 {
+                            buyers.remove(&event.owner);
+                        }
+                    }
+                }
+                if event.has_sell {
+                    if let Some(count) = sellers.get_mut(&event.owner) {
+                        *count -= 1;
+                        if *count == 0 {
+                            sellers.remove(&event.owner);
+                        }
+                    }
+                }
+            }
+            let buyer_count = buyers.len();
+            result.rsi[j][t] = buyer_count as f64;
+            let zero_sells_ok = !cfg.s059_zero_sells || sellers.is_empty();
+            if result.tradable[j][t] && buyer_count >= cfg.s059_min_buyers && zero_sells_ok {
+                result.signal[j][t] = true;
+                if cfg.s059_exit_mode == "fixed63" && t + cfg.s059_hold_sessions < n {
+                    result.exit_now[j][t + cfg.s059_hold_sessions] = true;
+                }
+            }
+            if cfg.s059_exit_mode == "low20" && t >= 20 {
+                let prior_low = panel.low[j][t - 20..t]
+                    .iter()
+                    .copied()
+                    .filter(|value| value.is_finite())
+                    .fold(f64::INFINITY, f64::min);
+                if prior_low.is_finite() && panel.close[j][t] < prior_low {
+                    result.exit_now[j][t] = true;
+                }
+            }
+        }
+    }
+    result.benchmark_returns = ew_stock_benchmark(panel, &result.tradable, &BTreeSet::new());
+    Ok(result)
+}
+
+pub fn s059_trades(
+    panel: &Panel,
+    sig: &Signals,
+    cfg: &Config,
+    fill: &str,
+) -> Result<Vec<Trade>, String> {
+    if !matches!(fill, "close" | "next_open") {
+        return Err(format!("S059 does not support fill {fill:?}"));
+    }
+    let n = panel.dates.len();
+    let last = last_valid_rows(&panel.close);
+    let is_open = fill == "next_open";
+    let mut trades = Vec::new();
+    for j in 0..panel.symbols.len() {
+        let Some(last_row) = last[j] else { continue };
+        let cost = cfg.cost_for_symbol(&panel.symbols[j]);
+        let mut busy_until = None;
+        for t in 0..n {
+            if !sig.signal[j][t] || busy_until.is_some_and(|row| t <= row) {
+                continue;
+            }
+            let entry_idx = if is_open { t + 1 } else { t };
+            if entry_idx > last_row {
+                continue;
+            }
+            let entry_px = if is_open {
+                panel.open[j][entry_idx]
+            } else {
+                panel.close[j][entry_idx]
+            };
+            if !entry_px.is_finite() || entry_px <= 0.0 {
+                continue;
+            }
+
+            let (decision_exit, reason) = if cfg.s059_exit_mode == "fixed63" {
+                let target = t.saturating_add(cfg.s059_hold_sessions);
+                if target <= last_row {
+                    (target, "time")
+                } else {
+                    (
+                        last_row,
+                        if last_row + 1 < n { "delisted" } else { "censored" },
+                    )
+                }
+            } else {
+                match (t + 1..=last_row).find(|&row| sig.exit_now[j][row]) {
+                    Some(row) => (row, "low20"),
+                    None => (
+                        last_row,
+                        if last_row + 1 < n { "delisted" } else { "censored" },
+                    ),
+                }
+            };
+
+            let (exit_idx, mut exit_px) = if is_open
+                && reason != "delisted"
+                && reason != "censored"
+                && decision_exit + 1 <= last_row
+                && panel.open[j][decision_exit + 1].is_finite()
+            {
+                (decision_exit + 1, panel.open[j][decision_exit + 1])
+            } else {
+                (decision_exit, panel.close[j][decision_exit])
+            };
+            if reason == "delisted" && cfg.delisting_return != 0.0 {
+                exit_px *= 1.0 + cfg.delisting_return;
+            }
+            if !exit_px.is_finite() || exit_px <= 0.0 || exit_idx <= entry_idx {
+                continue;
+            }
+            let gross = exit_px / entry_px - 1.0;
+            trades.push(Trade {
+                sym_idx: j,
+                signal_idx: t,
+                entry_idx,
+                exit_idx,
+                entry_px,
+                exit_px,
+                ret: exit_px * (1.0 - cost) / (entry_px * (1.0 + cost)) - 1.0,
+                ret_gross: gross,
+                exit_reason: reason,
+                hold: exit_idx - entry_idx,
+                signal_value: sig.rsi[j][t],
+                weight: 1.0,
+                entry_turnover: 1.0,
+                exit_turnover: 1.0,
+                weighted: false,
+                borrow_cost_per_bar: 0.0,
+            });
+            busy_until = Some(decision_exit);
+        }
+    }
+    trades.sort_by(|a, b| {
+        (a.entry_idx, &panel.symbols[a.sym_idx]).cmp(&(b.entry_idx, &panel.symbols[b.sym_idx]))
+    });
+    Ok(trades)
+}
+
+#[cfg(test)]
+mod s059_tests {
+    use super::*;
+
+    fn cfg() -> Config {
+        let path = format!(
+            "{}/configs/s001_rsi2_connors.yaml",
+            env!("CARGO_MANIFEST_DIR").replace('\\', "/")
+        );
+        crate::config::load_config(
+            "s001_rsi2_connors",
+            Some(&path),
+            &crate::config::Cli {
+                data_dir: None,
+                symbols: None,
+            },
+            None,
+        )
+        .unwrap()
+    }
+
+    fn panel() -> Panel {
+        let n = 100;
+        let close = vec![100.0; n];
+        Panel {
+            dates: (0..n)
+                .map(|day| {
+                    crate::data::parse_date("2020-01-02").unwrap()
+                        + chrono::Duration::days(day as i64)
+                })
+                .collect(),
+            symbols: vec!["AAA".into()],
+            open: vec![close.clone()],
+            high: vec![close.clone()],
+            low: vec![close.clone()],
+            close: vec![close],
+            volume: vec![vec![1.0; n]],
+        }
+    }
+
+    fn events_file(routine_last: usize, sell_last: bool) -> (String, String) {
+        let root = std::env::temp_dir().join(format!(
+            "s059_events_{}_{}",
+            std::process::id(),
+            routine_last
+        ));
+        std::fs::create_dir_all(&root).unwrap();
+        let transaction_path = root.join("events.csv");
+        let symbols_path = root.join("symbols.csv");
+        let rows = [
+            ("11", 0, 0),
+            ("12", 0, 0),
+            ("13", routine_last, usize::from(sell_last)),
+        ];
+        let mut csv = String::from(
+            "ticker,issuer_cik,owner_cik,filing_date,buy_eligible,buy_prior_same_month_years,has_sell,tenb5_seen,tenb5_sources,accession\n",
+        );
+        for (owner, routine, sell) in rows {
+            csv.push_str(&format!("AAA,1,{owner},2020-01-03,1,{routine},{sell},0,,{owner}\n"));
+        }
+        std::fs::write(&transaction_path, csv).unwrap();
+        std::fs::write(&symbols_path, "ticker\nAAA\n").unwrap();
+        (
+            transaction_path.to_string_lossy().into_owned(),
+            symbols_path.to_string_lossy().into_owned(),
+        )
+    }
+
+    #[test]
+    fn s059_uses_distinct_owners_and_the_next_session_after_filing_date() {
+        let (events, symbols) = events_file(0, false);
+        let panel = panel();
+        let mut cfg = cfg();
+        cfg.form4_transactions_file = events.clone();
+        cfg.form4_symbols_file = symbols.clone();
+        cfg.s059_min_buyers = 3;
+        cfg.s059_cluster_window = 21;
+        cfg.s059_routine_years = 3;
+        cfg.s059_hold_sessions = 63;
+        cfg.s059_exit_mode = "fixed63".into();
+        cfg.cost_bps_per_side = 0.0;
+        let signals = compute_s059_signals(&panel, &cfg).unwrap();
+        assert!(signals.signal[0][2]);
+        assert_eq!(s059_symbols(&symbols).unwrap(), BTreeSet::from(["AAA".into()]));
+        let trades = s059_trades(&panel, &signals, &cfg, "close").unwrap();
+        assert_eq!((trades[0].signal_idx, trades[0].entry_idx, trades[0].exit_idx), (2, 2, 65));
+    }
+
+    #[test]
+    fn s059_can_exclude_routine_buyers_and_recent_sells() {
+        let (events, symbols) = events_file(3, true);
+        let mut cfg = cfg();
+        cfg.form4_transactions_file = events;
+        cfg.form4_symbols_file = symbols;
+        cfg.s059_min_buyers = 3;
+        cfg.s059_cluster_window = 21;
+        cfg.s059_routine_years = 3;
+        cfg.s059_zero_sells = false;
+        let panel = panel();
+        let filtered = compute_s059_signals(&panel, &cfg).unwrap();
+        assert!(!filtered.signal[0][2]);
+
+        cfg.s059_routine_years = 4;
+        cfg.s059_zero_sells = false;
+        let allowed = compute_s059_signals(&panel, &cfg).unwrap();
+        assert!(allowed.signal[0][2]);
+
+        cfg.s059_zero_sells = true;
+        let sold = compute_s059_signals(&panel, &cfg).unwrap();
+        assert!(!sold.signal[0][2]);
+    }
+
+    #[test]
+    fn s059_fixed_holds_are_relative_to_each_actual_entry() {
+        let mut cfg = cfg();
+        cfg.s059_hold_sessions = 63;
+        cfg.s059_exit_mode = "fixed63".into();
+        cfg.cost_bps_per_side = 0.0;
+        let panel = panel();
+        let n = panel.dates.len();
+        let mut sig = blank_signals(&panel, "test");
+        for row in 2..n {
+            sig.signal[0][row] = true;
+            sig.rsi[0][row] = 3.0;
+        }
+        let trades = s059_trades(&panel, &sig, &cfg, "close").unwrap();
+        assert_eq!((trades[0].entry_idx, trades[0].exit_idx, trades[0].hold), (2, 65, 63));
+        assert_eq!((trades[1].entry_idx, trades[1].exit_idx, trades[1].hold), (66, 99, 33));
+    }
 }

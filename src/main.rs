@@ -51,11 +51,19 @@ struct Args {
 fn check_inputs(cfg: &Config, results: &Path) -> Result<String, String> {
     let _g = timing::stage("input check");
     let sources = cfg.source_list();
+    let form4_symbols = if cfg.strategy == deepthrust::family5::S059_NAME {
+        Some(deepthrust::family5::s059_symbols(&cfg.form4_symbols_file)?)
+    } else {
+        None
+    };
     let mut symbol_names = vec![];
     let mut files = vec![];
     let mut source_manifest = vec![];
     for source in &sources {
-        let symbols = config::split_csv(&source.symbols);
+        let mut symbols = config::split_csv(&source.symbols);
+        if let Some(event_symbols) = &form4_symbols {
+            symbols.retain(|symbol| event_symbols.contains(&symbol.to_ascii_uppercase()));
+        }
         let mut source_files = vec![];
         for symbol in &symbols {
             let p = data::input_path(&source.data_dir, symbol, &source.data_suffix);
@@ -79,6 +87,22 @@ fn check_inputs(cfg: &Config, results: &Path) -> Result<String, String> {
             "files": source_files,
             "cost_bps_per_side": source.cost_bps_per_side.unwrap_or(cfg.cost_bps_per_side)
         }));
+    }
+    for (name, value) in [
+        ("vix_file", cfg.vix_file.as_str()),
+        ("vix3m_file", cfg.vix3m_file.as_str()),
+        ("vxv_file", cfg.vxv_file.as_str()),
+        ("form4_transactions_file", cfg.form4_transactions_file.as_str()),
+        ("form4_symbols_file", cfg.form4_symbols_file.as_str()),
+    ] {
+        if value.trim().is_empty() {
+            continue;
+        }
+        let path = Path::new(value);
+        if !path.is_file() {
+            return Err(format!("missing configured {name}: {}", path.display()));
+        }
+        files.push(path.display().to_string());
     }
     let dir = results.join("manifests");
     let manifest = serde_json::json!({
@@ -216,7 +240,7 @@ fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Resul
         map.insert("direction".into(), cfg.direction.clone().into());
         map.insert("borrow_bps_annual".into(), cfg.borrow_bps_annual.into());
         params = serde_json::Value::Object(map);
-}
+    }
     if let serde_json::Value::Object(map) = &mut params {
         map.extend(serde_json::json!({
             "kama_er_len": cfg.kama_er_len,
@@ -228,7 +252,20 @@ fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Resul
             "kama_gate": cfg.kama_gate,
             "rv_gate": cfg.rv_gate,
             "rv_max": cfg.rv_max,
-            "rv_quiet_lookback": cfg.rv_quiet_lookback
+            "rv_quiet_lookback": cfg.rv_quiet_lookback,
+            "vix_file": cfg.vix_file,
+            "vix3m_file": cfg.vix3m_file,
+            "vxv_file": cfg.vxv_file,
+            "vix_ratio_threshold": cfg.vix_ratio_threshold,
+            "vix_ratio_hold_sessions": cfg.vix_ratio_hold_sessions,
+            "form4_transactions_file": cfg.form4_transactions_file,
+            "form4_symbols_file": cfg.form4_symbols_file,
+            "s059_min_buyers": cfg.s059_min_buyers,
+            "s059_cluster_window": cfg.s059_cluster_window,
+            "s059_hold_sessions": cfg.s059_hold_sessions,
+            "s059_routine_years": cfg.s059_routine_years,
+            "s059_exit_mode": cfg.s059_exit_mode,
+            "s059_zero_sells": cfg.s059_zero_sells
         })
         .as_object()
         .unwrap()

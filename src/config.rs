@@ -364,6 +364,14 @@ pub struct Config {
     pub direction: String,
     #[serde(default)]
     pub vix_file: String,
+    #[serde(default)]
+    pub vix3m_file: String,
+    #[serde(default)]
+    pub vxv_file: String,
+    #[serde(default = "d_vix_ratio_threshold")]
+    pub vix_ratio_threshold: f64,
+    #[serde(default = "d_vix_ratio_hold_sessions")]
+    pub vix_ratio_hold_sessions: usize,
     #[serde(default = "d_vix_ma_short")]
     pub vix_ma_short: usize,
     #[serde(default = "d_vix_ma_long")]
@@ -516,6 +524,22 @@ pub struct Config {
     pub rel_vol_min: f64,
     #[serde(default)]
     pub min_range_pct: f64,
+    #[serde(default)]
+    pub form4_transactions_file: String,
+    #[serde(default)]
+    pub form4_symbols_file: String,
+    #[serde(default = "d_s059_buyers")]
+    pub s059_min_buyers: usize,
+    #[serde(default = "d_s059_cluster_window")]
+    pub s059_cluster_window: usize,
+    #[serde(default = "d_s059_hold_sessions")]
+    pub s059_hold_sessions: usize,
+    #[serde(default = "d_s059_routine_years")]
+    pub s059_routine_years: usize,
+    #[serde(default = "d_s059_exit_mode")]
+    pub s059_exit_mode: String,
+    #[serde(default)]
+    pub s059_zero_sells: bool,
     #[serde(default)]
     pub results_tag: String,
     #[serde(default = "d_macd_fast")]
@@ -1026,6 +1050,12 @@ fn d_vix_ma_long() -> usize {
 fn d_vix_fall_window() -> usize {
     5
 }
+fn d_vix_ratio_threshold() -> f64 {
+    1.10
+}
+fn d_vix_ratio_hold_sessions() -> usize {
+    21
+}
 fn d_risk_symbol() -> String {
     "SPY".into()
 }
@@ -1187,6 +1217,21 @@ fn d_down_streak() -> usize {
 }
 fn d_engulf_mode() -> String {
     "strict".into()
+}
+fn d_s059_buyers() -> usize {
+    3
+}
+fn d_s059_cluster_window() -> usize {
+    21
+}
+fn d_s059_hold_sessions() -> usize {
+    63
+}
+fn d_s059_routine_years() -> usize {
+    3
+}
+fn d_s059_exit_mode() -> String {
+    "fixed63".into()
 }
 
 impl Config {
@@ -1645,6 +1690,8 @@ variants:
             "s075_residual_reversal",
             "s105_overnight_carry",
             "s024_ex_dividend_capture",
+            "s062_vix_vxv_ratio",
+            "s059_insider_cluster",
         ] {
             let path = root.join(format!("{strategy}.yaml"));
             let text = std::fs::read_to_string(&path).unwrap();
@@ -1669,6 +1716,7 @@ variants:
                         | "s033_52w_breakout"
                         | "s041_mom_12_1"
                         | "s075_residual_reversal"
+                        | "s059_insider_cluster"
                 ) {
                     Cli {
                         data_dir: Some(wildcard_dir.display().to_string()),

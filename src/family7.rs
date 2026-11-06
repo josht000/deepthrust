@@ -1,11 +1,12 @@
 //! Family 7 ETF timing studies: regime switches, vol-compression breakout, pairs, copper/gold tilt.
 
 use chrono::{Datelike, NaiveDate};
+use std::collections::BTreeMap;
 use std::path::Path;
 
 use crate::config::{split_csv, Config};
 use crate::data::Panel;
-use crate::engine::{last_valid_rows, Trade};
+use crate::engine::{last_valid_rows, swing_trades, SwingParams, Trade};
 use crate::family2::blank_signals;
 use crate::family4::{benchmark_returns, rebalance_days};
 use crate::signals::{rolling_extreme, rolling_mean, wilder_atr, wilder_rsi, Signals};
@@ -28,6 +29,8 @@ pub const S064_NAME: &str = "s064_hurst_regime";
 pub const S064_TITLE: &str = "S064 Hurst Exponent Regime Switch";
 pub const S066_NAME: &str = "s066_zweig_breadth_thrust";
 pub const S066_TITLE: &str = "S066 Zweig Breadth Thrust";
+pub const S062_NAME: &str = "s062_vix_vxv_ratio";
+pub const S062_TITLE: &str = "S062 VIX/VXV Ratio Spike";
 
 fn symbol_index(panel: &Panel, name: &str) -> Result<usize, String> {
     panel
@@ -1918,4 +1921,390 @@ pub fn s066_trades(panel: &Panel, sig: &Signals, cfg: &Config, fill: &str) -> Re
         .as_ref()
         .ok_or_else(|| "S066 requires target weights".to_string())?;
     switch_trades(panel, weights, sig, cfg, fill)
+}
+
+#[cfg(test)]
+mod s062_tests {
+    use super::*;
+    use std::fs;
+
+    fn test_config() -> Config {
+        let path = format!(
+            "{}/configs/s001_rsi2_connors.yaml",
+            env!("CARGO_MANIFEST_DIR").replace('\\', "/")
+        );
+        crate::config::load_config(
+            "s001_rsi2_connors",
+            Some(&path),
+            &crate::config::Cli {
+                data_dir: None,
+                symbols: None,
+            },
+            None,
+        )
+        .unwrap()
+    }
+
+    fn vix_files(root: &Path, bad_overlap: bool) -> (String, String, String) {
+        fs::create_dir_all(root).unwrap();
+        let vix_path = root.join("vix.csv");
+        let vxv_path = root.join("vxv.csv");
+        let vix3m_path = root.join("vix3m.csv");
+        let dates: Vec<_> = (0..80)
+            .map(|day| {
+                NaiveDate::from_ymd_opt(2008, 1, 1).unwrap()
+                    + chrono::Duration::days(day as i64)
+            })
+            .collect();
+        let spikes = [2usize, 3, 10, 24, 25, 47];
+        let mut vix = String::from("DATE,OPEN,HIGH,LOW,CLOSE\n");
+        let mut vxv = String::from("observation_date,VXVCLS\n");
+        let mut vix3m = String::from("DATE,OPEN,HIGH,LOW,CLOSE\n");
+        for (row, date) in dates.iter().enumerate() {
+            let vix_close = if spikes.contains(&row) { 28.0 } else { 20.0 };
+            let date_cboe = date.format("%m/%d/%Y");
+            let date_fred = date.format("%Y-%m-%d");
+            vix.push_str(&format!("{date_cboe},0,0,0,{vix_close}\n"));
+            vxv.push_str(&format!("{date_fred},25.0\n"));
+            if row >= 10 {
+                let close = if bad_overlap { 30.0 } else { 25.0 };
+                vix3m.push_str(&format!("{date_cboe},0,0,0,{close}\n"));
+            }
+        }
+        fs::write(&vix_path, vix).unwrap();
+        fs::write(&vxv_path, vxv).unwrap();
+        fs::write(&vix3m_path, vix3m).unwrap();
+        (
+            vix_path.display().to_string(),
+            vxv_path.display().to_string(),
+            vix3m_path.display().to_string(),
+        )
+    }
+
+    fn panel() -> Panel {
+        let n = 80;
+        let close = (0..n).map(|i| 100.0 + i as f64).collect::<Vec<_>>();
+        Panel {
+            dates: (0..n)
+                .map(|day| {
+                    NaiveDate::from_ymd_opt(2008, 1, 1).unwrap()
+                        + chrono::Duration::days(day as i64)
+                })
+                .collect(),
+            symbols: vec!["SPY".into()],
+            open: vec![close.iter().map(|price| price * 1.001).collect()],
+            high: vec![close.iter().map(|price| price * 1.01).collect()],
+            low: vec![close.iter().map(|price| price * 0.99).collect()],
+            close: vec![close],
+            volume: vec![vec![1.0; n]],
+        }
+    }
+
+    #[test]
+    fn s062_splices_vxv_and_deoverlaps_21_session_holds() {
+        let root = std::env::temp_dir().join(format!("s062_data_{}", std::process::id()));
+        let (vix_file, vxv_file, vix3m_file) = vix_files(&root, false);
+        let mut cfg = test_config();
+        cfg.vix_file = vix_file;
+        cfg.vxv_file = vxv_file;
+        cfg.vix3m_file = vix3m_file;
+        cfg.vix_ratio_threshold = 1.10;
+        cfg.vix_ratio_hold_sessions = 21;
+        cfg.cost_bps_per_side = 0.0;
+
+        let panel = panel();
+        let sig = compute_s062_signals(&panel, &cfg).unwrap();
+        let spy = 0;
+        assert_eq!(
+            (0..80).filter(|&t| sig.rsi[spy][t] >= 1.10).collect::<Vec<_>>(),
+            vec![2, 3, 10, 24, 25, 47]
+        );
+        assert_eq!(
+            (0..80).filter(|&t| sig.signal[spy][t]).collect::<Vec<_>>(),
+            vec![2, 24, 47]
+        );
+        let close = s062_trades(&panel, &sig, &cfg, "close").unwrap();
+        assert_eq!((close[0].entry_idx, close[0].exit_idx), (2, 23));
+        let open = s062_trades(&panel, &sig, &cfg, "next_open").unwrap();
+        assert_eq!((open[0].entry_idx, open[0].exit_idx), (3, 24));
+        assert_eq!(open[0].hold, 21);
+
+        let stats = s062_event_statistics(&panel, &sig, &cfg);
+        assert!(stats.iter().any(|row| row.population == "all_days"));
+        assert!(stats.iter().any(|row| row.population == "incidents"));
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn s062_rejects_mismatched_vxv_splice() {
+        let root = std::env::temp_dir().join(format!("s062_bad_splice_{}", std::process::id()));
+        let (vix_file, vxv_file, vix3m_file) = vix_files(&root, true);
+        let mut cfg = test_config();
+        cfg.vix_file = vix_file;
+        cfg.vxv_file = vxv_file;
+        cfg.vix3m_file = vix3m_file;
+        let error = match compute_s062_signals(&panel(), &cfg) {
+            Ok(_) => panic!("mismatched VXV splice was accepted"),
+            Err(error) => error,
+        };
+        assert!(error.contains("disagree"), "{error}");
+        fs::remove_dir_all(root).unwrap();
+    }
+}
+
+// ---------------- S062 VIX/VXV ratio spike ----------------
+
+fn parse_vol_date(value: &str, path: &Path, row: usize) -> Result<NaiveDate, String> {
+    let value = value.trim();
+    NaiveDate::parse_from_str(value, "%m/%d/%Y")
+        .or_else(|_| NaiveDate::parse_from_str(value, "%Y-%m-%d"))
+        .map_err(|error| format!("{} row {row}: bad date {value:?}: {error}", path.display()))
+}
+
+fn read_vol_series(
+    path: &str,
+    date_name: &str,
+    value_name: &str,
+) -> Result<BTreeMap<NaiveDate, f64>, String> {
+    if path.trim().is_empty() {
+        return Err(format!("missing required volatility file for column {value_name}"));
+    }
+    let path = Path::new(path);
+    let mut reader =
+        csv::Reader::from_path(path).map_err(|error| format!("{}: {error}", path.display()))?;
+    let headers = reader
+        .headers()
+        .map_err(|error| format!("{}: {error}", path.display()))?
+        .clone();
+    let column = |name: &str| {
+        headers
+            .iter()
+            .position(|header| header.trim().eq_ignore_ascii_case(name))
+            .ok_or_else(|| format!("{}: missing {name:?} column", path.display()))
+    };
+    let date_col = column(date_name)?;
+    let value_col = column(value_name)?;
+    let mut values = BTreeMap::new();
+    for (row, record) in reader.records().enumerate() {
+        let record =
+            record.map_err(|error| format!("{} row {}: {error}", path.display(), row + 2))?;
+        let date = parse_vol_date(record.get(date_col).unwrap_or_default(), path, row + 2)?;
+        let raw = record.get(value_col).unwrap_or_default().trim();
+        let Ok(value) = raw.parse::<f64>() else {
+            continue;
+        };
+        if value.is_finite() && value > 0.0 && values.insert(date, value).is_some() {
+            return Err(format!("{}: duplicate observation for {date}", path.display()));
+        }
+    }
+    if values.is_empty() {
+        return Err(format!("{}: no valid {value_name} values", path.display()));
+    }
+    Ok(values)
+}
+
+fn read_vix_vxv(cfg: &Config) -> Result<BTreeMap<NaiveDate, (f64, f64)>, String> {
+    let vix = read_vol_series(&cfg.vix_file, "DATE", "CLOSE")?;
+    let vxv_fred = read_vol_series(&cfg.vxv_file, "observation_date", "VXVCLS")?;
+    let vix3m = read_vol_series(&cfg.vix3m_file, "DATE", "CLOSE")?;
+    let overlap: Vec<_> = vxv_fred
+        .iter()
+        .filter_map(|(date, value)| vix3m.get(date).map(|other| (*date, *value, *other)))
+        .collect();
+    if overlap.is_empty() {
+        return Err("FRED VXVCLS and CBOE VIX3M have no overlapping dates".into());
+    }
+    if let Some((date, fred, cboe)) = overlap
+        .iter()
+        .find(|(_, fred, cboe)| (fred - cboe).abs() > 0.011)
+    {
+        return Err(format!(
+            "FRED VXVCLS and CBOE VIX3M disagree on {date}: {fred} vs {cboe}"
+        ));
+    }
+    let mut vxv = vxv_fred;
+    vxv.extend(vix3m);
+    Ok(vix
+        .into_iter()
+        .filter_map(|(date, vix)| vxv.get(&date).map(|vxv| (date, (vix, *vxv))))
+        .collect())
+}
+
+pub fn compute_s062_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    if cfg.vix_ratio_threshold <= 0.0 || cfg.vix_ratio_hold_sessions == 0 {
+        return Err("S062 requires a positive ratio threshold and holding period".into());
+    }
+    let spy = symbol_index(panel, "SPY")?;
+    let ratio_data = read_vix_vxv(cfg)?;
+    let mut result = blank_signals(panel, "vix_vxv_ratio");
+    for (t, date) in panel.dates.iter().enumerate() {
+        let close = panel.close[spy][t];
+        if !close.is_finite() || close <= 0.0 {
+            continue;
+        }
+        result.tradable[spy][t] = true;
+        result.pool[spy][t] = true;
+        if let Some((vix, vxv)) = ratio_data.get(date) {
+            result.rsi[spy][t] = vix / vxv;
+        }
+    }
+
+    let n = panel.dates.len();
+    let all_days: Vec<usize> = (0..n)
+        .filter(|&t| {
+            result.tradable[spy][t] && result.rsi[spy][t] >= cfg.vix_ratio_threshold
+        })
+        .collect();
+    let mut last_incident = None;
+    for t in all_days {
+        let separated = last_incident
+            .map(|last: usize| t.saturating_sub(last) > cfg.vix_ratio_hold_sessions)
+            .unwrap_or(true);
+        if !separated {
+            continue;
+        }
+        result.signal[spy][t] = true;
+        if t + cfg.vix_ratio_hold_sessions < n {
+            result.exit_now[spy][t + cfg.vix_ratio_hold_sessions] = true;
+        }
+        last_incident = Some(t);
+    }
+    result.benchmark_returns = benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
+pub fn s062_trades(
+    panel: &Panel,
+    sig: &Signals,
+    cfg: &Config,
+    fill: &str,
+) -> Result<Vec<Trade>, String> {
+    let params = SwingParams {
+        signal: &sig.signal,
+        exit_now: &sig.exit_now,
+        add_signal: None,
+        max_units: 1,
+        stop_atr: None,
+        stop_pct: None,
+        stop_mult: 0.0,
+        signal_value: &sig.rsi,
+    };
+    Ok(swing_trades(panel, &params, cfg, fill))
+}
+
+#[derive(Debug, Clone)]
+pub struct S062EventStat {
+    pub population: String,
+    pub period: String,
+    pub signals: usize,
+    pub mean_forward_ret_pct: f64,
+    pub median_forward_ret_pct: f64,
+    pub win_rate_pct: f64,
+    pub random_pick_mean_pct: f64,
+}
+
+pub fn s062_event_statistics(
+    panel: &Panel,
+    sig: &Signals,
+    cfg: &Config,
+) -> Vec<S062EventStat> {
+    let Some(spy) = panel.symbols.iter().position(|symbol| symbol == "SPY") else {
+        return Vec::new();
+    };
+    let hold = cfg.vix_ratio_hold_sessions;
+    let n = panel.dates.len();
+    let split = crate::data::parse_date(&cfg.partition_split_date)
+        .map(|date| panel.dates.partition_point(|day| *day < date))
+        .unwrap_or(n);
+    let mut spans = vec![
+        ("dev".to_string(), 0, split),
+        ("test".to_string(), split, n),
+    ];
+    for (label, start, end) in [
+        ("2008-2015", "2008-01-01", "2016-01-01"),
+        ("2016-2019", "2016-01-01", "2020-01-01"),
+        ("2020", "2020-01-01", "2021-01-01"),
+        ("2021", "2021-01-01", "2022-01-01"),
+        ("2022", "2022-01-01", "2023-01-01"),
+        ("2023-2026", "2023-01-01", "2027-01-01"),
+    ] {
+        let lo = crate::data::parse_date(start)
+            .map(|date| panel.dates.partition_point(|day| *day < date))
+            .unwrap_or(0);
+        let hi = crate::data::parse_date(end)
+            .map(|date| panel.dates.partition_point(|day| *day < date))
+            .unwrap_or(n);
+        spans.push((label.to_string(), lo, hi));
+    }
+
+    let populations = [
+        ("all_days", None),
+        ("incidents", Some(sig.signal[spy].as_slice())),
+    ];
+    let close = &panel.close[spy];
+    let mut rows = Vec::new();
+    for (population, selected) in populations {
+        for (period, start, end) in &spans {
+            let lo = (*start).min(n);
+            let hi = end.saturating_sub(hold).min(n.saturating_sub(hold)).max(lo);
+            let eligible = |t: usize| {
+                close[t].is_finite()
+                    && close[t] > 0.0
+                    && close[t + hold].is_finite()
+                    && close[t + hold] > 0.0
+            };
+            let signal_rows: Vec<usize> = (lo..hi)
+                .filter(|&t| {
+                    eligible(t)
+                        && selected
+                            .map(|mask| mask[t])
+                            .unwrap_or(sig.rsi[spy][t] >= cfg.vix_ratio_threshold)
+                })
+                .collect();
+            let returns: Vec<f64> = signal_rows
+                .iter()
+                .map(|&t| close[t + hold] / close[t] - 1.0)
+                .collect();
+            let random_returns: Vec<f64> = (lo..hi)
+                .filter(|&t| eligible(t))
+                .map(|t| close[t + hold] / close[t] - 1.0)
+                .collect();
+            let mean = |values: &[f64]| {
+                if values.is_empty() {
+                    f64::NAN
+                } else {
+                    values.iter().sum::<f64>() / values.len() as f64
+                }
+            };
+            let median = |values: &[f64]| {
+                if values.is_empty() {
+                    return f64::NAN;
+                }
+                let mut sorted = values.to_vec();
+                sorted.sort_by(f64::total_cmp);
+                let middle = sorted.len() / 2;
+                if sorted.len() % 2 == 0 {
+                    (sorted[middle - 1] + sorted[middle]) / 2.0
+                } else {
+                    sorted[middle]
+                }
+            };
+            let win_rate = if returns.is_empty() {
+                f64::NAN
+            } else {
+                100.0 * returns.iter().filter(|&&value| value > 0.0).count() as f64
+                    / returns.len() as f64
+            };
+            rows.push(S062EventStat {
+                population: population.into(),
+                period: period.clone(),
+                signals: returns.len(),
+                mean_forward_ret_pct: 100.0 * mean(&returns),
+                median_forward_ret_pct: 100.0 * median(&returns),
+                win_rate_pct: win_rate,
+                random_pick_mean_pct: 100.0 * mean(&random_returns),
+            });
+        }
+    }
+    rows
 }

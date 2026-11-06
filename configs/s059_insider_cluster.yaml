@@ -1,0 +1,59 @@
+sources:
+  - name: stocks
+    data_dir: ../trading_framework/data/cache/daily_10years_split
+    data_suffix: .parquet
+    symbols: "*"
+    cost_bps_per_side: 15.0
+benchmark: SPY
+benchmark_data_dir: ../trading_framework/data/cache/etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-01-04"
+form4_transactions_file: data/cache/pit/form4/form4_owner_events.csv
+form4_symbols_file: data/cache/pit/form4/form4_symbols.csv
+
+s059_min_buyers: 3
+s059_cluster_window: 21
+s059_hold_sessions: 63
+s059_routine_years: 3
+s059_exit_mode: fixed63
+s059_zero_sells: false
+cost_bps_per_side: 15.0
+fills: close,next_open
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+n_timing_draws: 500
+seed: 20261104
+book_slots: 1
+
+variants:
+  zero_sells: {s059_zero_sells: true}
+  low20: {s059_exit_mode: low20}
+  buyers2: {s059_min_buyers: 2}
+  buyers4: {s059_min_buyers: 4}
+  buyers5: {s059_min_buyers: 5}
+  buyers6: {s059_min_buyers: 6}
+  win10: {s059_cluster_window: 10}
+  win14: {s059_cluster_window: 14}
+  win28: {s059_cluster_window: 28}
+  win42: {s059_cluster_window: 42}
+  win63: {s059_cluster_window: 63}
+  hold42: {s059_hold_sessions: 42}
+  hold84: {s059_hold_sessions: 84}
+  hold126: {s059_hold_sessions: 126}
+  routine2: {s059_routine_years: 2}
+  routine4: {s059_routine_years: 4}
+  buyers2_win10: {s059_min_buyers: 2, s059_cluster_window: 10}
+  buyers2_win28: {s059_min_buyers: 2, s059_cluster_window: 28}
+  buyers4_win10: {s059_min_buyers: 4, s059_cluster_window: 10}
+  buyers4_win28: {s059_min_buyers: 4, s059_cluster_window: 28}
+  buyers4_win42: {s059_min_buyers: 4, s059_cluster_window: 42}
+  buyers5_win14: {s059_min_buyers: 5, s059_cluster_window: 14}
+  buyers5_win28: {s059_min_buyers: 5, s059_cluster_window: 28}
+  buyers5_win42: {s059_min_buyers: 5, s059_cluster_window: 42}
+  win10_hold42: {s059_cluster_window: 10, s059_hold_sessions: 42}
+  win28_hold84: {s059_cluster_window: 28, s059_hold_sessions: 84}
+  win42_hold84: {s059_cluster_window: 42, s059_hold_sessions: 84}
+  buyers4_zero: {s059_min_buyers: 4, s059_zero_sells: true}
+  buyers4_low20: {s059_min_buyers: 4, s059_exit_mode: low20}
+  routine2_buyers4: {s059_routine_years: 2, s059_min_buyers: 4}

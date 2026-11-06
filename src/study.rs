@@ -1004,6 +1004,7 @@ enum Family7Kind {
     VixMaRegime,
     HurstRegime,
     ZweigBreadthThrust,
+    VixVxvRatio,
 }
 
 impl StrategyDefinition for Family7Definition {
@@ -1026,6 +1027,7 @@ impl StrategyDefinition for Family7Definition {
             Family7Kind::VixMaRegime => crate::family7::compute_s063_signals(panel, cfg),
             Family7Kind::HurstRegime => crate::family7::compute_s064_signals(panel, cfg),
             Family7Kind::ZweigBreadthThrust => crate::family7::compute_s066_signals(panel, cfg),
+            Family7Kind::VixVxvRatio => crate::family7::compute_s062_signals(panel, cfg),
         }
     }
 
@@ -1048,6 +1050,7 @@ impl StrategyDefinition for Family7Definition {
             Family7Kind::VixMaRegime => crate::family7::s063_trades(panel, sig, cfg, fill),
             Family7Kind::HurstRegime => crate::family7::s064_trades(panel, sig, cfg, fill),
             Family7Kind::ZweigBreadthThrust => crate::family7::s066_trades(panel, sig, cfg, fill),
+            Family7Kind::VixVxvRatio => crate::family7::s062_trades(panel, sig, cfg, fill),
         }
     }
 }
@@ -1065,6 +1068,7 @@ enum Family5Kind {
     PeadSurprise,
     SectorBreadth,
     StatArb,
+    InsiderCluster,
 }
 
 impl StrategyDefinition for Family5Definition {
@@ -1083,6 +1087,7 @@ impl StrategyDefinition for Family5Definition {
             Family5Kind::PeadSurprise => crate::family5::compute_s054_signals(panel, cfg),
             Family5Kind::SectorBreadth => crate::family5::compute_s067_signals(panel, cfg),
             Family5Kind::StatArb => crate::family5::compute_s078_signals(panel, cfg),
+            Family5Kind::InsiderCluster => crate::family5::compute_s059_signals(panel, cfg),
         }
     }
 
@@ -1103,6 +1108,7 @@ impl StrategyDefinition for Family5Definition {
             Family5Kind::StatArb => {
                 crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill)
             }
+            Family5Kind::InsiderCluster => crate::family5::s059_trades(panel, sig, cfg, fill),
         }
     }
 }
@@ -1402,6 +1408,16 @@ static S066_STRATEGY: Family7Definition = Family7Definition {
     title: crate::family7::S066_TITLE,
     kind: Family7Kind::ZweigBreadthThrust,
 };
+static S062_STRATEGY: Family7Definition = Family7Definition {
+    name: crate::family7::S062_NAME,
+    title: crate::family7::S062_TITLE,
+    kind: Family7Kind::VixVxvRatio,
+};
+static S059_STRATEGY: Family5Definition = Family5Definition {
+    name: crate::family5::S059_NAME,
+    title: crate::family5::S059_TITLE,
+    kind: Family5Kind::InsiderCluster,
+};
 static S052_STRATEGY: Family5Definition = Family5Definition {
     name: crate::family5::S052_NAME,
     title: crate::family5::S052_TITLE,
@@ -1465,7 +1481,7 @@ static S103_STRATEGY: Family10Definition = Family10Definition {
 static S100_STRATEGY: ThreeWhiteSoldiersStrategyDefinition =
     ThreeWhiteSoldiersStrategyDefinition;
 static S099_STRATEGY: OutsideDayReversalStrategyDefinition = OutsideDayReversalStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 60] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 62] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -1526,6 +1542,8 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 60] = [
     &S103_STRATEGY,
     &S100_STRATEGY,
     &S099_STRATEGY,
+    &S062_STRATEGY,
+    &S059_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -1670,6 +1688,9 @@ impl<'a> Study<'a> {
             ) =>
             {
                 Some(crate::family5::publish_symbols(&cfg.earnings_dates_file)?)
+            }
+            crate::family5::S059_NAME => {
+                Some(crate::family5::s059_symbols(&cfg.form4_symbols_file)?)
             }
             _ => None,
         };
@@ -2638,6 +2659,32 @@ impl<'a> Study<'a> {
         md.push("- Trend = net-exposure-weighted benchmark return; skill = total - trend - bias; units are log returns. For Family 4, the benchmark is the equal-weight tradable universe (prior-session membership), or French industry mean for S046. Weighted exposure uses the position held into each period; same-period entry and exit counts as exposure. This is a close-to-close approximation for next-open fills.".into());
         md.push("- Bias accounts for fill-model correlation only; it does not adjust for the full variant search. DEV rankings are exploratory and TEST has already been inspected.".into());
         md.extend(self.intro());
+        if cfg.strategy == crate::family7::S062_NAME {
+            let stats = crate::family7::s062_event_statistics(&s.panel, &s.sig, cfg);
+            let mut csv = String::from(
+                "population,period,signals,mean_forward_ret_pct,median_forward_ret_pct,win_rate_pct,random_pick_mean_pct\n",
+            );
+            let event_number = |value: f64| {
+                if value.is_finite() {
+                    value.to_string()
+                } else {
+                    String::new()
+                }
+            };
+            for row in &stats {
+                csv.push_str(&format!(
+                    "{},{},{},{},{},{},{}\n",
+                    row.population,
+                    row.period,
+                    row.signals,
+                    event_number(row.mean_forward_ret_pct),
+                    event_number(row.median_forward_ret_pct),
+                    event_number(row.win_rate_pct),
+                    event_number(row.random_pick_mean_pct)
+                ));
+            }
+            self.write("signal_event_statistics.csv", csv)?;
+        }
         md.push(String::new());
         for f in flags {
             md.push(format!("**{f}**"));
@@ -2739,6 +2786,77 @@ impl<'a> Study<'a> {
 
     fn intro(&self) -> Vec<String> {
         let (c, s) = (self.cfg, self.state());
+        if c.strategy == crate::family5::S059_NAME {
+            return vec![
+                format!(
+                    "- Universe: {} issuer tickers with normalized SEC Form 4 owner events and daily total-return bars from {}.",
+                    s.panel.symbols.len(),
+                    c.start_date
+                ),
+                format!(
+                    "- Rule: at least {} distinct insiders with non-routine open-market buys in {} sessions; exit after {} sessions or on the prior-20-session low.",
+                    c.s059_min_buyers, c.s059_cluster_window, c.s059_hold_sessions
+                ),
+                format!(
+                    "- Timing: date-only SEC FILING_DATE is mapped to the next market session; fills are {} at {} bps/side.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- 10b5-1: use AFF10B5ONE when present; older trades are excluded only when the plan is disclosed in linked footnotes or remarks, so historical false negatives remain possible.".into(),
+                "- DELTA: the bulk TSV lacks acceptance times and the catalog's matched size/industry return series; the report uses SPY and the framework's random-pick baselines.".into(),
+            ];
+        }
+        if c.strategy == crate::family7::S062_NAME {
+            let stats = crate::family7::s062_event_statistics(&s.panel, &s.sig, c);
+            let effective = s
+                .masks
+                .iter()
+                .filter(|(name, _)| name == "dev" || name == "test")
+                .map(|(name, mask)| format!("{name} {}", mask.iter().filter(|&&x| x).count() / c.vix_ratio_hold_sessions))
+                .collect::<Vec<_>>()
+                .join(", ");
+            let mut lines = vec![
+                "- Universe: SPY total-return history from 2008; CBOE VIX and VIX3M, with CBOE-sourced VXVCLS filling the pre-2009 gap.".into(),
+                format!(
+                    "- Rule: VIX/VXV >= {:.2}; hold {} sessions. Signals are de-overlapped for portfolio trades; source-comparable statistics also use every signal day.",
+                    c.vix_ratio_threshold, c.vix_ratio_hold_sessions
+                ),
+                format!(
+                    "- Holding-period effective sample approximation: {effective} session blocks; incident counts are reported below."
+                ),
+                format!(
+                    "- Fill: {} at {} bps/side; the close fill is an upper bound.",
+                    c.fills_list().join(", "),
+                    c.cost_bps_per_side
+                ),
+                "- All-days and incident event returns are gross close-to-close values; the all-days observations overlap.".into(),
+                String::new(),
+                "### Signal-date event diagnostics".into(),
+                String::new(),
+                "| population | period | signals | mean fwd % | median fwd % | win % | random-date mean % |".into(),
+                "|---|---|---:|---:|---:|---:|---:|".into(),
+            ];
+            for row in stats {
+                let fmt = |value: f64| {
+                    if value.is_finite() {
+                        format!("{value:.2}")
+                    } else {
+                        "n/a".into()
+                    }
+                };
+                lines.push(format!(
+                    "| {} | {} | {} | {} | {} | {} | {} |",
+                    row.population,
+                    row.period,
+                    row.signals,
+                    fmt(row.mean_forward_ret_pct),
+                    fmt(row.median_forward_ret_pct),
+                    fmt(row.win_rate_pct),
+                    fmt(row.random_pick_mean_pct)
+                ));
+            }
+            return lines;
+        }
         if c.strategy == S023_NAME {
             return vec![
                 format!(
