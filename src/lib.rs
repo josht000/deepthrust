@@ -16,6 +16,7 @@ pub mod family10;
 pub mod family11;
 pub mod markov;
 pub mod family12;
+pub mod family13;
 pub mod partition;
 pub mod report;
 #[path = "strategies/s041_mom_12_1/cash_ledger.rs"]

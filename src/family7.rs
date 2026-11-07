@@ -2061,7 +2061,7 @@ fn parse_vol_date(value: &str, path: &Path, row: usize) -> Result<NaiveDate, Str
         .map_err(|error| format!("{} row {row}: bad date {value:?}: {error}", path.display()))
 }
 
-fn read_vol_series(
+pub(crate) fn read_vol_series(
     path: &str,
     date_name: &str,
     value_name: &str,

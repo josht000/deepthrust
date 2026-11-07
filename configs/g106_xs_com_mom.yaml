@@ -1,0 +1,59 @@
+# G106 XS 252-session commodity momentum, monthly top/bottom-2 L/S.
+# Hollstein futures universe proxied by commodity ETFs only (DELTA).
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: GLD,SLV,CPER,USO,GSG,DBC
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2005-01-01"
+min_history: 252
+mom_window: 252
+n_legs: 2
+rebalance: monthly
+periods_per_year: 252
+borrow_bps_annual: 25.0
+cost_bps_per_side: 10.0
+book_slots: 6
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+fills: next_open,close
+
+variants:
+  mom63: {mom_window: 63}
+  mom126: {mom_window: 126}
+  mom189: {mom_window: 189}
+  mom252: {mom_window: 252}
+  mom315: {mom_window: 315}
+  mom378: {mom_window: 378}
+  legs1: {n_legs: 1}
+  legs2: {n_legs: 2}
+  legs3: {n_legs: 3}
+  weekly: {rebalance: weekly}
+  dom1: {rebalance: dom1}
+  dom15: {rebalance: dom15}
+  mom126_legs1: {mom_window: 126, n_legs: 1}
+  mom126_legs3: {mom_window: 126, n_legs: 3}
+  mom252_legs1: {mom_window: 252, n_legs: 1}
+  mom252_legs3: {mom_window: 252, n_legs: 3}
+  mom189_legs1: {mom_window: 189, n_legs: 1}
+  mom189_legs3: {mom_window: 189, n_legs: 3}
+  mom63_legs1: {mom_window: 63, n_legs: 1}
+  mom63_legs3: {mom_window: 63, n_legs: 3}
+  mom315_legs1: {mom_window: 315, n_legs: 1}
+  mom315_legs3: {mom_window: 315, n_legs: 3}
+  mom126_weekly: {mom_window: 126, rebalance: weekly}
+  mom252_weekly: {mom_window: 252, rebalance: weekly}
+  mom189_weekly: {mom_window: 189, rebalance: weekly}
+  mom63_weekly: {mom_window: 63, rebalance: weekly}
+  mom378_legs1: {mom_window: 378, n_legs: 1}
+  mom378_legs3: {mom_window: 378, n_legs: 3}
+  legs1_weekly: {n_legs: 1, rebalance: weekly}
+  legs3_weekly: {n_legs: 3, rebalance: weekly}
+  mom126_dom1: {mom_window: 126, rebalance: dom1}
+  mom252_dom1: {mom_window: 252, rebalance: dom1}
+  mom189_dom15: {mom_window: 189, rebalance: dom15}
+  mom189_dom1: {mom_window: 189, rebalance: dom1}
+  mom126_dom15: {mom_window: 126, rebalance: dom15}

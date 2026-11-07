@@ -1,0 +1,61 @@
+# G079 CTA 3.0: tanh(osc(cumsum(vol_adj(vola32,clip3))))/EWM-std(com96)
+# x 1e5/1e8 daily. Catalog clip=3 (fn default; notebook slider is 4.2).
+# Futures legs proxied by TR ETFs (DELTA).
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,EFA,EEM,TLT,IEF,UUP,GLD,SLV,CPER,USO,GSG,DBC
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2005-01-01"
+min_history: 300
+ewma_fast: "32"
+ewma_slow: "96"
+vol_window: 32
+clip: 3.0
+cash_scale: 0.001
+rebalance: daily
+periods_per_year: 252
+borrow_bps_annual: 25.0
+cost_bps_per_side: 10.0
+book_slots: 12
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+fills: next_open,close
+
+variants:
+  clip20: {clip: 2.0}
+  clip30: {clip: 3.0}
+  clip42: {clip: 4.2}
+  clip50: {clip: 5.0}
+  clip60: {clip: 6.0}
+  vol16: {vol_window: 16}
+  vol32: {vol_window: 32}
+  vol64: {vol_window: 64}
+  vol96: {vol_window: 96}
+  f8s24: {ewma_fast: "8", ewma_slow: "24"}
+  f16s48: {ewma_fast: "16", ewma_slow: "48"}
+  f20s60: {ewma_fast: "20", ewma_slow: "60"}
+  f32s96: {ewma_fast: "32", ewma_slow: "96"}
+  f32s128: {ewma_fast: "32", ewma_slow: "128"}
+  f48s144: {ewma_fast: "48", ewma_slow: "144"}
+  f64s192: {ewma_fast: "64", ewma_slow: "192"}
+  cs500: {cash_scale: 0.0005}
+  cs2000: {cash_scale: 0.002}
+  cs3000: {cash_scale: 0.003}
+  weekly: {rebalance: weekly}
+  monthly: {rebalance: monthly}
+  clip42_f16s48: {clip: 4.2, ewma_fast: "16", ewma_slow: "48"}
+  clip42_f64s192: {clip: 4.2, ewma_fast: "64", ewma_slow: "192"}
+  clip42_vol64: {clip: 4.2, vol_window: 64}
+  clip42_cs002: {clip: 4.2, cash_scale: 0.002}
+  clip3_vol64: {clip: 3.0, vol_window: 64}
+  clip5_vol64: {clip: 5.0, vol_window: 64}
+  clip3_cs002: {clip: 3.0, cash_scale: 0.002}
+  clip42_weekly: {clip: 4.2, rebalance: weekly}
+  clip42_f20s60: {clip: 4.2, ewma_fast: "20", ewma_slow: "60"}
+  clip42_f32s128: {clip: 4.2, ewma_fast: "32", ewma_slow: "128"}
+  warm200: {min_history: 200}
+  warm400: {min_history: 400}

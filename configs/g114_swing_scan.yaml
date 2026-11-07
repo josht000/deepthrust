@@ -1,0 +1,71 @@
+# G114 NSE scanner -> US DELTA: within 5% of 252d high AND above SMA50 ->
+# buy above signal-day high, SL below min(close,prev close), target 1:2.
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2016-01-01"
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+min_price: 5.0
+universe_top_n: 300
+min_history: 252
+lookback: 252
+sma_window: 50
+screen_pct: 0.05
+consol_pct: 0.0
+rsi_threshold: 0.0
+risk_reward: 2.0
+gap_max_hold: 20
+periods_per_year: 252
+borrow_bps_annual: 0.0
+cost_bps_per_side: 10.0
+book_slots: 40
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+fills: next_open,close
+
+variants:
+  near2: {screen_pct: 0.02}
+  near3: {screen_pct: 0.03}
+  near5: {screen_pct: 0.05}
+  near10: {screen_pct: 0.1}
+  near15: {screen_pct: 0.15}
+  sma20: {sma_window: 20}
+  sma50: {sma_window: 50}
+  sma100: {sma_window: 100}
+  sma150: {sma_window: 150}
+  sma200: {sma_window: 200}
+  lb126: {lookback: 126}
+  lb189: {lookback: 189}
+  lb252: {lookback: 252}
+  lb315: {lookback: 315}
+  rr10: {risk_reward: 1.0}
+  rr15: {risk_reward: 1.5}
+  rr20: {risk_reward: 2.0}
+  rr30: {risk_reward: 3.0}
+  hold5: {gap_max_hold: 5}
+  hold10: {gap_max_hold: 10}
+  hold20: {gap_max_hold: 20}
+  hold40: {gap_max_hold: 40}
+  hold60: {gap_max_hold: 60}
+  con5: {consol_pct: 0.05}
+  con10: {consol_pct: 0.1}
+  con15: {consol_pct: 0.15}
+  con20: {consol_pct: 0.2}
+  rsi40: {rsi_threshold: 40.0, rsi_len: 14}
+  rsi50: {rsi_threshold: 50.0, rsi_len: 14}
+  rsi60: {rsi_threshold: 60.0, rsi_len: 14}
+  con10_w20: {consol_pct: 0.1, consol_window: 20}
+  con15_w7: {consol_pct: 0.15, consol_window: 7}
+  near03_rr15: {screen_pct: 0.03, risk_reward: 1.5}
+  near10_sma20: {screen_pct: 0.1, sma_window: 20}
+  lb126_sma20: {lookback: 126, sma_window: 20}
+  con10_rr15: {consol_pct: 0.1, risk_reward: 1.5}
+  rsi50_rr15: {rsi_threshold: 50.0, rsi_len: 14, risk_reward: 1.5}
+  u150: {universe_top_n: 150}
+  u500: {universe_top_n: 500}
+  etf_uni: {data_dir: C:\data\trading\trading_framework\data\cache\etf_tr, symbols: SPY,EFA,EEM,TLT,IEF,UUP,GLD,SLV,CPER,USO,GSG,DBC, universe_top_n: 0, min_price: 0.0}

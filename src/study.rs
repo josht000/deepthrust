@@ -149,6 +149,32 @@ pub const G202_NAME: &str = "g202_ternary";
 pub const G202_TITLE: &str = "G202 Indicator Ternary-Signal Engine";
 pub const G099_NAME: &str = "g099_olps";
 pub const G099_TITLE: &str = "G099 Online Portfolio Selection Zoo";
+pub const G077_NAME: &str = crate::family13::G077_NAME;
+pub const G077_TITLE: &str = crate::family13::G077_TITLE;
+pub const G078_NAME: &str = crate::family13::G078_NAME;
+pub const G078_TITLE: &str = crate::family13::G078_TITLE;
+pub const G079_NAME: &str = crate::family13::G079_NAME;
+pub const G079_TITLE: &str = crate::family13::G079_TITLE;
+pub const G080_NAME: &str = crate::family13::G080_NAME;
+pub const G080_TITLE: &str = crate::family13::G080_TITLE;
+pub const G081_NAME: &str = crate::family13::G081_NAME;
+pub const G081_TITLE: &str = crate::family13::G081_TITLE;
+pub const G085_NAME: &str = crate::family13::G085_NAME;
+pub const G085_TITLE: &str = crate::family13::G085_TITLE;
+pub const G095_NAME: &str = crate::family13::G095_NAME;
+pub const G095_TITLE: &str = crate::family13::G095_TITLE;
+pub const G106_NAME: &str = crate::family13::G106_NAME;
+pub const G106_TITLE: &str = crate::family13::G106_TITLE;
+pub const G109_NAME: &str = crate::family13::G109_NAME;
+pub const G109_TITLE: &str = crate::family13::G109_TITLE;
+pub const G063_NAME: &str = crate::family13::G063_NAME;
+pub const G063_TITLE: &str = crate::family13::G063_TITLE;
+pub const G010_NAME: &str = crate::family13::G010_NAME;
+pub const G010_TITLE: &str = crate::family13::G010_TITLE;
+pub const G114_NAME: &str = crate::family13::G114_NAME;
+pub const G114_TITLE: &str = crate::family13::G114_TITLE;
+pub const G139_NAME: &str = crate::family13::G139_NAME;
+pub const G139_TITLE: &str = crate::family13::G139_TITLE;
 pub const ORDER: [&str; 5] = ["trades", "table", "rank", "partition", "charts"];
 const MIN_DEV_TRADES: f64 = 100.0;
 const MIN_TEST_TRADES: f64 = 30.0;
@@ -540,6 +566,61 @@ impl StrategyDefinition for Family12Definition {
                 };
                 Ok(engine::swing_trades(panel, &params, cfg, fill))
             }
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+enum Family13Kind {
+    G077, G078, G079, G080, G081, G085, G095, G106, G109, G063, G010, G114, G139,
+}
+
+struct Family13Definition {
+    name: &'static str,
+    title: &'static str,
+    kind: Family13Kind,
+}
+
+impl StrategyDefinition for Family13Definition {
+    fn name(&self) -> &'static str {
+        self.name
+    }
+
+    fn title(&self) -> &'static str {
+        self.title
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        match self.kind {
+            Family13Kind::G077 => crate::family13::compute_g077_signals(panel, cfg),
+            Family13Kind::G078 => crate::family13::compute_g078_signals(panel, cfg),
+            Family13Kind::G079 => crate::family13::compute_g079_signals(panel, cfg),
+            Family13Kind::G080 => crate::family13::compute_g080_signals(panel, cfg),
+            Family13Kind::G081 => crate::family13::compute_g081_signals(panel, cfg),
+            Family13Kind::G085 => crate::family13::compute_g085_signals(panel, cfg),
+            Family13Kind::G095 => crate::family13::compute_g095_signals(panel, cfg),
+            Family13Kind::G106 => crate::family13::compute_g106_signals(panel, cfg),
+            Family13Kind::G109 => crate::family13::compute_g109_signals(panel, cfg),
+            Family13Kind::G063 => crate::family13::compute_g063_signals(panel, cfg),
+            Family13Kind::G010 => crate::family13::compute_g010_signals(panel, cfg),
+            Family13Kind::G114 => crate::family13::compute_g114_signals(panel, cfg),
+            Family13Kind::G139 => crate::family13::compute_g139_signals(panel, cfg),
+        }
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        match self.kind {
+            Family13Kind::G095 => crate::family13::g095_trades(panel, sig, cfg, fill),
+            Family13Kind::G063 => crate::family13::g063_trades(panel, sig, cfg, fill),
+            Family13Kind::G114 => crate::family13::g114_trades(panel, sig, cfg, fill),
+            Family13Kind::G139 => crate::family13::g139_trades(panel, sig, cfg, fill),
+            _ => crate::family4::weighted_rebalance_trades(panel, sig, cfg, fill),
         }
     }
 }
@@ -1826,6 +1907,19 @@ static G128_STRATEGY: Family12Definition = Family12Definition { name: G128_NAME,
 static G129_STRATEGY: Family12Definition = Family12Definition { name: G129_NAME, title: G129_TITLE, kind: Family12Kind::G129 };
 static G130_STRATEGY: Family12Definition = Family12Definition { name: G130_NAME, title: G130_TITLE, kind: Family12Kind::G130 };
 static G202_STRATEGY: Family12Definition = Family12Definition { name: G202_NAME, title: G202_TITLE, kind: Family12Kind::G202 };
+static G077_STRATEGY: Family13Definition = Family13Definition { name: G077_NAME, title: G077_TITLE, kind: Family13Kind::G077 };
+static G078_STRATEGY: Family13Definition = Family13Definition { name: G078_NAME, title: G078_TITLE, kind: Family13Kind::G078 };
+static G079_STRATEGY: Family13Definition = Family13Definition { name: G079_NAME, title: G079_TITLE, kind: Family13Kind::G079 };
+static G080_STRATEGY: Family13Definition = Family13Definition { name: G080_NAME, title: G080_TITLE, kind: Family13Kind::G080 };
+static G081_STRATEGY: Family13Definition = Family13Definition { name: G081_NAME, title: G081_TITLE, kind: Family13Kind::G081 };
+static G085_STRATEGY: Family13Definition = Family13Definition { name: G085_NAME, title: G085_TITLE, kind: Family13Kind::G085 };
+static G095_STRATEGY: Family13Definition = Family13Definition { name: G095_NAME, title: G095_TITLE, kind: Family13Kind::G095 };
+static G106_STRATEGY: Family13Definition = Family13Definition { name: G106_NAME, title: G106_TITLE, kind: Family13Kind::G106 };
+static G109_STRATEGY: Family13Definition = Family13Definition { name: G109_NAME, title: G109_TITLE, kind: Family13Kind::G109 };
+static G063_STRATEGY: Family13Definition = Family13Definition { name: G063_NAME, title: G063_TITLE, kind: Family13Kind::G063 };
+static G010_STRATEGY: Family13Definition = Family13Definition { name: G010_NAME, title: G010_TITLE, kind: Family13Kind::G010 };
+static G114_STRATEGY: Family13Definition = Family13Definition { name: G114_NAME, title: G114_TITLE, kind: Family13Kind::G114 };
+static G139_STRATEGY: Family13Definition = Family13Definition { name: G139_NAME, title: G139_TITLE, kind: Family13Kind::G139 };
 static S019_STRATEGY: GapAndGoStrategyDefinition = GapAndGoStrategyDefinition;
 static S021_STRATEGY: OvernightStrategyDefinition = OvernightStrategyDefinition {
     name: S021_NAME,
@@ -2001,7 +2095,7 @@ static S100_STRATEGY: ThreeWhiteSoldiersStrategyDefinition =
     ThreeWhiteSoldiersStrategyDefinition;
 static S099_STRATEGY: OutsideDayReversalStrategyDefinition = OutsideDayReversalStrategyDefinition;
 static MARKOV_STRATEGY: MarkovRegimeStrategyDefinition = MarkovRegimeStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 92] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 105] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -2094,6 +2188,19 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 92] = [
     &G129_STRATEGY,
     &G130_STRATEGY,
     &G202_STRATEGY,
+    &G077_STRATEGY,
+    &G078_STRATEGY,
+    &G079_STRATEGY,
+    &G080_STRATEGY,
+    &G081_STRATEGY,
+    &G085_STRATEGY,
+    &G095_STRATEGY,
+    &G106_STRATEGY,
+    &G109_STRATEGY,
+    &G063_STRATEGY,
+    &G010_STRATEGY,
+    &G114_STRATEGY,
+    &G139_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {

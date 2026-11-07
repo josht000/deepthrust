@@ -1,0 +1,65 @@
+# G095 SSA first-PC trend: LatentDim 30, window M=90, 21-day allocation,
+# vol-parity weights x signal rescaled [-1,1], 10% vol-target leverage (QARMII).
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,EFA,EEM,TLT,IEF,UUP,GLD,SLV,CPER,USO,GSG,DBC
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2005-01-01"
+min_history: 120
+lookback: 90
+latent_dim: 30
+rebalance_step: 21
+weighting_mode: volparity
+strategy_mode: ""
+trend_threshold: 0.5
+target_vol: 0.10
+rebalance: monthly
+periods_per_year: 252
+borrow_bps_annual: 25.0
+cost_bps_per_side: 10.0
+book_slots: 12
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+fills: next_open,close
+
+variants:
+  eig15: {latent_dim: 15}
+  eig20: {latent_dim: 20}
+  eig30: {latent_dim: 30}
+  eig40: {latent_dim: 40}
+  eig50: {latent_dim: 50}
+  m60: {lookback: 60}
+  m90: {lookback: 90}
+  m120: {lookback: 120}
+  m180: {lookback: 180}
+  m252: {lookback: 252}
+  step10: {rebalance_step: 10}
+  step21: {rebalance_step: 21}
+  step42: {rebalance_step: 42}
+  step63: {rebalance_step: 63}
+  tv5: {target_vol: 0.05}
+  tv10: {target_vol: 0.1}
+  tv15: {target_vol: 0.15}
+  tv20: {target_vol: 0.2}
+  ew: {weighting_mode: EW}
+  overq: {strategy_mode: overQuantity}
+  indq: {strategy_mode: indQuantity}
+  overq_thr30: {strategy_mode: overQuantity, trend_threshold: 0.3}
+  indq_thr30: {strategy_mode: indQuantity, trend_threshold: 0.3}
+  overq_thr70: {strategy_mode: overQuantity, trend_threshold: 0.7}
+  indq_thr70: {strategy_mode: indQuantity, trend_threshold: 0.7}
+  nolev: {target_vol: 0.0}
+  m60_eig20: {lookback: 60, latent_dim: 20}
+  m120_eig40: {lookback: 120, latent_dim: 40}
+  m180_eig30: {lookback: 180, latent_dim: 30}
+  m120_step21: {lookback: 120, rebalance_step: 21}
+  ew_m120: {weighting_mode: EW, lookback: 120}
+  ew_step42: {weighting_mode: EW, rebalance_step: 42}
+  indq_ew: {strategy_mode: indQuantity, weighting_mode: EW}
+  overq_ew: {strategy_mode: overQuantity, weighting_mode: EW}
+  eig30_tv15: {target_vol: 0.15}
+  m252_step21: {lookback: 252, rebalance_step: 21}

@@ -1,0 +1,67 @@
+# G139 VIX term-structure study (partial DELTA): VIX/VIX3M spot ratio >=
+# threshold = backwardation proxy; long SPY/TLT log-spread on z <= -z_entry,
+# exit on z >= exit_z, contango, or max_hold.
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,TLT
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2008-01-01"
+pairs: "SPY,TLT"
+vix_file: data/cache/pit/cboe_volatility/VIX_History.csv
+vix3m_file: data/cache/pit/cboe_volatility/VIX3M_History.csv
+min_history: 100
+z_window: 60
+z_entry: 1.0
+exit_z: 0.0
+vix_ratio_threshold: 1.0
+spread_weight: 1.0
+max_hold: 63
+periods_per_year: 252
+borrow_bps_annual: 25.0
+cost_bps_per_side: 5.0
+book_slots: 4
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+fills: next_open,close
+
+variants:
+  thr95: {vix_ratio_threshold: 0.95}
+  thr100: {vix_ratio_threshold: 1.0}
+  thr105: {vix_ratio_threshold: 1.05}
+  thr110: {vix_ratio_threshold: 1.1}
+  z05: {z_entry: 0.5}
+  z10: {z_entry: 1.0}
+  z15: {z_entry: 1.5}
+  z20: {z_entry: 2.0}
+  zw40: {z_window: 40}
+  zw60: {z_window: 60}
+  zw120: {z_window: 120}
+  zw180: {z_window: 180}
+  ezm05: {exit_z: -0.5}
+  ez00: {exit_z: 0.0}
+  ez05: {exit_z: 0.5}
+  hold21: {max_hold: 21}
+  hold42: {max_hold: 42}
+  hold63: {max_hold: 63}
+  hold126: {max_hold: 126}
+  w05: {spread_weight: 0.5}
+  w10: {spread_weight: 1.0}
+  w15: {spread_weight: 1.5}
+  w20: {spread_weight: 2.0}
+  thr105_z05: {vix_ratio_threshold: 1.05, z_entry: 0.5}
+  thr105_z15: {vix_ratio_threshold: 1.05, z_entry: 1.5}
+  thr100_z05: {vix_ratio_threshold: 1.0, z_entry: 0.5}
+  thr100_z15: {vix_ratio_threshold: 1.0, z_entry: 1.5}
+  thr110_z10: {vix_ratio_threshold: 1.1, z_entry: 1.0}
+  zw40_z05: {z_window: 40, z_entry: 0.5}
+  zw120_z10: {z_window: 120, z_entry: 1.0}
+  hold21_z05: {max_hold: 21, z_entry: 0.5}
+  w05_z05: {spread_weight: 0.5, z_entry: 0.5}
+  w15_z05: {spread_weight: 1.5, z_entry: 0.5}
+  thr095_hold126: {vix_ratio_threshold: 0.95, max_hold: 126}
+  thr105_ezm05: {vix_ratio_threshold: 1.05, exit_z: -0.5}
+  thr100_zw40: {vix_ratio_threshold: 1.0, z_window: 40}

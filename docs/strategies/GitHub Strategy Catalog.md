@@ -26,7 +26,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G007 | Ten-Day Local-Minimum Pullback Above SMA200](#g007--ten-day-local-minimum-pullback-above-sma200) — DUPLICATE (S006)
   - [G008 | Bollinger Dip in an Uptrend with Multi-Asset Allocation](#g008--bollinger-dip-in-an-uptrend-with-multi-asset-allocation) — DUPLICATE (S011)
   - [G009 | Bollinger(20,2.5)-Cross + RSI(14) Reversal EA (GBP/USD MT4)](#g009--bollinger2025-cross--rsi14-reversal-ea-gbpusd-mt4) — DUPLICATE (S011)
-  - [G010 | Crypto Spot Z-Score Mean-Reversion + Rolling-Momentum Signal Blend](#g010--crypto-spot-z-score-mean-reversion--rolling-momentum-signal-blend)
+  - [G010 | Crypto Spot Z-Score Mean-Reversion + Rolling-Momentum Signal Blend](#g010--crypto-spot-z-score-mean-reversion--rolling-momentum-signal-blend) — IMPLEMENTED
   - [G011 | EUR/USD Z-Score Mean Reversion (OANDA M5)](#g011--eurusd-z-score-mean-reversion-oanda-m5) — DUPLICATE (S011)
   - [G012 | Intraday High-Low Geometric-Midpoint Reversal](#g012--intraday-high-low-geometric-midpoint-reversal)
   - [G013 | N-Bar Contrarian Sign-Flip (mean of last N returns)](#g013--n-bar-contrarian-sign-flip-mean-of-last-n-returns) — DUPLICATE (S007)
@@ -80,7 +80,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G060 | Soybean Crush-Spread Fair-Value Mean Reversion](#g060--soybean-crush-spread-fair-value-mean-reversion)
   - [G061 | Tick-Level Beta-Expected-Price Pair Reversion](#g061--tick-level-beta-expected-price-pair-reversion)
   - [G062 | Tick-Level Kalman Cointegration Error Reversion](#g062--tick-level-kalman-cointegration-error-reversion)
-  - [G063 | Treasury Futures Z/T-Score Relative-Value Entry](#g063--treasury-futures-zt-score-relative-value-entry)
+  - [G063 | Treasury Futures Z/T-Score Relative-Value Entry](#g063--treasury-futures-zt-score-relative-value-entry) — IMPLEMENTED
   - [G064 | Two-Regime Markov-Switching Pair Spread](#g064--two-regime-markov-switching-pair-spread)
   - [G065 | Wavelet-Filtered Cointegrated Pair Reversion](#g065--wavelet-filtered-cointegrated-pair-reversion) — DUPLICATE (S071)
   - [G066 | Zipline Cointegration Pair Z-Score (z_signal=2, z_exit=0, lookback=200)](#g066--zipline-cointegration-pair-z-score-z_signal2-z_exit0-lookback200) — DUPLICATE (S071)
@@ -95,15 +95,15 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G074 | Turtle Donchian Reversal (26/10)](#g074--turtle-donchian-reversal-2610) — DUPLICATE (S036)
   - [G075 | Adaptive Renko Trend Following with Partial De-Risking](#g075--adaptive-renko-trend-following-with-partial-de-risking)
   - [G076 | Awesome Oscillator Saucer and Zero-Line Momentum](#g076--awesome-oscillator-saucer-and-zero-line-momentum) — IMPLEMENTED
-  - [G077 | CTA 1.0 Binary EWM Crossover](#g077--cta-10-binary-ewm-crossover)
-  - [G078 | CTA 2.0 Volatility-Scaled EWM Crossover](#g078--cta-20-volatility-scaled-ewm-crossover)
-  - [G079 | CTA 3.0 Robust Volatility-Adjusted Oscillator](#g079--cta-30-robust-volatility-adjusted-oscillator)
-  - [G080 | CTA 4.0 Robust Oscillator with Risk-Parity Allocation](#g080--cta-40-robust-oscillator-with-risk-parity-allocation)
-  - [G081 | CTA 5.0 DCC Correlation-Aware Risk Parity](#g081--cta-50-dcc-correlation-aware-risk-parity)
+  - [G077 | CTA 1.0 Binary EWM Crossover](#g077--cta-10-binary-ewm-crossover) — IMPLEMENTED
+  - [G078 | CTA 2.0 Volatility-Scaled EWM Crossover](#g078--cta-20-volatility-scaled-ewm-crossover) — IMPLEMENTED
+  - [G079 | CTA 3.0 Robust Volatility-Adjusted Oscillator](#g079--cta-30-robust-volatility-adjusted-oscillator) — IMPLEMENTED
+  - [G080 | CTA 4.0 Robust Oscillator with Risk-Parity Allocation](#g080--cta-40-robust-oscillator-with-risk-parity-allocation) — IMPLEMENTED
+  - [G081 | CTA 5.0 DCC Correlation-Aware Risk Parity](#g081--cta-50-dcc-correlation-aware-risk-parity) — IMPLEMENTED
   - [G082 | Dual Thrust Opening-Range Breakout](#g082--dual-thrust-opening-range-breakout)
   - [G083 | Golden-Cross Moving-Average Trend](#g083--golden-cross-moving-average-trend) — DUPLICATE (S089)
   - [G084 | Leveraged ETF 2 PM Trend-Day Close Trade](#g084--leveraged-etf-2-pm-trend-day-close-trade)
-  - [G085 | Local-Extreme Futures Breakout](#g085--local-extreme-futures-breakout)
+  - [G085 | Local-Extreme Futures Breakout](#g085--local-extreme-futures-breakout) — IMPLEMENTED
   - [G086 | MACD-Cross + 10-Bar S/R Break Scalper (XAU/USD M1)](#g086--macd-cross--10-bar-sr-break-scalper-xauusd-m1)
   - [G087 | Median-Renko Bar-Reversal EA](#g087--median-renko-bar-reversal-ea)
   - [G088 | Median-Renko Price/Moving-Average Crossover](#g088--median-renko-pricemoving-average-crossover)
@@ -113,7 +113,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G092 | Rayner-Teo Moving-Average Pullback Strategy (RT_MA)](#g092--rayner-teo-moving-average-pullback-strategy-rt_ma) — DUPLICATE (S087)
   - [G093 | SMA Crossover Trend (50/200; grid-optimized pairs)](#g093--sma-crossover-trend-50200-grid-optimized-pairs) — DUPLICATE (S089)
   - [G094 | Simple-Moving-Average MACD Oscillator Crossover](#g094--simple-moving-average-macd-oscillator-crossover) — DUPLICATE (S089)
-  - [G095 | Singular-Spectrum-Analysis Trend Signal](#g095--singular-spectrum-analysis-trend-signal)
+  - [G095 | Singular-Spectrum-Analysis Trend Signal](#g095--singular-spectrum-analysis-trend-signal) — IMPLEMENTED
 - [Momentum, Rotation and Cross-Sectional Factors](#momentum-rotation-and-cross-sectional-factors) (21)
   - [G096 | ANTICOR Anti-Correlation Wealth Transfer](#g096--anticor-anti-correlation-wealth-transfer) — IMPLEMENTED
   - [G097 | Baltas 2020 Trend Signal with Realized-Volatility Scaling](#g097--baltas-2020-trend-signal-with-realized-volatility-scaling) — IMPLEMENTED
@@ -125,15 +125,15 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G103 | Top-One Positive-Slope Momentum Rotation](#g103--top-one-positive-slope-momentum-rotation) — DUPLICATE (S043)
   - [G104 | 232-Session-Lagged Industry-Relative Momentum Factor](#g104--232-session-lagged-industry-relative-momentum-factor) — IMPLEMENTED
   - [G105 | Beta-Divided Multi-Period Return Reversal Factor](#g105--beta-divided-multi-period-return-reversal-factor) — IMPLEMENTED
-  - [G106 | Cross-Sectional 252-Session Commodity Momentum](#g106--cross-sectional-252-session-commodity-momentum)
+  - [G106 | Cross-Sectional 252-Session Commodity Momentum](#g106--cross-sectional-252-session-commodity-momentum) — IMPLEMENTED
   - [G107 | Cross-Sectional Commodity Basis Momentum](#g107--cross-sectional-commodity-basis-momentum)
   - [G108 | Cross-Sectional Futures Carry](#g108--cross-sectional-futures-carry)
-  - [G109 | Cross-Sectional Skewness Risk-Premium Signal](#g109--cross-sectional-skewness-risk-premium-signal)
+  - [G109 | Cross-Sectional Skewness Risk-Premium Signal](#g109--cross-sectional-skewness-risk-premium-signal) — IMPLEMENTED
   - [G110 | Daily Plus Intraday Beta-Adjusted Return Forecast](#g110--daily-plus-intraday-beta-adjusted-return-forecast)
   - [G111 | Intraday Beta-Divided Return Reversal](#g111--intraday-beta-divided-return-reversal)
   - [G112 | Intraday Market-Weighted Beta-Residual Returns](#g112--intraday-market-weighted-beta-residual-returns)
   - [G113 | Market-Weighted Beta-Residual Return Factor](#g113--market-weighted-beta-residual-return-factor) — DUPLICATE (S078)
-  - [G114 | NSE Stock Scanner - Momentum/Swing Screening Signals](#g114--nse-stock-scanner---momentumswing-screening-signals)
+  - [G114 | NSE Stock Scanner - Momentum/Swing Screening Signals](#g114--nse-stock-scanner---momentumswing-screening-signals) — IMPLEMENTED
   - [G115 | Robust-Value Percentile-Composite Portfolio (PE/PB/PS/EV-EBITDA/EV-GP)](#g115--robust-value-percentile-composite-portfolio-pepbpsev-ebitdaev-gp)
   - [G116 | Volatility-Ratio-Weighted Return Reversal Factor](#g116--volatility-ratio-weighted-return-reversal-factor)
 - [Formulaic Alpha Factor Libraries](#formulaic-alpha-factor-libraries) (7)
@@ -161,7 +161,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G136 | Gamma Scalping Delta-Hedge Template (alpacahq)](#g136--gamma-scalping-delta-hedge-template-alpacahq)
   - [G137 | Heikin-Ashi-Style Option Long Straddle Entry](#g137--heikin-ashi-style-option-long-straddle-entry)
   - [G138 | Options Strategy Backtest Cookbook Set (PyPatel + Option Greeks book)](#g138--options-strategy-backtest-cookbook-set-pypatel--option-greeks-book)
-  - [G139 | VIX Term-Structure and Pair-Spread Volatility Study](#g139--vix-term-structure-and-pair-spread-volatility-study)
+  - [G139 | VIX Term-Structure and Pair-Spread Volatility Study](#g139--vix-term-structure-and-pair-spread-volatility-study) — IMPLEMENTED
 - [Calendar, Session and Overnight Effects](#calendar-session-and-overnight-effects) (7)
   - [G140 | Equity Overnight Return Hold](#g140--equity-overnight-return-hold) — DUPLICATE (S021)
   - [G141 | Close-to-Open Gap Reversal Forecast](#g141--close-to-open-gap-reversal-forecast) — DUPLICATE (S018)

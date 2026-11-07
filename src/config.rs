@@ -695,6 +695,32 @@ pub struct Config {
     pub markov_signal_mode: String,
     #[serde(default = "d_markov_breadth_threshold")]
     pub markov_breadth_threshold: f64,
+    #[serde(default = "d_clip")]
+    pub clip: f64,
+    #[serde(default = "d_cash_scale")]
+    pub cash_scale: f64,
+    #[serde(default = "d_corr_window")]
+    pub corr_window: usize,
+    #[serde(default = "d_shrinkage")]
+    pub shrinkage: f64,
+    #[serde(default = "d_latent_dim")]
+    pub latent_dim: usize,
+    #[serde(default = "d_trend_threshold")]
+    pub trend_threshold: f64,
+    #[serde(default = "d_rebalance_step")]
+    pub rebalance_step: usize,
+    #[serde(default = "d_spread_weight")]
+    pub spread_weight: f64,
+    #[serde(default = "d_screen_pct")]
+    pub screen_pct: f64,
+    #[serde(default = "d_consol_window")]
+    pub consol_window: usize,
+    #[serde(default = "d_consol_pct")]
+    pub consol_pct: f64,
+    #[serde(default = "d_risk_reward")]
+    pub risk_reward: f64,
+    #[serde(default = "d_n_legs")]
+    pub n_legs: usize,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1382,6 +1408,45 @@ fn d_markov_horizon() -> usize {
 }
 fn d_markov_signal_mode() -> String {
     "spread".into()
+}
+fn d_clip() -> f64 {
+    4.2
+}
+fn d_cash_scale() -> f64 {
+    0.05
+}
+fn d_corr_window() -> usize {
+    200
+}
+fn d_shrinkage() -> f64 {
+    0.5
+}
+fn d_latent_dim() -> usize {
+    30
+}
+fn d_trend_threshold() -> f64 {
+    0.5
+}
+fn d_rebalance_step() -> usize {
+    21
+}
+fn d_spread_weight() -> f64 {
+    1.0
+}
+fn d_screen_pct() -> f64 {
+    0.05
+}
+fn d_consol_window() -> usize {
+    10
+}
+fn d_consol_pct() -> f64 {
+    0.0
+}
+fn d_risk_reward() -> f64 {
+    2.0
+}
+fn d_n_legs() -> usize {
+    2
 }
 fn d_markov_breadth_threshold() -> f64 {
     0.05
