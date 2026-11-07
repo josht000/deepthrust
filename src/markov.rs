@@ -167,6 +167,12 @@ pub fn params(cfg: &Config) -> Result<MarkovParams, String> {
             cfg.markov_breadth_threshold
         ));
     }
+    if !matches!(cfg.markov_model.as_str(), "chain" | "hmm") {
+        return Err(format!(
+            "markov_model must be chain|hmm, got {:?}",
+            cfg.markov_model
+        ));
+    }
     Ok(MarkovParams {
         window: cfg.markov_window,
         threshold: cfg.markov_threshold,
@@ -405,6 +411,8 @@ pub struct Chain {
     pub labels: Vec<i8>,
     /// Walk-forward s(t) per row; NaN before `min_train` valid observations.
     pub signal: Vec<f64>,
+    /// Per-refit EM diagnostics; populated only by the `hmm` model.
+    pub fits: Vec<crate::hmm::HmmFit>,
 }
 
 fn finish_chain(
@@ -421,7 +429,11 @@ fn finish_chain(
         labels[*t] = *l;
         signal[*t] = sig[k];
     }
-    Chain { labels, signal }
+    Chain {
+        labels,
+        signal,
+        fits: Vec::new(),
+    }
 }
 
 fn build_chain(close: &[f64], p: &MarkovParams, prior: Option<&[[f64; 3]; 3]>) -> Chain {
@@ -435,6 +447,25 @@ fn build_chain(close: &[f64], p: &MarkovParams, prior: Option<&[[f64; 3]; 3]>) -
 
 pub fn chain(close: &[f64], p: &MarkovParams) -> Chain {
     build_chain(close, p, None)
+}
+
+/// Model dispatch for `markov_model`: the observable chain consumes close
+/// only; `hmm` fits Gaussian emissions on the OHLCV feature set.
+fn model_chain(
+    close: &[f64],
+    high: &[f64],
+    low: &[f64],
+    volume: &[f64],
+    cfg: &Config,
+    p: &MarkovParams,
+    prior: Option<&[[f64; 3]; 3]>,
+    seed: u64,
+) -> Result<Chain, String> {
+    if cfg.markov_model == "hmm" {
+        crate::hmm::hmm_chain(close, high, low, volume, &crate::hmm::params(cfg)?, p, seed)
+    } else {
+        Ok(build_chain(close, p, prior))
+    }
 }
 
 /// Pooled-universe transition probabilities — the Dirichlet prior for
@@ -525,9 +556,9 @@ fn positions(signal: &[f64], p: &MarkovParams) -> Vec<i8> {
         .collect()
 }
 
-/// Benchmark closes re-indexed onto the panel grid: for each panel date, the
-/// last benchmark close on or before it (NaN before the first benchmark bar).
-pub fn aligned_close(dates: &[NaiveDate], bars: &Bars) -> Vec<f64> {
+/// Benchmark series re-indexed onto the panel grid: for each panel date, the
+/// last value on or before it (NaN before the first benchmark bar).
+fn aligned_field(dates: &[NaiveDate], bars: &Bars, field: &[f64]) -> Vec<f64> {
     let mut out = vec![f64::NAN; dates.len()];
     let mut bi = 0usize;
     for (t, d) in dates.iter().enumerate() {
@@ -535,29 +566,79 @@ pub fn aligned_close(dates: &[NaiveDate], bars: &Bars) -> Vec<f64> {
             bi += 1;
         }
         if bars.dates.first().is_some_and(|first| first <= d) {
-            out[t] = bars.close[bi];
+            out[t] = field[bi];
         }
     }
     out
 }
 
-/// Synthetic close path for `markov_source: universe` — cumulative product of
-/// the equal-weight daily return across symbols with a finite close pair.
-fn universe_close(panel: &Panel) -> Vec<f64> {
+/// Benchmark closes re-indexed onto the panel grid: for each panel date, the
+/// last benchmark close on or before it (NaN before the first benchmark bar).
+pub fn aligned_close(dates: &[NaiveDate], bars: &Bars) -> Vec<f64> {
+    aligned_field(dates, bars, &bars.close)
+}
+
+/// `aligned_close` for every OHLCV field — the benchmark input for
+/// `markov_source: benchmark` under `markov_model: hmm`.
+fn aligned_bars(dates: &[NaiveDate], bars: &Bars) -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
+    (
+        aligned_field(dates, bars, &bars.open),
+        aligned_field(dates, bars, &bars.high),
+        aligned_field(dates, bars, &bars.low),
+        aligned_field(dates, bars, &bars.close),
+        aligned_field(dates, bars, &bars.volume),
+    )
+}
+
+/// Synthetic OHLCV path for `markov_source: universe`: equal-weight daily
+/// ratios per bar field, compounded (the close leg is identical to the former
+/// `universe_close`). Volume compounds the mean volume ratio and holds flat
+/// on days no symbol reports it.
+fn universe_bars(panel: &Panel) -> (Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>, Vec<f64>) {
     let n = panel.dates.len();
-    let mut px = vec![1.0f64; n];
+    let (mut o, mut h, mut l, mut c, mut v) = (
+        vec![1.0f64; n],
+        vec![1.0; n],
+        vec![1.0; n],
+        vec![1.0; n],
+        vec![1.0; n],
+    );
     for t in 1..n {
-        let (mut sum, mut count) = (0.0, 0usize);
+        let (mut ro, mut rh, mut rl, mut rc, mut rv) = (0.0, 0.0, 0.0, 0.0, 0.0);
+        let (mut no, mut nh, mut nl, mut nc, mut nv) = (0usize, 0, 0, 0, 0);
         for j in 0..panel.symbols.len() {
-            let (a, b) = (panel.close[j][t - 1], panel.close[j][t]);
-            if a.is_finite() && b.is_finite() && a > 0.0 && b > 0.0 {
-                sum += b / a - 1.0;
-                count += 1;
+            let (pc, cl) = (panel.close[j][t - 1], panel.close[j][t]);
+            if pc.is_finite() && cl.is_finite() && pc > 0.0 && cl > 0.0 {
+                rc += cl / pc;
+                nc += 1;
+                let op = panel.open[j][t];
+                if op.is_finite() && op > 0.0 {
+                    ro += op / pc;
+                    no += 1;
+                }
+                let (hi, lo) = (panel.high[j][t], panel.low[j][t]);
+                if hi.is_finite() && hi > 0.0 {
+                    rh += hi / cl;
+                    nh += 1;
+                }
+                if lo.is_finite() && lo > 0.0 {
+                    rl += lo / cl;
+                    nl += 1;
+                }
+            }
+            let (pv, vo) = (panel.volume[j][t - 1], panel.volume[j][t]);
+            if pv.is_finite() && vo.is_finite() && pv > 0.0 && vo > 0.0 {
+                rv += vo / pv;
+                nv += 1;
             }
         }
-        px[t] = px[t - 1] * if count > 0 { 1.0 + sum / count as f64 } else { 1.0 };
+        c[t] = c[t - 1] * if nc > 0 { rc / nc as f64 } else { 1.0 };
+        o[t] = c[t - 1] * if no > 0 { ro / no as f64 } else { 1.0 };
+        h[t] = c[t] * if nh > 0 { rh / nh as f64 } else { 1.0 };
+        l[t] = c[t] * if nl > 0 { rl / nl as f64 } else { 1.0 };
+        v[t] = v[t - 1] * if nv > 0 { rv / nv as f64 } else { 1.0 };
     }
-    px
+    (o, h, l, c, v)
 }
 
 /// `markov_mode=size` blend of the strategy weight w with the chain signal s.
@@ -581,6 +662,7 @@ fn blend(w: f64, s: f64, cfg: &Config) -> f64 {
 pub struct OverlayReport {
     pub warnings: Vec<String>,
     pub summary_csv: Option<String>,
+    pub hmm_csv: Option<String>,
 }
 
 /// Apply the regime layer to a computed `Signals`: `gate` vetoes entries and
@@ -590,17 +672,44 @@ pub struct OverlayReport {
 pub fn apply_overlay(
     sig: &mut Signals,
     panel: &Panel,
-    benchmark_close: Option<&[f64]>,
+    benchmark: Option<&Bars>,
     cfg: &Config,
 ) -> Result<OverlayReport, String> {
     let p = params(cfg)?;
     let n = panel.dates.len();
     let mut warnings = Vec::new();
+    let hmm = cfg.markov_model == "hmm";
 
-    let prior = (p.shrink > 0.0).then(|| pooled_prior(panel, &p));
+    if hmm {
+        for (name, set) in [
+            ("markov_window", cfg.markov_window != 20),
+            ("markov_threshold", cfg.markov_threshold != 0.05),
+            ("markov_logret", cfg.markov_logret),
+            ("markov_vol_window", cfg.markov_vol_window != 0),
+            ("markov_vol_mult", cfg.markov_vol_mult != 0.0),
+            ("markov_commit", cfg.markov_commit != 0),
+            ("markov_decay", cfg.markov_decay != 1.0),
+            ("markov_shrink", cfg.markov_shrink != 0.0),
+        ] {
+            if set {
+                warnings.push(format!("{name} ignored under markov_model=hmm"));
+            }
+        }
+    }
+
+    let prior = (!hmm && p.shrink > 0.0).then(|| pooled_prior(panel, &p));
     let shared: Option<Chain> = if !cfg.markov_symbol.is_empty() {
         let j = crate::family7::symbol_index(panel, &cfg.markov_symbol)?;
-        Some(build_chain(&panel.close[j], &p, prior.as_ref()))
+        Some(model_chain(
+            &panel.close[j],
+            &panel.high[j],
+            &panel.low[j],
+            &panel.volume[j],
+            cfg,
+            &p,
+            prior.as_ref(),
+            cfg.seed + j as u64,
+        )?)
     } else {
         match cfg.markov_source.as_str() {
             "symbol" | "" => None,
@@ -608,20 +717,27 @@ pub fn apply_overlay(
                 if prior.is_some() {
                     warnings.push("markov_shrink ignored for benchmark source".into());
                 }
-                Some(chain(
-                    benchmark_close.ok_or_else(|| {
+                let (_o, h, l, c, v) = aligned_bars(
+                    &panel.dates,
+                    benchmark.ok_or_else(|| {
                         "markov_source=benchmark needs a loaded benchmark".to_string()
                     })?,
-                    &p,
-                ))
+                );
+                Some(model_chain(&c, &h, &l, &v, cfg, &p, None, cfg.seed ^ 0xBEA4)?)
             }
             "universe" => {
                 if prior.is_some() {
                     warnings.push("markov_shrink ignored for universe source".into());
                 }
-                Some(chain(&universe_close(panel), &p))
+                let (_o, h, l, c, v) = universe_bars(panel);
+                Some(model_chain(&c, &h, &l, &v, cfg, &p, None, cfg.seed ^ 0xA115)?)
             }
             "breadth" => {
+                if hmm {
+                    return Err(
+                        "markov_model=hmm does not support markov_source=breadth".into()
+                    );
+                }
                 if panel.symbols.len() < 2 {
                     warnings.push(
                         "markov_source=breadth degenerates on a single-symbol universe".into(),
@@ -639,18 +755,25 @@ pub fn apply_overlay(
             }
         }
     };
-    let per_symbol: Vec<Option<Chain>> = if shared.is_some() {
-        Vec::new()
-    } else {
-        (0..panel.symbols.len())
-            .map(|j| {
-                panel.close[j]
-                    .iter()
-                    .any(|v| v.is_finite())
-                    .then(|| build_chain(&panel.close[j], &p, prior.as_ref()))
-            })
-            .collect()
-    };
+    let mut per_symbol: Vec<Option<Chain>> = Vec::new();
+    if shared.is_none() {
+        for j in 0..panel.symbols.len() {
+            if panel.close[j].iter().any(|v| v.is_finite()) {
+                per_symbol.push(Some(model_chain(
+                    &panel.close[j],
+                    &panel.high[j],
+                    &panel.low[j],
+                    &panel.volume[j],
+                    cfg,
+                    &p,
+                    prior.as_ref(),
+                    cfg.seed + j as u64,
+                )?));
+            } else {
+                per_symbol.push(None);
+            }
+        }
+    }
 
     let (gate, exit, size) = cfg
         .markov_mode
@@ -746,9 +869,37 @@ pub fn apply_overlay(
         }
     }
 
+    let hmm_csv = hmm.then(|| {
+        let mut csv = String::from("symbol,row,loglik,n_iter,converged,occupancy\n");
+        let emit = |name: &str, c: &Chain, csv: &mut String| {
+            for f in &c.fits {
+                let occ = f
+                    .occupancy
+                    .iter()
+                    .map(|v| format!("{v:.2}"))
+                    .collect::<Vec<_>>()
+                    .join(";");
+                csv.push_str(&format!(
+                    "{name},{},{:.4},{},{},{}\n",
+                    f.row, f.loglik, f.n_iter, f.converged, occ
+                ));
+            }
+        };
+        if let Some(c) = &shared {
+            emit("MARKET", c, &mut csv);
+        }
+        for (j, c) in per_symbol.iter().enumerate() {
+            if let Some(c) = c {
+                emit(&panel.symbols[j], c, &mut csv);
+            }
+        }
+        csv
+    });
+
     Ok(OverlayReport {
         warnings,
         summary_csv: Some(summary),
+        hmm_csv,
     })
 }
 
@@ -761,9 +912,19 @@ pub fn compute_markov_signals(panel: &Panel, cfg: &Config) -> Result<Signals, St
     let n = panel.dates.len();
     let mut result = crate::family4::blank_signals(panel, "markov_signal");
     let mut weights = vec![vec![f64::NAN; n]; panel.symbols.len()];
-    let prior = (p.shrink > 0.0).then(|| pooled_prior(panel, &p));
+    let hmm = cfg.markov_model == "hmm";
+    let prior = (!hmm && p.shrink > 0.0).then(|| pooled_prior(panel, &p));
     for j in 0..panel.symbols.len() {
-        let c = build_chain(&panel.close[j], &p, prior.as_ref());
+        let c = model_chain(
+            &panel.close[j],
+            &panel.high[j],
+            &panel.low[j],
+            &panel.volume[j],
+            cfg,
+            &p,
+            prior.as_ref(),
+            cfg.seed + j as u64,
+        )?;
         let pos = positions(&c.signal, &p);
         for t in 0..n {
             result.tradable[j][t] = panel.close[j][t].is_finite();

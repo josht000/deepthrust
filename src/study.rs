@@ -239,6 +239,32 @@ impl StrategyDefinition for MarkovRegimeStrategyDefinition {
     }
 }
 
+struct HmmRegimeStrategyDefinition;
+
+impl StrategyDefinition for HmmRegimeStrategyDefinition {
+    fn name(&self) -> &'static str {
+        crate::hmm::HMM_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        crate::hmm::HMM_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+        crate::markov::compute_markov_signals(panel, cfg)
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        sig: &Signals,
+        fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::markov::markov_trades(panel, sig, cfg, fill)
+    }
+}
+
 struct G097StrategyDefinition;
 
 impl StrategyDefinition for G097StrategyDefinition {
@@ -2001,7 +2027,8 @@ static S100_STRATEGY: ThreeWhiteSoldiersStrategyDefinition =
     ThreeWhiteSoldiersStrategyDefinition;
 static S099_STRATEGY: OutsideDayReversalStrategyDefinition = OutsideDayReversalStrategyDefinition;
 static MARKOV_STRATEGY: MarkovRegimeStrategyDefinition = MarkovRegimeStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 92] = [
+static HMM_STRATEGY: HmmRegimeStrategyDefinition = HmmRegimeStrategyDefinition;
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 93] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -2077,6 +2104,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 92] = [
     &G101_STRATEGY,
     &G067_STRATEGY,
     &MARKOV_STRATEGY,
+    &HMM_STRATEGY,
     &G023_STRATEGY,
     &G037_STRATEGY,
     &G003_STRATEGY,
@@ -2371,16 +2399,21 @@ impl<'a> Study<'a> {
         if cfg.markov_active() {
             let report = {
                 let _g = timing::stage("markov");
-                let bench_close = bench
-                    .as_ref()
-                    .map(|(_, b)| crate::markov::aligned_close(&panel.dates, b));
-                crate::markov::apply_overlay(&mut sig, &panel, bench_close.as_deref(), cfg)?
+                crate::markov::apply_overlay(
+                    &mut sig,
+                    &panel,
+                    bench.as_ref().map(|(_, b)| b),
+                    cfg,
+                )?
             };
             for warning in &report.warnings {
                 self.debug_warning(format!("markov: {warning}"));
             }
             if let Some(csv) = report.summary_csv {
                 self.write("markov_summary.csv", csv)?;
+            }
+            if let Some(csv) = report.hmm_csv {
+                self.write("hmm_fits.csv", csv)?;
             }
         }
         let n_rows = panel.dates.len();

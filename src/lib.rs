@@ -14,6 +14,7 @@ pub mod family8;
 pub mod family9;
 pub mod family10;
 pub mod family11;
+pub mod hmm;
 pub mod markov;
 pub mod family12;
 pub mod partition;
