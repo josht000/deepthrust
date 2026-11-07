@@ -1,7 +1,8 @@
 # deepthrust
 Deep market apha penetration testing in Rust.  On the road to implementing 5/1000 published trading strategies in search of alpha.
 
-Identified: 306/1000
+Identified: 263/1000 individual strategies
+Implemented: 96/263
 
 Method: Pure agentic approach to research and implementation. Python is ~120 seconds per run whereas Rust is less than 1
 and still has all the plotting and data processing needed. 
