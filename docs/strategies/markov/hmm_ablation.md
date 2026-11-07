@@ -92,3 +92,17 @@ Do not run duplicate configurations. If an additional feature is mathematically 
 - Ensure adjusted-price consistency for equity data.
 - Avoid duplicate or highly redundant features without explicitly testing their effect.
 - Keep the original baseline unchanged so that all experiments can be compared against it.
+
+## Results
+
+### A-G
+
+| Experiment | Feature configuration | Dev/Test PF | Dev/Test Sharpe | Dev/Test Trades | Out-of-sample log likelihood | Regime persistence | Transition frequency | State stability | Downstream trading performance |
+|---|---|---|---|---|---|---|---|---|---|
+| A | All six original features |  |  |  |  |  |  |  |  |
+| B | Original features minus rolling skewness |  |  |  |  |  |  |  |  |
+| C | Original features minus normalized ATR |  |  |  |  |  |  |  |  |
+| D | Original features minus realized volatility |  |  |  |  |  |  |  |  |
+| E | Original features minus log volume change |  |  |  |  |  |  |  |  |
+| F | Original features plus 5-day log return |  |  |  |  |  |  |  |  |
+| G | Original features plus downside volatility |  |  |  |  |  |  |  |  |
