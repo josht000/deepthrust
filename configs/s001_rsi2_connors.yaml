@@ -95,3 +95,27 @@ variants:
         symbols: AAPL,MSFT,NVDA,AMZN,GOOGL,META
         cost_bps_per_side: 10
     book_slots: 10
+  mk_gate: {markov_mode: gate}
+  mk_exit: {markov_mode: exit}
+  mk_ge: {markov_mode: gate,exit}
+  mk_ge_hyst: {markov_mode: gate,exit, markov_regime: hysteresis, markov_enter: 0.05, markov_exit: -0.05}
+  mk_ge_w40: {markov_mode: gate,exit, markov_window: 40}
+  mk_ge_t3: {markov_mode: gate,exit, markov_threshold: 0.03}
+  mk_ge_bench: {markov_mode: gate,exit, markov_source: benchmark}
+  mk_ge_univ: {markov_mode: gate,exit, markov_source: universe}
+  mk_ge_block: {markov_mode: gate,exit, markov_warmup: block}
+  mk_ge_t2w40: {markov_mode: gate,exit, markov_threshold: 0.02, markov_window: 40}
+  mk_ge_vol: {markov_mode: gate,exit, markov_vol_window: 20, markov_vol_mult: 1.0}
+  mk_ge_vol15: {markov_mode: gate,exit, markov_vol_window: 20, markov_vol_mult: 1.5}
+  mk_breadth: {markov_mode: gate,exit, markov_source: breadth}
+  mk_breadth8: {markov_mode: gate,exit, markov_source: breadth, markov_breadth_threshold: 0.08}
+  mk_shrink50: {markov_mode: gate,exit, markov_shrink: 50}
+  mk_shrink200: {markov_mode: gate,exit, markov_shrink: 200}
+  mk_decay995: {markov_mode: gate,exit, markov_decay: 0.995}
+  mk_decay99: {markov_mode: gate,exit, markov_decay: 0.99}
+  mk_commit3: {markov_mode: gate,exit, markov_commit: 3}
+  mk_commit5: {markov_mode: gate,exit, markov_commit: 5}
+  mk_hor5: {markov_mode: gate,exit, markov_horizon: 5}
+  mk_hor10: {markov_mode: gate,exit, markov_horizon: 10}
+  mk_bearrel: {markov_mode: gate,exit, markov_signal_mode: bear_rel}
+  mk_ge_univ_vol: {markov_mode: gate,exit, markov_source: universe, markov_vol_window: 20, markov_vol_mult: 1.0}

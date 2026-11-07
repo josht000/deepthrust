@@ -623,6 +623,62 @@ pub struct Config {
     pub financial_symbol: String,
     #[serde(default = "d_utility_symbol")]
     pub utility_symbol: String,
+    #[serde(default)]
+    pub markov_mode: String,
+    #[serde(default = "d_markov_source")]
+    pub markov_source: String,
+    #[serde(default)]
+    pub markov_symbol: String,
+    #[serde(default = "d_markov_window")]
+    pub markov_window: usize,
+    #[serde(default = "d_markov_threshold")]
+    pub markov_threshold: f64,
+    #[serde(default = "d_markov_min_train")]
+    pub markov_min_train: usize,
+    #[serde(default)]
+    pub markov_enter: f64,
+    #[serde(default)]
+    pub markov_exit: f64,
+    #[serde(default = "d_markov_regime")]
+    pub markov_regime: String,
+    #[serde(default)]
+    pub markov_logret: bool,
+    #[serde(default = "d_markov_warmup")]
+    pub markov_warmup: String,
+    #[serde(default = "d_markov_size_k")]
+    pub markov_size_k: f64,
+    #[serde(default)]
+    pub markov_size_min: f64,
+    #[serde(default = "d_markov_size_max")]
+    pub markov_size_max: f64,
+    #[serde(default = "d_markov_blend_form")]
+    pub markov_blend_form: String,
+    #[serde(default = "d_markov_blend_lambda")]
+    pub markov_blend_lambda: f64,
+    #[serde(default)]
+    pub markov_blend_theta: f64,
+    #[serde(default)]
+    pub markov_diag: bool,
+    #[serde(default = "d_markov_position")]
+    pub markov_position: String,
+    #[serde(default = "d_markov_cap")]
+    pub markov_cap: f64,
+    #[serde(default)]
+    pub markov_vol_window: usize,
+    #[serde(default)]
+    pub markov_vol_mult: f64,
+    #[serde(default)]
+    pub markov_commit: usize,
+    #[serde(default = "d_markov_decay")]
+    pub markov_decay: f64,
+    #[serde(default)]
+    pub markov_shrink: f64,
+    #[serde(default = "d_markov_horizon")]
+    pub markov_horizon: usize,
+    #[serde(default = "d_markov_signal_mode")]
+    pub markov_signal_mode: String,
+    #[serde(default = "d_markov_breadth_threshold")]
+    pub markov_breadth_threshold: f64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1245,6 +1301,54 @@ fn d_financial_symbol() -> String {
 fn d_utility_symbol() -> String {
     "XLU".into()
 }
+fn d_markov_source() -> String {
+    "symbol".into()
+}
+fn d_markov_window() -> usize {
+    20
+}
+fn d_markov_threshold() -> f64 {
+    0.05
+}
+fn d_markov_min_train() -> usize {
+    252
+}
+fn d_markov_regime() -> String {
+    "strict".into()
+}
+fn d_markov_warmup() -> String {
+    "pass".into()
+}
+fn d_markov_size_k() -> f64 {
+    1.0
+}
+fn d_markov_size_max() -> f64 {
+    1.0
+}
+fn d_markov_blend_form() -> String {
+    "tilt".into()
+}
+fn d_markov_blend_lambda() -> f64 {
+    0.25
+}
+fn d_markov_position() -> String {
+    "long_flat".into()
+}
+fn d_markov_cap() -> f64 {
+    1.0
+}
+fn d_markov_decay() -> f64 {
+    1.0
+}
+fn d_markov_horizon() -> usize {
+    1
+}
+fn d_markov_signal_mode() -> String {
+    "spread".into()
+}
+fn d_markov_breadth_threshold() -> f64 {
+    0.05
+}
 fn d_band_mode() -> String {
     "binary".into()
 }
@@ -1356,6 +1460,13 @@ impl Config {
     }
     pub fn cost(&self) -> f64 {
         self.cost_bps_per_side / 1e4
+    }
+    /// Whether the markov regime overlay should run on computed signals.
+    pub fn markov_active(&self) -> bool {
+        self.markov_mode
+            .split(',')
+            .map(str::trim)
+            .any(|token| matches!(token, "gate" | "exit" | "size"))
     }
 
     pub fn cost_for_symbol(&self, symbol: &str) -> f64 {

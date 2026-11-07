@@ -32,7 +32,7 @@ pub const S066_TITLE: &str = "S066 Zweig Breadth Thrust";
 pub const S062_NAME: &str = "s062_vix_vxv_ratio";
 pub const S062_TITLE: &str = "S062 VIX/VXV Ratio Spike";
 
-fn symbol_index(panel: &Panel, name: &str) -> Result<usize, String> {
+pub(crate) fn symbol_index(panel: &Panel, name: &str) -> Result<usize, String> {
     panel
         .symbols
         .iter()
@@ -69,7 +69,7 @@ fn realized_vol(returns: &[f64], day: usize, window: usize) -> f64 {
 
 /// Per-day target-weight switches: a change in w[j][t] closes the old leg and opens
 /// the new one at the configured fill (signal day t -> close[t] or open[t+1]).
-fn switch_trades(
+pub(crate) fn switch_trades(
     panel: &Panel,
     weights: &[Vec<f64>],
     sig: &Signals,

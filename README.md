@@ -87,6 +87,40 @@ previous close; S046 uses the mean French industry return. External benchmarks s
 separate chart comparisons. Weighted exposure counts the position held into each period instead of
 counting both sides of a rebalance. Trend uses signed net exposure, while invested fraction uses
 gross exposure; this is a close-to-close approximation for next-open trades.
+
+## Markov regime layer
+
+`src/markov.rs` ports the observable Markov chain from `markov-hedge-fund-method` (Roan/@RohOnChain):
+each bar is labelled Bear/Sideways/Bull from a trailing `markov_window`-bar return beyond
+±`markov_threshold`, a 3x3 transition matrix is re-estimated walk-forward (no lookahead), and the
+signal `s(t) = P(next=Bull|state) - P(next=Bear|state)` drives either a standalone study or a
+cross-strategy risk overlay.
+
+Standalone validation study:
+
+```bash
+cargo run --release -- --strategy markov_regime
+cargo run --release -- --strategy markov_regime --variant w60,qqq_w40,long_short
+```
+
+`markov_position` is `long_flat` (default), `long_short`, or `conviction` (weight = clamped signal).
+
+Risk overlay on any registered strategy via config fields (variant overlays work too —
+`mk_ge: {markov_mode: gate,exit}`): `markov_mode` is a comma list of `gate` (veto entries/adds while
+risk-off), `exit` (force `exit_now`), `size` (rescale `trade_weights` by `markov_blend_form`
+tilt|mix|conf). `markov_source` is `symbol` (per-symbol chain, default), `benchmark`, `universe`,
+`breadth` (label the daily bear-fraction of the universe), or a `markov_symbol` override.
+`markov_regime` strict|hysteresis uses `markov_enter`/`markov_exit` as the on/off band;
+`markov_warmup` pass|block covers the `markov_min_train` (252) warm-up.
+
+Chain tuning levers: `markov_vol_window`+`markov_vol_mult` replace the fixed `markov_threshold` with
+a per-symbol vol-scaled cutoff (`mult * stdev(daily rets) * sqrt(window)`); `markov_commit` requires
+N consecutive labels before a state change; `markov_decay` (<1) recency-weights transition counts;
+`markov_shrink` blends per-symbol matrices toward the pooled-universe matrix (Dirichlet prior);
+`markov_horizon` raises the signal to an n-step `P^n` forecast; `markov_signal_mode` is `spread`
+(default) or `bear_rel` (stationary-relative bear excess). Overlay runs write
+`<variant>__markov_summary.csv` (regime mix, persistence, stationary mix, risk-off share, flips).
+`tradable`/`pool` are never modified.
 S041 and S042 use explicitly weighted rebalance legs, so an outgoing overnight segment and an
 incoming intraday segment are not divided by their combined position count on rebalance days.
 Their existing cost model charges full entry and exit costs on each rebalance leg, including

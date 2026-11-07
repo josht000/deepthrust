@@ -1,0 +1,71 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY
+benchmark: SPY
+risk_symbol: SPY
+start_date: "2008-01-01"
+cost_bps_per_side: 1.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+n_timing_draws: 500
+seed: 20261106
+book_slots: 1
+markov_window: 20
+markov_threshold: 0.05
+markov_min_train: 252
+markov_regime: strict
+markov_position: long_flat
+markov_cap: 1.0
+
+variants:
+  w10: {markov_window: 10}
+  w40: {markov_window: 40}
+  w60: {markov_window: 60}
+  w120: {markov_window: 120}
+  t2: {markov_threshold: 0.02}
+  t3: {markov_threshold: 0.03}
+  t8: {markov_threshold: 0.08}
+  t10: {markov_threshold: 0.10}
+  w40_t3: {markov_window: 40, markov_threshold: 0.03}
+  w60_t3: {markov_window: 60, markov_threshold: 0.03}
+  w10_t8: {markov_window: 10, markov_threshold: 0.08}
+  t2_w60: {markov_threshold: 0.02, markov_window: 60}
+  train126: {markov_min_train: 126}
+  train504: {markov_min_train: 504}
+  train756: {markov_min_train: 756}
+  hyst: {markov_regime: hysteresis, markov_enter: 0.05, markov_exit: -0.05}
+  hyst_wide: {markov_regime: hysteresis, markov_enter: 0.10, markov_exit: -0.10}
+  strict_up: {markov_enter: 0.10}
+  strict_dn: {markov_exit: -0.10}
+  long_short: {markov_position: long_short}
+  ls_hyst: {markov_position: long_short, markov_regime: hysteresis, markov_enter: 0.05, markov_exit: -0.05}
+  conv: {markov_position: conviction}
+  conv_cap50: {markov_position: conviction, markov_cap: 0.5}
+  conv_cap25: {markov_position: conviction, markov_cap: 0.25}
+  logret: {markov_logret: true}
+  qqq: {symbols: QQQ, benchmark: QQQ, risk_symbol: QQQ}
+  iwm: {symbols: IWM, benchmark: IWM, risk_symbol: IWM}
+  dia: {symbols: DIA, benchmark: DIA, risk_symbol: DIA}
+  tlt: {symbols: TLT, benchmark: TLT, risk_symbol: TLT}
+  gld: {symbols: GLD, benchmark: GLD, risk_symbol: GLD}
+  qqq_ls: {symbols: QQQ, benchmark: QQQ, risk_symbol: QQQ, markov_position: long_short}
+  qqq_w40: {symbols: QQQ, benchmark: QQQ, risk_symbol: QQQ, markov_window: 40}
+  multi: {symbols: "SPY,QQQ,IWM,DIA", risk_symbol: SPY}
+  close: {fills: close}
+  cost05: {cost_bps_per_side: 0.5}
+  cost5: {cost_bps_per_side: 5.0}
+  vol1: {markov_vol_window: 20, markov_vol_mult: 1.0}
+  vol07: {markov_vol_window: 20, markov_vol_mult: 0.7}
+  vol15: {markov_vol_window: 20, markov_vol_mult: 1.5}
+  commit3: {markov_commit: 3}
+  commit5: {markov_commit: 5}
+  decay995: {markov_decay: 0.995}
+  decay99: {markov_decay: 0.99}
+  shrink50: {markov_shrink: 50}
+  shrink200: {markov_shrink: 200}
+  hor5: {markov_horizon: 5}
+  hor10: {markov_horizon: 10}
+  bearrel: {markov_signal_mode: bear_rel}
+  vol_hyst: {markov_vol_window: 20, markov_vol_mult: 1.0, markov_regime: hysteresis, markov_enter: 0.05, markov_exit: -0.05}

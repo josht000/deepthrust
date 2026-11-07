@@ -87,3 +87,15 @@ The most important interface to preserve across all four models is the distincti
 - **predicted_probabilities**: what the model expected before observing that timestamp.
 - **smoothed_probabilities**: what the model believes retrospectively after seeing the entire sequence.
 That distinction will matter considerably when integrating regime probabilities into a live trading engine.
+
+## Implementation status
+
+- `src/markov.rs` — the observable-chain model (the `markov_regime.py` reference) is implemented:
+  walk-forward MLE labels/signal, hysteresis/strict gates, `gate|exit|size` overlay modes composable
+  via `markov_mode`, per-symbol/benchmark/universe/breadth regime sources, vol-scaled thresholds,
+  label-commit debounce, recency-decayed counts, pooled-matrix Dirichlet shrinkage, n-step `P^n`
+  signals, stationary-relative bear signal, and the `markov_regime` standalone study
+  (`configs/markov_regime.yaml`). For an observable chain the filtered and predicted probabilities
+  coincide — the row `P[c_t, :]` is exactly the predicted distribution.
+- Not yet ported: Gaussian HMM, MS-AR, MS-GARCH, TVTP-HMM, and `build_market_features`. When ported,
+  each should emit the filtered/predicted probability rows the overlay consumes.

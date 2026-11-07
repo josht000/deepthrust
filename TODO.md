@@ -1,3 +1,3 @@
 - [ ] Finish ES and NQ price action lab worktree: deepthrust-pal
 - [ ] Test out standard Roam Markov model
-- [ ] Test out the 3 advanced markov models.
+- [ ] Test out the 4 advanced markov models.
