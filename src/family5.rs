@@ -164,7 +164,7 @@ pub(crate) fn load_ranks(
     }
 }
 
-fn ew_stock_benchmark(panel: &Panel, tradable: &[Vec<bool>], etf_set: &BTreeSet<usize>) -> Option<Vec<f64>> {
+pub(crate) fn ew_stock_benchmark(panel: &Panel, tradable: &[Vec<bool>], etf_set: &BTreeSet<usize>) -> Option<Vec<f64>> {
     let n = panel.dates.len();
     let mut out = vec![0.0; n];
     for t in 1..n {

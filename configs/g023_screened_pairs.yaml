@@ -1,0 +1,71 @@
+# G023 ADF+Hurst+Half-Life screened pair reversion, Bollinger-distance entry.
+# Legs rebased to 100 over the 200d band window; short the leg near the upper
+# band while partner is below the pair-average mid; TP at mid, stop at the
+# outer band, monthly screen re-verify (corr_keep). One pair at a time.
+# DELTA vs source: normalized legs = window-rebase x100 (source used a global
+# normalized CSV); half-life uses the OLS slope (source used the intercept);
+# monthly re-verification added (source screened once on full history).
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,IVV,VOO,QQQ,IWM,DIA,RSP,TLT,IEF,SHY,BIL,AGG,TIP,GLD,SLV,CPER,GDX,GDXJ,USO,DBC,GSG,EEM,EFA,EWJ,HYG,LQD,IYR,VNQ,XLE,XLB,XLI,XLK,UUP
+pairs: ""
+benchmark: SPY
+start_date: "2008-01-01"
+formation_window: 252
+adf_max_p: 0.01
+adf_lags: 1
+hurst_max_horizon: 64
+hurst_lt: 0.5
+max_half_life: 30
+corr_min: 0.75
+corr_keep: 0.9
+bb_len: 200
+bb_mult: 2.0
+pair_dist: 2.0
+entry_mode: band
+norm_mode: rebase
+borrow_bps_annual: 50.0
+cost_bps_per_side: 1.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 2
+
+variants:
+  dist05: {pair_dist: 0.5}
+  dist1: {pair_dist: 1.0}
+  dist3: {pair_dist: 3.0}
+  dist4: {pair_dist: 4.0}
+  midband: {entry_mode: midband}
+  midband_dist1: {entry_mode: midband, pair_dist: 1.0}
+  midband_dist4: {entry_mode: midband, pair_dist: 4.0}
+  corr60: {corr_min: 0.60}
+  corr85: {corr_min: 0.85}
+  corr90: {corr_min: 0.90}
+  keep70: {corr_keep: 0.70}
+  keep95: {corr_keep: 0.95}
+  keep_all: {corr_keep: 0.0}
+  adf05: {adf_max_p: 0.05}
+  adf10: {adf_max_p: 0.10}
+  lags2: {adf_lags: 2}
+  lags4: {adf_lags: 4}
+  hl15: {max_half_life: 15}
+  hl45: {max_half_life: 45}
+  hl60: {max_half_life: 60}
+  hurst04: {hurst_lt: 0.40}
+  hurst045: {hurst_lt: 0.45}
+  hurst055: {hurst_lt: 0.55}
+  bb100: {bb_len: 100}
+  bb150: {bb_len: 150}
+  bb250: {bb_len: 250}
+  mult15: {bb_mult: 1.5}
+  mult25: {bb_mult: 2.5}
+  form126: {formation_window: 126}
+  form504: {formation_window: 504}
+  curated: {pairs: "SPY:IVV,SPY:VOO,IVV:VOO,SPY:DIA,QQQ:SPY,IWM:RSP,TLT:IEF,AGG:IEF,GLD:SLV,GLD:GDX,GDX:GDXJ,USO:DBC,USO:GSG,EEM:EFA,EWJ:EFA,HYG:LQD,IYR:VNQ,XLE:USO,SHY:BIL,TLT:TIP"}
+  dist1_hl45: {pair_dist: 1.0, max_half_life: 45}
+  corr85_hl45: {corr_min: 0.85, max_half_life: 45}
+  midband_corr85: {entry_mode: midband, corr_min: 0.85}
+  bb150_dist1: {bb_len: 150, pair_dist: 1.0}

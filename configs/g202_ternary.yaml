@@ -1,0 +1,59 @@
+# G202 ternary event engine: MACD(5,34) zero-cross + BB(20) breach + CMF(20)
+# sign-change events; long on +event, exit on opposite (vote mode = summed).
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_tr
+data_suffix: .parquet
+symbols: "*"
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+start_date: "2016-01-01"
+min_price: 5.0
+min_history: 60
+universe_top_n: 300
+borrow_bps_annual: 75.0
+cost_bps_per_side: 10.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261102
+book_slots: 10
+max_units: 1
+macd_fast: 5
+macd_slow: 34
+bb_len: 20
+bb_mult: 2.0
+volume_window: 20
+entry_mode: vote
+
+variants:
+  top500: {universe_top_n: 500}
+  top1000: {universe_top_n: 1000}
+  minp10: {min_price: 10.0}
+  minp20: {min_price: 20.0}
+  cost5: {cost_bps_per_side: 5.0}
+  cost2: {cost_bps_per_side: 2.0}
+  cost25: {cost_bps_per_side: 25.0}
+  hist126: {min_history: 126}
+  hist252: {min_history: 252}
+  macd: {entry_mode: macd}
+  bb: {entry_mode: bb}
+  cmf: {entry_mode: cmf}
+  all: {entry_mode: all}
+  macd812: {macd_fast: 8, macd_slow: 12}
+  macd1226: {macd_fast: 12, macd_slow: 26}
+  bb15: {bb_len: 15}
+  bb30: {bb_len: 30}
+  bb10: {bb_len: 10}
+  mult15: {bb_mult: 1.5}
+  mult25: {bb_mult: 2.5}
+  cmf10: {volume_window: 10}
+  cmf30: {volume_window: 30}
+  macd_macd812: {entry_mode: macd, macd_fast: 8, macd_slow: 12}
+  bb_bb15: {entry_mode: bb, bb_len: 15}
+  bb_mult25: {entry_mode: bb, bb_mult: 2.5}
+  cmf_cmf10: {entry_mode: cmf, volume_window: 10}
+  macd_cmf10: {entry_mode: macd, volume_window: 10}
+  vote_bb15: {entry_mode: vote, bb_len: 15}
+  all_mult25: {entry_mode: all, bb_mult: 2.5}

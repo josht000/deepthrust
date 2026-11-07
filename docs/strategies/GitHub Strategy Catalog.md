@@ -19,7 +19,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - [Single-Asset Mean Reversion (oscillators, bands, z-score)](#single-asset-mean-reversion-oscillators-bands-z-score) (22)
   - [G001 | Daily-Checkpoint Oversold-Bounce with Trend-Midpoint Exits (Mag10 + index ETFs)](#g001--daily-checkpoint-oversold-bounce-with-trend-midpoint-exits-mag10--index-etfs) — DUPLICATE (S001)
   - [G002 | Bollinger(30,2) Band-Touch Mean Reversion with Neutral Zone (EUR/USD)](#g002--bollinger302-band-touch-mean-reversion-with-neutral-zone-eurusd) — DUPLICATE (S011)
-  - [G003 | Daily High-Low Geometric-Midpoint Reversal](#g003--daily-high-low-geometric-midpoint-reversal)
+  - [G003 | Daily High-Low Geometric-Midpoint Reversal](#g003--daily-high-low-geometric-midpoint-reversal) — IMPLEMENTED
   - [G004 | Double-Seven Connors Pullback](#g004--double-seven-connors-pullback) — DUPLICATE (S006)
   - [G005 | Moving-Average-Threshold Single-Asset Mean Reversion](#g005--moving-average-threshold-single-asset-mean-reversion) — DUPLICATE (S011)
   - [G006 | Prop-Firm MA-Gap Mean Reversion with Vol-Compression Gate (M5/M15/M30)](#g006--prop-firm-ma-gap-mean-reversion-with-vol-compression-gate-m5m15m30)
@@ -37,10 +37,10 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G018 | RSI+MA Mean-Reversion on EUR/USD M1 (OANDA)](#g018--rsima-mean-reversion-on-eurusd-m1-oanda)
   - [G019 | Stochastic-Threshold Mean Reversion on SPY (IB TWS)](#g019--stochastic-threshold-mean-reversion-on-spy-ib-tws) — DUPLICATE (S001)
   - [G020 | Two-Day Dip with Five-Session Hold](#g020--two-day-dip-with-five-session-hold) — DUPLICATE (S007)
-  - [G021 | Volume-Adjusted Daily Return Reversal](#g021--volume-adjusted-daily-return-reversal)
+  - [G021 | Volume-Adjusted Daily Return Reversal](#g021--volume-adjusted-daily-return-reversal) — IMPLEMENTED
   - [G022 | Volume-Adjusted Intraday Reversal and Directional Sizing](#g022--volume-adjusted-intraday-reversal-and-directional-sizing)
 - [Pairs, Spread and Statistical Arbitrage](#pairs-spread-and-statistical-arbitrage) (44)
-  - [G023 | ADF+Hurst+Half-Life Screened Pair Reversion with Bollinger Distance Entry](#g023--adfhursthalf-life-screened-pair-reversion-with-bollinger-distance-entry)
+  - [G023 | ADF+Hurst+Half-Life Screened Pair Reversion with Bollinger Distance Entry](#g023--adfhursthalf-life-screened-pair-reversion-with-bollinger-distance-entry) — IMPLEMENTED
   - [G024 | Avellaneda-Lee PCA Eigenportfolio S-Score Reversion (Equity_StatArb implementation)](#g024--avellaneda-lee-pca-eigenportfolio-s-score-reversion-equity_statarb-implementation) — DUPLICATE (S078)
   - [G025 | Avellaneda-Lee PCA Eigenportfolio S-Score Reversion](#g025--avellaneda-lee-pca-eigenportfolio-s-score-reversion) — DUPLICATE (S078)
   - [G026 | Bollinger-Band EWA/EWC Pair Spread Reversion](#g026--bollinger-band-ewaewc-pair-spread-reversion) — DUPLICATE (S071)
@@ -54,14 +54,14 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G034 | Kalman Forecast-Error Pair Reversion](#g034--kalman-forecast-error-pair-reversion) — DUPLICATE (S071)
   - [G035 | Kalman-Updated Hedge-Ratio Pair Z-Score Strategy](#g035--kalman-updated-hedge-ratio-pair-z-score-strategy) — DUPLICATE (S071)
   - [G036 | Ornstein–Uhlenbeck Pair-Spread Z-Score](#g036--ornsteinuhlenbeck-pair-spread-z-score) — DUPLICATE (S071)
-  - [G037 | Partial-Cointegration Kalman Residual Reversion](#g037--partial-cointegration-kalman-residual-reversion)
+  - [G037 | Partial-Cointegration Kalman Residual Reversion](#g037--partial-cointegration-kalman-residual-reversion) — IMPLEMENTED
   - [G038 | ADF Cointegration Screener over Vanguard ETFs](#g038--adf-cointegration-screener-over-vanguard-etfs) — DUPLICATE (S071)
-  - [G039 | Barra Idiosyncratic Residual Return Reversal](#g039--barra-idiosyncratic-residual-return-reversal)
+  - [G039 | Barra Idiosyncratic Residual Return Reversal](#g039--barra-idiosyncratic-residual-return-reversal) — DUPLICATE (S078)
   - [G040 | Bayesian-Optimized OU Half-Life Pair Reversion](#g040--bayesian-optimized-ou-half-life-pair-reversion) — DUPLICATE (S071)
   - [G041 | Commodity Basis Reversal: Outright and Calendar-Spread Variants](#g041--commodity-basis-reversal-outright-and-calendar-spread-variants)
   - [G042 | Commodity Futures Intra-Curve F3/F0 Steepener](#g042--commodity-futures-intra-curve-f3f0-steepener)
   - [G043 | Copula Conditional-Probability Pair Trading](#g043--copula-conditional-probability-pair-trading)
-  - [G044 | Daily PCA Idiosyncratic-Residual Reversal](#g044--daily-pca-idiosyncratic-residual-reversal)
+  - [G044 | Daily PCA Idiosyncratic-Residual Reversal](#g044--daily-pca-idiosyncratic-residual-reversal) — DUPLICATE (S078)
   - [G045 | Distance-Selected Pair Spread Reversion](#g045--distance-selected-pair-spread-reversion) — DUPLICATE (S071)
   - [G046 | Dynamic Vasicek Pair Reversion with Market-Factor Adjustment](#g046--dynamic-vasicek-pair-reversion-with-market-factor-adjustment)
   - [G047 | Eight-Session Bollinger Band Pair Reversion](#g047--eight-session-bollinger-band-pair-reversion) — DUPLICATE (S071)
@@ -118,13 +118,13 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G096 | ANTICOR Anti-Correlation Wealth Transfer](#g096--anticor-anti-correlation-wealth-transfer) — IMPLEMENTED
   - [G097 | Baltas 2020 Trend Signal with Realized-Volatility Scaling](#g097--baltas-2020-trend-signal-with-realized-volatility-scaling) — IMPLEMENTED
   - [G098 | Moskowitz-Style Time-Series Momentum on Futures](#g098--moskowitz-style-time-series-momentum-on-futures) — IMPLEMENTED
-  - [G099 | Online Portfolio Selection Algorithm Zoo (OLMAR/PAMR/CWMR/RMR/ANTICOR/CORN/UP/ONS...)](#g099--online-portfolio-selection-algorithm-zoo-olmarpamrcwmrrmranticorcornupons)
+  - [G099 | Online Portfolio Selection Algorithm Zoo (OLMAR/PAMR/CWMR/RMR/ANTICOR/CORN/UP/ONS...)](#g099--online-portfolio-selection-algorithm-zoo-olmarpamrcwmrrmranticorcornupons) — IMPLEMENTED
   - [G100 | QARMII 252-Day Binary Momentum Portfolio](#g100--qarmii-252-day-binary-momentum-portfolio) — IMPLEMENTED
   - [G101 | Quadratic Dip-Depth Sizing Formula on VTI/QQQ (SGOV cash park)](#g101--quadratic-dip-depth-sizing-formula-on-vtiqqq-sgov-cash-park) — IMPLEMENTED
   - [G102 | Top-50 S&P500 12-Month Momentum Portfolio (with HQM low-quality-momentum filter variant)](#g102--top-50-sp500-12-month-momentum-portfolio-with-hqm-low-quality-momentum-filter-variant) — DUPLICATE (S041)
   - [G103 | Top-One Positive-Slope Momentum Rotation](#g103--top-one-positive-slope-momentum-rotation) — DUPLICATE (S043)
-  - [G104 | 232-Session-Lagged Industry-Relative Momentum Factor](#g104--232-session-lagged-industry-relative-momentum-factor)
-  - [G105 | Beta-Divided Multi-Period Return Reversal Factor](#g105--beta-divided-multi-period-return-reversal-factor)
+  - [G104 | 232-Session-Lagged Industry-Relative Momentum Factor](#g104--232-session-lagged-industry-relative-momentum-factor) — IMPLEMENTED
+  - [G105 | Beta-Divided Multi-Period Return Reversal Factor](#g105--beta-divided-multi-period-return-reversal-factor) — IMPLEMENTED
   - [G106 | Cross-Sectional 252-Session Commodity Momentum](#g106--cross-sectional-252-session-commodity-momentum)
   - [G107 | Cross-Sectional Commodity Basis Momentum](#g107--cross-sectional-commodity-basis-momentum)
   - [G108 | Cross-Sectional Futures Carry](#g108--cross-sectional-futures-carry)
@@ -132,26 +132,26 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G110 | Daily Plus Intraday Beta-Adjusted Return Forecast](#g110--daily-plus-intraday-beta-adjusted-return-forecast)
   - [G111 | Intraday Beta-Divided Return Reversal](#g111--intraday-beta-divided-return-reversal)
   - [G112 | Intraday Market-Weighted Beta-Residual Returns](#g112--intraday-market-weighted-beta-residual-returns)
-  - [G113 | Market-Weighted Beta-Residual Return Factor](#g113--market-weighted-beta-residual-return-factor)
+  - [G113 | Market-Weighted Beta-Residual Return Factor](#g113--market-weighted-beta-residual-return-factor) — DUPLICATE (S078)
   - [G114 | NSE Stock Scanner - Momentum/Swing Screening Signals](#g114--nse-stock-scanner---momentumswing-screening-signals)
   - [G115 | Robust-Value Percentile-Composite Portfolio (PE/PB/PS/EV-EBITDA/EV-GP)](#g115--robust-value-percentile-composite-portfolio-pepbpsev-ebitdaev-gp)
   - [G116 | Volatility-Ratio-Weighted Return Reversal Factor](#g116--volatility-ratio-weighted-return-reversal-factor)
 - [Formulaic Alpha Factor Libraries](#formulaic-alpha-factor-libraries) (7)
   - [G117 | QLib Alpha158/Alpha360 Handcrafted Factor Libraries](#g117--qlib-alpha158alpha360-handcrafted-factor-libraries)
   - [G118 | Alpha101 Formulaic Alpha Library](#g118--alpha101-formulaic-alpha-library)
-  - [G119 | Alpha101-009 Five-Day Conditional Reversal](#g119--alpha101-009-five-day-conditional-reversal)
-  - [G120 | Alpha101-012 Volume-Confirmed One-Day Reversal](#g120--alpha101-012-volume-confirmed-one-day-reversal)
-  - [G121 | Alpha101-101 Intraday Candle-Location Factor](#g121--alpha101-101-intraday-candle-location-factor)
+  - [G119 | Alpha101-009 Five-Day Conditional Reversal](#g119--alpha101-009-five-day-conditional-reversal) — IMPLEMENTED
+  - [G120 | Alpha101-012 Volume-Confirmed One-Day Reversal](#g120--alpha101-012-volume-confirmed-one-day-reversal) — IMPLEMENTED
+  - [G121 | Alpha101-101 Intraday Candle-Location Factor](#g121--alpha101-101-intraday-candle-location-factor) — IMPLEMENTED
   - [G122 | Alpha191 Formulaic Alpha Library](#g122--alpha191-formulaic-alpha-library)
-  - [G123 | Alpha191-020 Six-Session Price Momentum](#g123--alpha191-020-six-session-price-momentum)
+  - [G123 | Alpha191-020 Six-Session Price Momentum](#g123--alpha191-020-six-session-price-momentum) — IMPLEMENTED
 - [Price Action, Candlestick and Smart-Money Patterns](#price-action-candlestick-and-smart-money-patterns) (7)
   - [G124 | Bollinger-Band Touch then Pullback-to-MA Continuation Entry](#g124--bollinger-band-touch-then-pullback-to-ma-continuation-entry) — DUPLICATE (S050)
   - [G125 | ICT Smart-Money-Concepts Signal Primitives (FVG, Order Blocks, BOS/CHoCH, Liquidity, Premium/Discount)](#g125--ict-smart-money-concepts-signal-primitives-fvg-order-blocks-boschoch-liquidity-premiumdiscount)
   - [G126 | STAR-EA ICT 12-Scenario Engine with AMD Phase Gating](#g126--star-ea-ict-12-scenario-engine-with-amd-phase-gating)
-  - [G127 | Bollinger Bands Bottom-W Pattern Reversal](#g127--bollinger-bands-bottom-w-pattern-reversal)
-  - [G128 | Heikin-Ashi Consecutive-Candle Trend Reversal](#g128--heikin-ashi-consecutive-candle-trend-reversal)
-  - [G129 | RSI Head-and-Shoulders Pattern Reversal](#g129--rsi-head-and-shoulders-pattern-reversal)
-  - [G130 | Shooting-Star Candlestick Reversal](#g130--shooting-star-candlestick-reversal)
+  - [G127 | Bollinger Bands Bottom-W Pattern Reversal](#g127--bollinger-bands-bottom-w-pattern-reversal) — IMPLEMENTED
+  - [G128 | Heikin-Ashi Consecutive-Candle Trend Reversal](#g128--heikin-ashi-consecutive-candle-trend-reversal) — IMPLEMENTED
+  - [G129 | RSI Head-and-Shoulders Pattern Reversal](#g129--rsi-head-and-shoulders-pattern-reversal) — IMPLEMENTED
+  - [G130 | Shooting-Star Candlestick Reversal](#g130--shooting-star-candlestick-reversal) — IMPLEMENTED
 - [Volatility and Options-Derived Signals](#volatility-and-options-derived-signals) (9)
   - [G131 | Long/Short Straddle Volatility Trading (mcf-long-short IBKR)](#g131--longshort-straddle-volatility-trading-mcf-long-short-ibkr)
   - [G132 | Options Wheel (CSP -> Covered Call) - alpacahq template](#g132--options-wheel-csp---covered-call---alpacahq-template)
@@ -169,7 +169,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G143 | Hour-of-Day Session Gating (HourBasedStrategy)](#g143--hour-of-day-session-gating-hourbasedstrategy)
   - [G144 | London Session Opening-Range Breakout](#g144--london-session-opening-range-breakout)
   - [G145 | Month-End Long After Negative Prior Month](#g145--month-end-long-after-negative-prior-month) — DUPLICATE (S079)
-  - [G146 | Weekday-Conditioned Beta-Adjusted Return Forecast](#g146--weekday-conditioned-beta-adjusted-return-forecast)
+  - [G146 | Weekday-Conditioned Beta-Adjusted Return Forecast](#g146--weekday-conditioned-beta-adjusted-return-forecast) — IMPLEMENTED
 - [News, Sentiment and Alternative Data](#news-sentiment-and-alternative-data) (12)
   - [G147 | Binance News-Sentiment Bot - Headline Sentiment -> Buy New Listings/Alts](#g147--binance-news-sentiment-bot---headline-sentiment---buy-new-listingsalts) — DUPLICATE (S056)
   - [G148 | Earnings-Surprise Drift Factor](#g148--earnings-surprise-drift-factor) — DUPLICATE (S054)
@@ -232,7 +232,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
   - [G199 | Bid-Ask Depth Imbalance Forecast](#g199--bid-ask-depth-imbalance-forecast)
   - [G200 | Daily/Intraday Beta-Adjusted Order-Flow Imbalance](#g200--dailyintraday-beta-adjusted-order-flow-imbalance)
   - [G201 | Differenced Intraday Order-Flow Momentum](#g201--differenced-intraday-order-flow-momentum)
-  - [G202 | Indicator Ternary-Signal Portfolio Engine (MACD zero-cross, Bollinger bands, CMF)](#g202--indicator-ternary-signal-portfolio-engine-macd-zero-cross-bollinger-bands-cmf)
+  - [G202 | Indicator Ternary-Signal Portfolio Engine (MACD zero-cross, Bollinger bands, CMF)](#g202--indicator-ternary-signal-portfolio-engine-macd-zero-cross-bollinger-bands-cmf) — IMPLEMENTED
   - [G203 | MA-Slope-Biased Martingale](#g203--ma-slope-biased-martingale)
   - [G204 | Momentum-Following + Implementation-Shortfall Execution Study (Algo-Trading-14)](#g204--momentum-following--implementation-shortfall-execution-study-algo-trading-14)
   - [G205 | Multi-Pair Martingale Bot (Binance)](#g205--multi-pair-martingale-bot-binance)
@@ -283,6 +283,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [BearsOnMars/Algorithmic_Trading — SMA=30 dev=2; neutral-zone logic and cost analysis](https://github.com/BearsOnMars/Algorithmic_Trading/blob/5a1636fdd24f843aef5531cc8e1764a6e9fd6424/Trading_Strategies/Mean-Reversion/Mean-Reversion%20%28Bollinger%20Bands%29%20Strategy%20-%20Design%20and%20Backtest.ipynb); [BearsOnMars/Algorithmic_Trading — train/forward split](https://github.com/BearsOnMars/Algorithmic_Trading/blob/5a1636fdd24f843aef5531cc8e1764a6e9fd6424/Trading_Strategies/Mean-Reversion/Mean-Reversion%20%28Bollinger%20Bands%29%20Backtester%20class%20with%20OOP.ipynb)
 
 ### G003 | Daily High-Low Geometric-Midpoint Reversal
+- implementation_results: code in `src/family12.rs`; baseline: dev 103176/42113 trades, skill -4.712, sharpe -3.605; test skill -1.960 | winner top05: dev skill -5.490, sharpe -2.854; test skill -2.607, 50353/20937 trades. Reproduce: `target\release\deepthrust.exe --strategy g003_hl_reversal`
 - priority: Medium — The signal and short holding horizon are explicit, but no stand-alone cost-aware OOS results are claimed.
 - direction: long/short | market: US equities | timeframe: 1d (daily-native)
 - indicators: Close divided by geometric mean of daily high and low; winsorized, industry demeaned, lagged signals
@@ -581,6 +582,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [yungalyx/NoisyBoyAlgotrader — Two-day dip strategy and five-session exit](https://github.com/yungalyx/NoisyBoyAlgotrader/blob/6c5783b0a8d602c1455e34e9d9eb664edc7b0b43/src/strategies/beginner.py#L37-L85)
 
 ### G021 | Volume-Adjusted Daily Return Reversal
+- implementation_results: code in `src/family12.rs`; baseline: dev 103138/42033 trades, skill -5.555, sharpe -3.256; test skill -2.533 | winner top05: dev skill -5.804, sharpe -1.960; test skill -2.879, 50328/20856 trades. Reproduce: `target\release\deepthrust.exe --strategy g021_voladj_rev`
 - priority: Low — The volume-conditioned reversal thesis is interpretable but depends on proprietary data and has no reported cost-aware validation.
 - direction: long/short | market: US equities | timeframe: 1d (daily-native)
 - indicators: 21-day relative volume, beta-adjusted daily returns, lagged volume-return interaction
@@ -620,6 +622,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 ## Pairs, Spread and Statistical Arbitrage
 
 ### G023 | ADF+Hurst+Half-Life Screened Pair Reversion with Bollinger Distance Entry
+- implementation_results: code in `src/family12.rs`; baseline: dev 488/94 trades, skill -0.391, sharpe -0.690; test skill -0.074 | winner bb100: dev skill 0.131, sharpe 0.291; test skill -0.014, 474/146 trades. Reproduce: `target\release\deepthrust.exe --strategy g023_screened_pairs`
 - priority: High — Complete daily-bar implementable spec with triple statistical screening - Chan-lineage pair construction done properly.
 - direction: market-neutral | market: US equities (Yahoo scrape) | timeframe: 1d (daily-native)
 - indicators: Correlation>0.75 (0.9 for existing position), ADF cointegration at 1% crit, Hurst<0.5, OU half-life<30 days, 200-day Bollinger bands on each leg
@@ -814,6 +817,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [financialnoob/pairs_trading — OU-score pair signals and equal-weight long/short positions; code cells 10–11](https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/8.pairs_trading_with_ou_process_part1.ipynb); [financialnoob/pairs_trading — The same OU entry/exit rule with additional risk-factor/PCA experiments; code cells 4, 22, 25, 28, and 33](https://github.com/financialnoob/pairs_trading/blob/88e94ea51fbab6397efb021e03334c6f596515fb/9.pairs_trading_with_ou_process_part2.ipynb)
 
 ### G037 | Partial-Cointegration Kalman Residual Reversion
+- implementation_results: code in `src/family12.rs`; baseline: dev 24/10 trades, skill -0.009, sharpe -0.062; test skill -0.001. Reproduce: `target\release\deepthrust.exe --strategy g037_pci_kalman`
 - priority: Medium — The random-walk/mean-reversion decomposition is a distinct statistical-arbitrage model with explicit signals, but costs and independent validation are absent.
 - direction: market-neutral | market: Equities | timeframe: 1d (daily-native)
 - indicators: Partial cointegration model, Kalman-separated mean-reverting component, residual spread
@@ -842,6 +846,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G039 | Barra Idiosyncratic Residual Return Reversal
 - priority: Low — The factor has a clear idiosyncratic-reversion thesis but requires proprietary factor data and a large backtest pipeline.
+- overlap: S078 (existing catalog) — Factor-model residual reversal: the Barra idiosyncratic-residual forecast is the same mechanism as the s078 beta-neutral residual reversal study, with a proprietary risk model instead of rolling betas.
 - direction: market-neutral | market: US equities | timeframe: Daily and intraday (intraday-adaptable)
 - indicators: Barra factor-model residual returns, winsorization, multi-day lags
 - Overview: The RRB factor takes stock-specific returns left after a Barra risk model, then fits lagged residuals to forward returns. It is a theory-driven idiosyncratic mean-reversion signal distinct from PCA residuals.
@@ -931,6 +936,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G044 | Daily PCA Idiosyncratic-Residual Reversal
 - priority: Low — The residual-reversion thesis is clear and daily-compatible, but the PCA calibration and portfolio costs require full data dependencies.
+- overlap: S078 (existing catalog) — PCA idiosyncratic-residual reversion is the Avellaneda-Lee mechanism already covered by G024/G025 -> S078; only the residual estimator differs (rolling PCA vs regression beta).
 - direction: market-neutral | market: US equities | timeframe: 1d (daily-native)
 - indicators: Rolling PCA of equity returns, Barra or PCA residuals, five principal components
 - Overview: The model removes common principal-component movements from stock returns and forecasts idiosyncratic residual reversion. A separate daily generator uses exponentially weighted correlations and four PCs.
@@ -1912,6 +1918,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - implementation_results: `src/family4.rs` compute_g098_signals (worktree branch g098_tsmom); 20-asset TR ETF book, 10 bps/side, month-end, signed weights. DELTA: futures contracts proxied by ETFs. Baseline ewmvol (target_vol 0.40, cap 0.95) is spec-faithful but produces ~19x gross on ETF vols — dev total -7.8, rnd baseline NaN. Equal-weight variant: dev skill -0.15, test -0.05. eq_mom126 top dev (+0.04) flips test (-0.12). NO EDGE in either scheme. Reproduce: `cargo run --release --bin deepthrust -- --strategy g098_tsmom`; variants `... --variant equal,mom63,mom126,mom189,mom315,tv10,tv15,tv20,com20,com120,cap50,cap30,weekly,mom63_tv15,mom126_tv15,eq_mom126`
 
 ### G099 | Online Portfolio Selection Algorithm Zoo (OLMAR/PAMR/CWMR/RMR/ANTICOR/CORN/UP/ONS...)
+- implementation_results: code in `src/family12.rs`; baseline: dev 33880/11647 trades, skill -0.853, sharpe 0.471; test skill -0.308 | winner pamr: dev skill -2.991, sharpe -0.554; test skill -0.493, 30017/10631 trades. Reproduce: `target\release\deepthrust.exe --strategy g099_olps`
 - priority: Medium — Rich source of published daily-rebalance algorithms; OLMAR/ANTICOR merit direct porting; others likely cost-limited.
 - direction: long | market: NASDAQ100/DOW30/SSE50/CSI300 + crypto (pgportfolio) | timeframe: 1d (daily-native)
 - indicators: Price relatives; mean-reversion predictors (SMA reversion for OLMAR); anti-correlation matrices; pattern-matching kernels
@@ -2007,6 +2014,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [0a1b/momentum_NautilusTrader — Daily scoring, top-N selection, rebalance schedule, and position switch](https://github.com/0a1b/momentum_NautilusTrader/blob/31d29628fe7c770f1b8fd07a598658062cd522b1/nautilus_engine_momentum.py#L136-L184); [0a1b/momentum_NautilusTrader — Top-one portfolio liquidation and sizing](https://github.com/0a1b/momentum_NautilusTrader/blob/31d29628fe7c770f1b8fd07a598658062cd522b1/nautilus_engine_momentum.py#L190-L248); [0a1b/momentum_NautilusTrader — Notebook parameters and candidate index selection, code cells 1 and 2](https://github.com/0a1b/momentum_NautilusTrader/blob/31d29628fe7c770f1b8fd07a598658062cd522b1/momentum_top1_nasdaq100_nautilus_v5.ipynb); [0a1b/momentum_NautilusTrader — Walk-forward parameter grid and windows, code cell 2](https://github.com/0a1b/momentum_NautilusTrader/blob/31d29628fe7c770f1b8fd07a598658062cd522b1/momentum_walkforward_runner.ipynb)
 
 ### G104 | 232-Session-Lagged Industry-Relative Momentum Factor
+- implementation_results: code in `src/family12.rs`; baseline: dev 103050/41807 trades, skill -1.772, sharpe -1.383; test skill -0.323 | winner top05: dev skill -2.559, sharpe -1.231; test skill -0.496, 50293/20628 trades. Reproduce: `target\release\deepthrust.exe --strategy g104_lagged_indmom`
 - priority: Low — The signal is precise but the code's academic interpretation is ambiguous and no cost-aware OOS evidence is provided.
 - direction: long/short | market: US equities | timeframe: Daily (daily-native)
 - indicators: 20-session cumulative log return, industry demeaning, 232-session lag
@@ -2024,6 +2032,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [noterminusgit/statarb — Signal horizon, 232-session lag, and forecast model](https://github.com/noterminusgit/statarb/blob/b5a981ab2658b5eb5cd0a3f610bc9f4db7142655/mom_year.py#L50-L151)
 
 ### G105 | Beta-Divided Multi-Period Return Reversal Factor
+- implementation_results: code in `src/family12.rs`; baseline: dev 103169/42038 trades, skill -2.273, sharpe -1.422; test skill nan | winner top05: dev skill -3.322, sharpe -1.079; test skill 6.899, 50355/20858 trades. Reproduce: `target\release\deepthrust.exe --strategy g105_beta_div_rev`
 - priority: Low — The factor is explicit and daily, but its regression targets and data dependencies require substantial replication work.
 - direction: long/short | market: US equities | timeframe: 1d (daily-native)
 - indicators: Log return divided by predicted beta, winsorized and industry demeaned
@@ -2163,6 +2172,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 
 ### G113 | Market-Weighted Beta-Residual Return Factor
 - priority: Low — Market-neutralized return information is plausible, but no cost-aware performance evidence is reported.
+- overlap: S078 (existing catalog) — Beta-residual (log_return - beta x cap-weighted market return) reversal is the s078 beta-neutral residual-reversal signal family with a different market proxy.
 - direction: long/short | market: US equities | timeframe: 1d (daily-native)
 - indicators: Market-cap-weighted market return, predicted beta, lagged beta-adjusted returns
 - Overview: This variant subtracts the predicted beta times the cap-weighted market return instead of dividing each return by beta. The resulting residual-like daily signals are regressed against future returns.
@@ -2270,6 +2280,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [popbo/alphas — Alpha001–Alpha101 implementation and shared rolling operators](https://github.com/popbo/alphas/blob/620594add1c48a4c8b8eb0dca22c2fef9cabccf9/alphas101.py#L194-L752); [popbo/alphas — Backtrader factor-quantile portfolio example, code cells 5 and 8](https://github.com/popbo/alphas/blob/620594add1c48a4c8b8eb0dca22c2fef9cabccf9/2.backtrader.ipynb); [popbo/alphas — Forward-return quantile analysis](https://github.com/popbo/alphas/blob/620594add1c48a4c8b8eb0dca22c2fef9cabccf9/analy_alphas.py#L9-L72)
 
 ### G119 | Alpha101-009 Five-Day Conditional Reversal
+- implementation_results: code in `src/family12.rs`; baseline: dev 103168/42114 trades, skill -5.896, sharpe -3.855; test skill -2.712 | winner top05: dev skill -6.696, sharpe -3.085; test skill -3.438, 50353/20938 trades. Reproduce: `target\release\deepthrust.exe --strategy g119_alpha009`
 - priority: Low — The formula is a transparent daily swing signal, but no factor-specific portfolio or cost-aware out-of-sample result is supplied.
 - direction: long/short | market: CN A-shares | timeframe: 1d (daily-native)
 - indicators: Alpha101 formula inputs: daily close, volume, and/or OHLC
@@ -2287,6 +2298,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [popbo/alphas — Alpha101-009 Five-Day Conditional Reversal formula](https://github.com/popbo/alphas/blob/620594add1c48a4c8b8eb0dca22c2fef9cabccf9/alphas101.py#L248-L254); [popbo/alphas — The repository's factor portfolio example; not a factor-specific exit rule, code cells 5 and 8](https://github.com/popbo/alphas/blob/620594add1c48a4c8b8eb0dca22c2fef9cabccf9/2.backtrader.ipynb)
 
 ### G120 | Alpha101-012 Volume-Confirmed One-Day Reversal
+- implementation_results: code in `src/family12.rs`; baseline: dev 103186/42116 trades, skill -6.111, sharpe -5.583; test skill -2.270 | winner top05: dev skill -6.267, sharpe -3.279; test skill -2.417, 50363/20938 trades. Reproduce: `target\release\deepthrust.exe --strategy g120_alpha012`
 - priority: Low — The formula is a transparent daily swing signal, but no factor-specific portfolio or cost-aware out-of-sample result is supplied.
 - direction: long/short | market: CN A-shares | timeframe: 1d (daily-native)
 - indicators: Alpha101 formula inputs: daily close, volume, and/or OHLC
@@ -2304,6 +2316,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [popbo/alphas — Alpha101-012 Volume-Confirmed One-Day Reversal formula](https://github.com/popbo/alphas/blob/620594add1c48a4c8b8eb0dca22c2fef9cabccf9/alphas101.py#L270-L271); [popbo/alphas — The repository's factor portfolio example; not a factor-specific exit rule, code cells 5 and 8](https://github.com/popbo/alphas/blob/620594add1c48a4c8b8eb0dca22c2fef9cabccf9/2.backtrader.ipynb)
 
 ### G121 | Alpha101-101 Intraday Candle-Location Factor
+- implementation_results: code in `src/family12.rs`; baseline: dev 103175/42112 trades, skill -7.575, sharpe -6.739; test skill 82.804 | winner top05: dev skill -7.922, sharpe -5.115; test skill -3.554, 50357/20934 trades. Reproduce: `target\release\deepthrust.exe --strategy g121_candle_loc`
 - priority: Low — The formula is a transparent daily swing signal, but no factor-specific portfolio or cost-aware out-of-sample result is supplied.
 - direction: long/short | market: CN A-shares | timeframe: 1d (daily-native)
 - indicators: Alpha101 formula inputs: daily close, volume, and/or OHLC
@@ -2339,6 +2352,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [popbo/alphas — Alpha001–Alpha191 formula definitions](https://github.com/popbo/alphas/blob/620594add1c48a4c8b8eb0dca22c2fef9cabccf9/alphas191.py#L1-L1231); [popbo/alphas — Forward-return quantile analysis used by the repository](https://github.com/popbo/alphas/blob/620594add1c48a4c8b8eb0dca22c2fef9cabccf9/analy_alphas.py#L9-L72)
 
 ### G123 | Alpha191-020 Six-Session Price Momentum
+- implementation_results: code in `src/family12.rs`; baseline: dev 103170/42116 trades, skill -3.469, sharpe -2.065; test skill -1.560 | winner top05: dev skill -3.498, sharpe -1.480; test skill -1.600, 50357/20936 trades. Reproduce: `target\release\deepthrust.exe --strategy g123_alpha191_020`
 - priority: Low — The factor has clear six-session momentum logic but no factor-specific cost-aware portfolio test.
 - direction: long/short | market: CN A-shares | timeframe: 1d (daily-native)
 - indicators: Daily close
@@ -2402,6 +2416,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [NadirAliOfficial/STAR-EA-v11.20 — scenario gate mapping + DetectAMDPhase + technique flags](https://github.com/NadirAliOfficial/STAR-EA-v11.20/blob/32c601e90bebcfc141439cca294533046c1330f2/STAR_v11.20.mq5); [NadirAliOfficial/STAR-EA-v11.20 — 12-scenario overview](https://github.com/NadirAliOfficial/STAR-EA-v11.20/blob/32c601e90bebcfc141439cca294533046c1330f2/README.md)
 
 ### G127 | Bollinger Bands Bottom-W Pattern Reversal
+- implementation_results: code in `src/family12.rs`; baseline: dev 6050/2051 trades, skill -0.688, sharpe 0.748; test skill -0.182 | winner top500: dev skill -0.688, sharpe 0.748; test skill -0.182, 6050/2051 trades. Reproduce: `target\release\deepthrust.exe --strategy g127_bb_w`
 - priority: Low — The rule is distinctive and explicit, but its absolute tolerances are scale-sensitive and no out-of-sample results are shown.
 - direction: long | market: Yahoo Finance equities | timeframe: 1d (daily-native)
 - indicators: 20-session SMA, ±2 standard-deviation bands, five-node W pattern
@@ -2419,6 +2434,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [je-suis-tm/quant-trading — Bands and five-node W detection, tolerances, and contraction exit](https://github.com/je-suis-tm/quant-trading/blob/611b73f2c3f577ac5b28aaa19ac8c43d3236c7a5/Bollinger%20Bands%20Pattern%20Recognition%20backtest.py#L39-L169)
 
 ### G128 | Heikin-Ashi Consecutive-Candle Trend Reversal
+- implementation_results: code in `src/family12.rs`; baseline: dev 108579/37448 trades, skill -0.309, sharpe 0.854; test skill -0.122 | winner top500: dev skill -0.309, sharpe 0.854; test skill -0.122, 108579/37448 trades. Reproduce: `target\release\deepthrust.exe --strategy g128_ha_reversal`
 - priority: Low — The code is explicit but its candle direction is counterintuitive and the backtest does not model costs.
 - direction: long | market: Yahoo Finance equities | timeframe: 1d (daily-native)
 - indicators: Heikin-Ashi OHLC and consecutive candle-body comparisons
@@ -2436,6 +2452,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [je-suis-tm/quant-trading — Heikin-Ashi transformation and signal/position logic](https://github.com/je-suis-tm/quant-trading/blob/611b73f2c3f577ac5b28aaa19ac8c43d3236c7a5/Heikin-Ashi%20backtest.py#L41-L123)
 
 ### G129 | RSI Head-and-Shoulders Pattern Reversal
+- implementation_results: code in `src/family12.rs`; baseline: dev 60415/20697 trades, skill -0.720, sharpe 0.807; test skill -0.346 | winner top500: dev skill -0.720, sharpe 0.807; test skill -0.346, 60415/20697 trades. Reproduce: `target\release\deepthrust.exe --strategy g129_rsi_hs`
 - priority: Low — The pattern has explicit exits but is a small-sample heuristic without cost or OOS evidence.
 - direction: short | market: Yahoo Finance equities | timeframe: 1d (daily-native)
 - indicators: RSI(14) extrema forming a head-and-shoulders pattern
@@ -2453,6 +2470,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [je-suis-tm/quant-trading — Pattern node logic and RSI/time exits](https://github.com/je-suis-tm/quant-trading/blob/611b73f2c3f577ac5b28aaa19ac8c43d3236c7a5/RSI%20Pattern%20Recognition%20backtest.py#L151-L305)
 
 ### G130 | Shooting-Star Candlestick Reversal
+- implementation_results: code in `src/family12.rs`; baseline: dev 86820/30551 trades, skill -1.201, sharpe 0.425; test skill -0.417 | winner top500: dev skill -1.201, sharpe 0.425; test skill -0.417, 86820/30551 trades. Reproduce: `target\release\deepthrust.exe --strategy g130_shooting_star`
 - priority: Low — The candle definition is explicit but is a heuristic with a very short sample and no realistic costs.
 - direction: short | market: Yahoo Finance equities | timeframe: 1d (daily-native)
 - indicators: Eight OHLC shooting-star criteria, body/range ratios
@@ -2726,6 +2744,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [rolling-panda-san/notebooks — MonthEndLong configuration and 200-day gate; code cell 22](https://github.com/rolling-panda-san/notebooks/blob/ce05661a5d4b3cdb439ece27dcccba88e2cb130a/equity_short_term_trading_connors.ipynb)
 
 ### G146 | Weekday-Conditioned Beta-Adjusted Return Forecast
+- implementation_results: code in `src/family12.rs`; baseline: dev 103063/42035 trades, skill -6.644, sharpe -3.453; test skill -2.221 | winner top05: dev skill -7.659, sharpe -2.256; test skill -2.215, 50303/20857 trades. Reproduce: `target\release\deepthrust.exe --strategy g146_weekday_beta`
 - priority: Low — Calendar conditioning is precisely defined but is an exploratory factor without cost-aware OOS validation.
 - direction: long/short | market: US equities | timeframe: Daily (daily-native)
 - indicators: Beta-divided daily returns and weekday-specific regression coefficients
@@ -3701,6 +3720,7 @@ Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was 
 - sources: [noterminusgit/statarb — Differenced order-flow signal and intraday forecast](https://github.com/noterminusgit/statarb/blob/b5a981ab2658b5eb5cd0a3f610bc9f4db7142655/bd1.py#L92-L253)
 
 ### G202 | Indicator Ternary-Signal Portfolio Engine (MACD zero-cross, Bollinger bands, CMF)
+- implementation_results: code in `src/family12.rs`; baseline: dev 144890/49308 trades, skill -0.619, sharpe 0.778; test skill -0.051 | winner top500: dev skill -0.619, sharpe 0.778; test skill -0.051, 144890/49308 trades. Reproduce: `target\release\deepthrust.exe --strategy g202_ternary`
 - priority: Low — Infrastructure-grade signal engine; the bootstrap preference-matrix evaluation is the reusable idea, not the signals.
 - direction: long/short | market: US equities EOD | timeframe: 1d (daily-native)
 - indicators: MACD(5,34) zero-cross -> event signal; Bollinger(20) band breach -> reversal signal; Chaikin Money Flow
