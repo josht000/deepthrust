@@ -1510,8 +1510,9 @@ pub fn compute_g128_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
             let bull = hc[t] > ho[t];
             let body = (hc[t] - ho[t]).abs();
             let pbody = (hc[t - 1] - ho[t - 1]).abs();
-            let no_up_wick = (ho[t] - panel.high[j][t]).abs() <= 1e-9 * panel.high[j][t].max(1.0);
-            let no_dn_wick = (ho[t] - panel.low[j][t]).abs() <= 1e-9 * panel.low[j][t].max(1.0);
+            let rng_t = (panel.high[j][t] - panel.low[j][t]).max(1e-9);
+            let no_up_wick = (panel.high[j][t] - ho[t]) <= 0.01 * rng_t;
+            let no_dn_wick = (ho[t] - panel.low[j][t]) <= 0.01 * rng_t;
             if bear && no_up_wick && body > pbody && hc[t - 1] < ho[t - 1] {
                 result.signal[j][t] = true;
                 result.rsi[j][t] = body;

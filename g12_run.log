@@ -1,0 +1,45 @@
+=== g003_hl_reversal
+symbol overview: results\g003_hl_reversal\symbols_overview.svg
+Total timing: 331.75s (331.75s)
+=== g021_voladj_rev
+symbol overview: results\g021_voladj_rev\symbols_overview.svg
+Total timing: 333.18s (333.18s)
+=== g104_lagged_indmom
+symbol overview: results\g104_lagged_indmom\symbols_overview.svg
+Total timing: 309.54s (309.54s)
+=== g105_beta_div_rev
+symbol overview: results\g105_beta_div_rev\symbols_overview.svg
+Total timing: 317.04s (317.04s)
+=== g146_weekday_beta
+symbol overview: results\g146_weekday_beta\symbols_overview.svg
+Total timing: 300.28s (300.28s)
+=== g119_alpha009
+symbol overview: results\g119_alpha009\symbols_overview.svg
+Total timing: 293.11s (293.11s)
+=== g120_alpha012
+symbol overview: results\g120_alpha012\symbols_overview.svg
+Total timing: 274.65s (274.65s)
+=== g121_candle_loc
+symbol overview: results\g121_candle_loc\symbols_overview.svg
+Total timing: 267.34s (267.34s)
+=== g123_alpha191_020
+symbol overview: results\g123_alpha191_020\symbols_overview.svg
+Total timing: 309.03s (309.03s)
+=== g127_bb_w
+symbol overview: results\g127_bb_w\symbols_overview.svg
+Total timing: 63.45s (63.45s)
+=== g128_ha_reversal
+symbol overview: results\g128_ha_reversal\symbols_overview.svg
+Total timing: 25.13s (25.13s)
+=== g129_rsi_hs
+symbol overview: results\g129_rsi_hs\symbols_overview.svg
+Total timing: 252.85s (252.85s)
+=== g130_shooting_star
+symbol overview: results\g130_shooting_star\symbols_overview.svg
+Total timing: 370.95s (370.95s)
+=== g202_ternary
+symbol overview: results\g202_ternary\symbols_overview.svg
+Total timing: 11.5m (689.67s)
+=== g099_olps
+symbol overview: results\g099_olps\symbols_overview.svg
+Total timing: 145.50s (145.50s)
