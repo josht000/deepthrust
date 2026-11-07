@@ -33,6 +33,8 @@ alongside other agents: minimal diffs, no refactors, no long comments.
 3. Baseline = the FIRST-listed value of every choice (the catalog's determinism
    convention). Everything after "or"/"optional"/"variant" is a variant, not the
    baseline. Implement the baseline exactly — no improvising.
+4. Before editing, inspect the repository guidance and working-tree state. Use a dedicated git worktree and task branch; do not use `git stash`. Preserve other agents' changes and untracked files. Never delete or overwrite work you did not create.
+5. Do not use git stash or destroy code. 
 
 ## Implementation
 - Name: `sNNN_<short_name>` for catalog entries (mirror `s075_residual_reversal`).

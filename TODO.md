@@ -1,3 +1,7 @@
 - [ ] Finish ES and NQ price action lab worktree: deepthrust-pal
-- [ ] Test out standard Roam Markov model
-- [ ] Test out the 4 advanced markov models.
+- [X] Test out standard Roam Markov model
+- [ ] Gaussian HMM 
+- [ ] MS-AR 
+- [ ] MS-GARCH 
+- [ ] TVTP-HMM
+- [ ] Go through remaining github catalog and see what data is needed to implement the remaining blocked strats on data issues. 
