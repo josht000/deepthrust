@@ -93,6 +93,15 @@ Do not run duplicate configurations. If an additional feature is mathematically 
 - Avoid duplicate or highly redundant features without explicitly testing their effect.
 - Keep the original baseline unchanged so that all experiments can be compared against it.
 
+## TODO
+- [ ] A-G
+- [ ] H-R
+- [ ] S-Y
+- [ ] Test various gaussian configurations on top 10 winners
+- [ ] Test various seeds on top 10 winners
+
+Winners means we want Sharpe and PF to be above 1 with a reasonable number of trades (>= 100 on Dev).
+
 ## Results
 
 ### A-G
