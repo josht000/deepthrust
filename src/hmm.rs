@@ -21,15 +21,41 @@ pub const HMM_TITLE: &str = "Gaussian HMM Regime";
 const EPS: f64 = 1e-12;
 const LOG_2PI: f64 = 1.8378770664093453;
 
-const F_RET: usize = 0;
-const FEATURE_NAMES: [&str; 6] = [
-    "daily_log_return",
-    "rolling_realized_volatility",
-    "normalized_atr",
-    "log_volume_change",
-    "rolling_return_skewness",
-    "moving_average_spread",
+/// Every selectable feature column for `hmm_features`. The first six are the
+/// reference `build_market_features` set; the rest are the ablation additions
+/// from `docs/strategies/markov/hmm_ablation.md`.
+const ALL_FEATURES: [&str; 18] = [
+    "ret",
+    "rv",
+    "atr",
+    "volchg",
+    "skew",
+    "ma",
+    "ret5",
+    "downvol",
+    "ema10_dist",
+    "ema10_20",
+    "sma200_dist",
+    "vwap_dist",
+    "park_vol",
+    "wilder_atr",
+    "pearson_skew",
+    "vol_surprise",
+    "spy_ret",
+    "rel_spy",
 ];
+
+/// Fixed windows from the ablation doc's feature formulas.
+const RET5_WINDOW: usize = 5;
+const DOWNVOL_WINDOW: usize = 20;
+const EMA_FAST: usize = 10;
+const EMA_SLOW: usize = 20;
+const SMA200_WINDOW: usize = 200;
+const VWAP_WINDOW: usize = 20;
+const PARK_WINDOW: usize = 20;
+const WILDER_WINDOW: usize = 14;
+const PEARSON_WINDOW: usize = 20;
+const VOL_SURPRISE_WINDOW: usize = 20;
 
 #[derive(Debug, Clone)]
 pub struct HmmParams {
@@ -50,6 +76,9 @@ pub struct HmmParams {
     pub skew_window: usize,
     pub ma_fast: usize,
     pub ma_slow: usize,
+    /// Requested feature names (subset of `hmm_features` may drop at runtime).
+    pub features: Vec<String>,
+    pub beta_window: usize,
 }
 
 pub fn params(cfg: &Config) -> Result<HmmParams, String> {
@@ -117,6 +146,28 @@ pub fn params(cfg: &Config) -> Result<HmmParams, String> {
             cfg.hmm_ma_fast, cfg.hmm_ma_slow
         ));
     }
+    let mut features = Vec::new();
+    for name in cfg.hmm_features.split(',').map(str::trim) {
+        if name.is_empty() {
+            continue;
+        }
+        if !ALL_FEATURES.contains(&name) {
+            return Err(format!(
+                "hmm_features unknown feature {name:?}; valid: {}",
+                ALL_FEATURES.join(",")
+            ));
+        }
+        features.push(name.to_string());
+    }
+    if features.is_empty() {
+        return Err("hmm_features must list at least one feature".into());
+    }
+    if cfg.hmm_beta_window < 2 {
+        return Err(format!(
+            "hmm_beta_window must be >= 2, got {}",
+            cfg.hmm_beta_window
+        ));
+    }
     Ok(HmmParams {
         states: cfg.hmm_states,
         max_iter: cfg.hmm_max_iter,
@@ -135,6 +186,8 @@ pub fn params(cfg: &Config) -> Result<HmmParams, String> {
         skew_window: cfg.hmm_skew_window,
         ma_fast: cfg.hmm_ma_fast,
         ma_slow: cfg.hmm_ma_slow,
+        features,
+        beta_window: cfg.hmm_beta_window,
     })
 }
 
@@ -146,8 +199,255 @@ pub fn params(cfg: &Config) -> Result<HmmParams, String> {
 pub struct FeatureSet {
     pub rows: Vec<usize>,
     pub values: Vec<Vec<f64>>,
-    /// Column names kept, in FEATURE_NAMES order (unusable columns dropped).
-    pub names: Vec<&'static str>,
+    /// Column names kept, in requested order (unusable columns dropped).
+    pub names: Vec<String>,
+}
+
+fn log_returns(c: &[f64], w: usize) -> Vec<f64> {
+    let mut out = vec![f64::NAN; c.len()];
+    for t in w..c.len() {
+        let (a, b) = (c[t - w], c[t]);
+        if a.is_finite() && b.is_finite() && a > 0.0 && b > 0.0 {
+            out[t] = (b / a).ln();
+        }
+    }
+    out
+}
+
+/// Elementwise ln(a/b); non-finite or non-positive inputs -> NaN.
+fn log_ratio(a: &[f64], b: &[f64]) -> Vec<f64> {
+    a.iter()
+        .zip(b)
+        .map(|(&x, &y)| {
+            if x.is_finite() && y.is_finite() && x > 0.0 && y > 0.0 {
+                (x / y).ln()
+            } else {
+                f64::NAN
+            }
+        })
+        .collect()
+}
+
+/// EMA seeded at the first finite value (pandas `ewm(span, adjust=False)`);
+/// non-finite inputs carry the previous EMA forward.
+fn ema(x: &[f64], n: usize) -> Vec<f64> {
+    let a = 2.0 / (n as f64 + 1.0);
+    let mut out = vec![f64::NAN; x.len()];
+    let mut cur = f64::NAN;
+    for (t, &v) in x.iter().enumerate() {
+        if v.is_finite() {
+            cur = if cur.is_finite() { a * v + (1.0 - a) * cur } else { v };
+        }
+        out[t] = cur;
+    }
+    out
+}
+
+/// True range: max(h-l, |h-pc|, |l-pc|); NaN when h/l unusable.
+fn true_range(close: &[f64], high: &[f64], low: &[f64]) -> Vec<f64> {
+    (0..close.len())
+        .map(|t| {
+            let (h, l) = (high[t], low[t]);
+            if !(h.is_finite() && l.is_finite() && h >= l) {
+                return f64::NAN;
+            }
+            let mut m = h - l;
+            if t > 0 && close[t - 1].is_finite() {
+                m = m.max((h - close[t - 1]).abs()).max((l - close[t - 1]).abs());
+            }
+            m
+        })
+        .collect()
+}
+
+/// Wilder-smoothed average TR: seeded at the first full window SMA, then
+/// atr[t] = (atr[t-1]*(w-1) + tr[t]) / w. Gaps re-seed on the next full window.
+fn wilder_atr(tr: &[f64], w: usize) -> Vec<f64> {
+    let mut out = vec![f64::NAN; tr.len()];
+    let mut prev = f64::NAN;
+    for t in 0..tr.len() {
+        if prev.is_finite() && tr[t].is_finite() {
+            prev = (prev * (w - 1) as f64 + tr[t]) / w as f64;
+        } else if t + 1 >= w {
+            let win = &tr[t + 1 - w..=t];
+            if win.iter().all(|v| v.is_finite()) {
+                prev = win.iter().sum::<f64>() / w as f64;
+            }
+        }
+        out[t] = prev;
+    }
+    out
+}
+
+/// One requested feature column; `None` means unavailable (no reference
+/// series for spy_* features). Every column is backward-looking with NaN
+/// during its warm-up — the row-compaction below handles alignment.
+fn feature_column(
+    name: &str,
+    close: &[f64],
+    high: &[f64],
+    low: &[f64],
+    volume: &[f64],
+    ref_close: Option<&[f64]>,
+    ret: &[f64],
+    tr: &[f64],
+    hp: &HmmParams,
+) -> Option<Vec<f64>> {
+    let n = close.len();
+    let col = match name {
+        "ret" => ret.to_vec(),
+        "rv" => rolling_std(ret, hp.rv_window),
+        "atr" => {
+            let m = rolling_mean(tr, hp.atr_window);
+            log_ratio(&m, close)
+        }
+        "volchg" => log_returns(volume, hp.volchg_window),
+        "skew" => {
+            let w = hp.skew_window;
+            let mut out = vec![f64::NAN; n];
+            for t in (w - 1)..n {
+                let win = &ret[t + 1 - w..=t];
+                if win.iter().all(|v| v.is_finite()) {
+                    let mean = win.iter().sum::<f64>() / w as f64;
+                    let m2 = win.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / w as f64;
+                    let m3 = win.iter().map(|v| (v - mean).powi(3)).sum::<f64>() / w as f64;
+                    out[t] = m3 / (m2.sqrt().powi(3) + EPS);
+                }
+            }
+            out
+        }
+        "ma" => {
+            let fast = rolling_mean(close, hp.ma_fast);
+            let slow = rolling_mean(close, hp.ma_slow);
+            fast.iter()
+                .zip(&slow)
+                .map(|(&f, &s)| {
+                    if f.is_finite() && s.is_finite() && s != 0.0 {
+                        f / s - 1.0
+                    } else {
+                        f64::NAN
+                    }
+                })
+                .collect()
+        }
+        "ret5" => log_returns(close, RET5_WINDOW),
+        "downvol" => {
+            let mut out = vec![f64::NAN; n];
+            for t in (DOWNVOL_WINDOW - 1)..n {
+                let win = &ret[t + 1 - DOWNVOL_WINDOW..=t];
+                if win.iter().all(|v| v.is_finite()) {
+                    let s: f64 = win
+                        .iter()
+                        .map(|v| v.min(0.0).powi(2))
+                        .sum::<f64>()
+                        / DOWNVOL_WINDOW as f64;
+                    out[t] = s.sqrt();
+                }
+            }
+            out
+        }
+        "ema10_dist" => log_ratio(close, &ema(close, EMA_FAST)),
+        "ema10_20" => log_ratio(&ema(close, EMA_FAST), &ema(close, EMA_SLOW)),
+        "sma200_dist" => log_ratio(close, &rolling_mean(close, SMA200_WINDOW)),
+        "vwap_dist" => {
+            let typ: Vec<f64> = (0..n)
+                .map(|t| {
+                    let (h, l, c) = (high[t], low[t], close[t]);
+                    if h.is_finite() && l.is_finite() && c.is_finite() {
+                        (h + l + c) / 3.0
+                    } else {
+                        f64::NAN
+                    }
+                })
+                .collect();
+            let mut out = vec![f64::NAN; n];
+            for t in (VWAP_WINDOW - 1)..n {
+                let (mut num, mut den) = (0.0, 0.0);
+                let mut ok = true;
+                for i in t + 1 - VWAP_WINDOW..=t {
+                    if typ[i].is_finite() && volume[i].is_finite() {
+                        num += typ[i] * volume[i];
+                        den += volume[i];
+                    } else {
+                        ok = false;
+                        break;
+                    }
+                }
+                if ok && den != 0.0 {
+                    let vw = num / den;
+                    if vw > 0.0 && close[t].is_finite() && close[t] > 0.0 {
+                        out[t] = (close[t] / vw).ln();
+                    }
+                }
+            }
+            out
+        }
+        "park_vol" => {
+            let mut out = vec![f64::NAN; n];
+            for t in (PARK_WINDOW - 1)..n {
+                let mut sum = 0.0;
+                let mut ok = true;
+                for i in t + 1 - PARK_WINDOW..=t {
+                    let (h, l) = (high[i], low[i]);
+                    if h.is_finite() && l.is_finite() && h >= l && l > 0.0 {
+                        sum += (h / l).ln().powi(2);
+                    } else {
+                        ok = false;
+                        break;
+                    }
+                }
+                if ok {
+                    out[t] = (sum / (4.0 * std::f64::consts::LN_2 * PARK_WINDOW as f64)).sqrt();
+                }
+            }
+            out
+        }
+        "wilder_atr" => log_ratio(&wilder_atr(tr, WILDER_WINDOW), close),
+        "pearson_skew" => {
+            let mut out = vec![f64::NAN; n];
+            for t in (PEARSON_WINDOW - 1)..n {
+                let win = &ret[t + 1 - PEARSON_WINDOW..=t];
+                if win.iter().all(|v| v.is_finite()) {
+                    let mean = win.iter().sum::<f64>() / PEARSON_WINDOW as f64;
+                    let var = win.iter().map(|v| (v - mean).powi(2)).sum::<f64>()
+                        / (PEARSON_WINDOW - 1) as f64;
+                    let mut sorted = win.to_vec();
+                    sorted.sort_by(|a, b| a.partial_cmp(b).unwrap());
+                    let median = sorted[PEARSON_WINDOW / 2];
+                    out[t] = 3.0 * (mean - median) / (var.sqrt() + EPS);
+                }
+            }
+            out
+        }
+        "vol_surprise" => log_ratio(volume, &rolling_mean(volume, VOL_SURPRISE_WINDOW)),
+        "spy_ret" => log_returns(ref_close?, 1),
+        "rel_spy" => {
+            let spy = log_returns(ref_close?, 1);
+            let w = hp.beta_window;
+            let mut out = vec![f64::NAN; n];
+            for t in (w - 1)..n {
+                let rs = &ret[t + 1 - w..=t];
+                let ss = &spy[t + 1 - w..=t];
+                if rs.iter().all(|v| v.is_finite()) && ss.iter().all(|v| v.is_finite()) {
+                    let mr = rs.iter().sum::<f64>() / w as f64;
+                    let ms = ss.iter().sum::<f64>() / w as f64;
+                    let cov: f64 = rs
+                        .iter()
+                        .zip(ss)
+                        .map(|(&r, &s)| (r - mr) * (s - ms))
+                        .sum::<f64>()
+                        / w as f64;
+                    let var: f64 = ss.iter().map(|s| (s - ms).powi(2)).sum::<f64>() / w as f64;
+                    if var > EPS {
+                        out[t] = ret[t] - cov / var * spy[t];
+                    }
+                }
+            }
+            out
+        }
+        other => unreachable!("{other}: validated feature name"),
+    };
+    Some(col)
 }
 
 /// Rolling sample stdev (ddof=1), NaN until a full finite window — same
@@ -169,112 +469,55 @@ fn rolling_std(x: &[f64], w: usize) -> Vec<f64> {
     out
 }
 
-/// `build_market_features` port. ATR is the simple rolling mean of true range
-/// (not Wilder). A feature column that is entirely non-finite (e.g. a symbol
-/// with no usable volume) is dropped rather than poisoning every row.
+/// Feature builder over the `hmm_features` whitelist. `ret` and `tr` are
+/// always computed (they feed several features and the state ordering). A
+/// feature column that is entirely non-finite (e.g. a symbol with no usable
+/// volume) is dropped rather than poisoning every row.
 fn market_features(
     close: &[f64],
     high: &[f64],
     low: &[f64],
     volume: &[f64],
+    ref_close: Option<&[f64]>,
     hp: &HmmParams,
 ) -> Result<FeatureSet, String> {
     let n = close.len();
     if high.len() != n || low.len() != n || volume.len() != n {
         return Err("OHLCV series must have identical lengths".into());
     }
-    let mut ret = vec![f64::NAN; n];
-    for t in 1..n {
-        let (a, b) = (close[t - 1], close[t]);
-        if a.is_finite() && b.is_finite() && a > 0.0 && b > 0.0 {
-            ret[t] = (b / a).ln();
-        }
+    if ref_close.is_some_and(|r| r.len() != n) {
+        return Err("reference series length differs from OHLCV".into());
     }
-    let rv = rolling_std(&ret, hp.rv_window);
+    let ret = log_returns(close, 1);
+    let tr = true_range(close, high, low);
 
-    let mut tr = vec![f64::NAN; n];
-    for t in 0..n {
-        let (h, l) = (high[t], low[t]);
-        if h.is_finite() && l.is_finite() && h >= l {
-            let mut m = h - l;
-            if t > 0 && close[t - 1].is_finite() {
-                m = m.max((h - close[t - 1]).abs()).max((l - close[t - 1]).abs());
-            }
-            tr[t] = m;
+    let mut names = Vec::new();
+    let mut cols: Vec<Vec<f64>> = Vec::new();
+    for name in &hp.features {
+        let Some(col) = feature_column(name, close, high, low, volume, ref_close, &ret, &tr, hp)
+        else {
+            continue;
+        };
+        if col.iter().any(|v| v.is_finite()) {
+            names.push(name.clone());
+            cols.push(col);
         }
     }
-    let atr_mean = rolling_mean(&tr, hp.atr_window);
-    let mut atr = vec![f64::NAN; n];
-    for t in 0..n {
-        if atr_mean[t].is_finite() && close[t].is_finite() && close[t] > 0.0 {
-            atr[t] = atr_mean[t] / close[t];
-        }
+    if cols.is_empty() {
+        return Err("no usable feature columns (all unavailable or all-NaN)".into());
     }
 
-    let mut volchg = vec![f64::NAN; n];
-    for t in hp.volchg_window..n {
-        let (a, b) = (volume[t - hp.volchg_window], volume[t]);
-        if a.is_finite() && b.is_finite() && a > 0.0 && b > 0.0 {
-            volchg[t] = (b / a).ln();
-        }
-    }
-
-    let mut skew = vec![f64::NAN; n];
-    for t in (hp.skew_window - 1)..n {
-        let win = &ret[t + 1 - hp.skew_window..=t];
-        if win.iter().all(|v| v.is_finite()) {
-            let mean = win.iter().sum::<f64>() / hp.skew_window as f64;
-            let m2 =
-                win.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / hp.skew_window as f64;
-            let m3 =
-                win.iter().map(|v| (v - mean).powi(3)).sum::<f64>() / hp.skew_window as f64;
-            skew[t] = m3 / (m2.sqrt().powi(3) + EPS);
-        }
-    }
-
-    let fast = rolling_mean(close, hp.ma_fast);
-    let slow = rolling_mean(close, hp.ma_slow);
-    let mut ma = vec![f64::NAN; n];
-    for t in 0..n {
-        if fast[t].is_finite() && slow[t].is_finite() && slow[t] != 0.0 {
-            ma[t] = fast[t] / slow[t] - 1.0;
-        }
-    }
-
-    let cols = [ret, rv, atr, volchg, skew, ma];
-    let mut keep = [true; FEATURE_NAMES.len()];
-    for (c, col) in cols.iter().enumerate() {
-        if !col.iter().any(|v| v.is_finite()) {
-            keep[c] = false;
-        }
-    }
     let mut rows = Vec::new();
     let mut values = Vec::new();
     for t in 0..n {
-        if keep
-            .iter()
-            .enumerate()
-            .all(|(c, &k)| !k || cols[c][t].is_finite())
-        {
+        if cols.iter().all(|c| c[t].is_finite()) {
             rows.push(t);
-            values.push(
-                keep.iter()
-                    .enumerate()
-                    .filter(|(_, &k)| k)
-                    .map(|(c, _)| cols[c][t])
-                    .collect(),
-            );
+            values.push(cols.iter().map(|c| c[t]).collect());
         }
     }
     if rows.is_empty() {
         return Err("no valid feature rows after warm-up".into());
     }
-    let names = keep
-        .iter()
-        .enumerate()
-        .filter(|(_, &k)| k)
-        .map(|(c, _)| FEATURE_NAMES[c])
-        .collect();
     Ok(FeatureSet { rows, values, names })
 }
 
@@ -551,8 +794,10 @@ fn fit_hmm(
 
 // ---------------- inference helpers ----------------
 
-/// One causal filter step: predicted = prev @ P, filtered ∝ predicted * emission.
-fn filter_step(prev: &[f64], m: &GaussianHmm, x: &[f64]) -> (Vec<f64>, Vec<f64>) {
+/// One causal filter step: predicted = prev @ P, filtered ∝ predicted *
+/// emission. The normalizer is the marginal log-likelihood of x — summing it
+/// over an out-of-train segment yields the held-out likelihood of that fit.
+fn filter_step(prev: &[f64], m: &GaussianHmm, x: &[f64]) -> (Vec<f64>, Vec<f64>, f64) {
     let k = m.n_states;
     let log_b = emission_row(x, m);
     let mut pred = vec![0.0; k];
@@ -563,7 +808,7 @@ fn filter_step(prev: &[f64], m: &GaussianHmm, x: &[f64]) -> (Vec<f64>, Vec<f64>)
     }
     let lj: Vec<f64> = (0..k).map(|j| pred[j].max(EPS).ln() + log_b[j]).collect();
     let lse = logsumexp(&lj);
-    (pred, lj.iter().map(|v| (v - lse).exp()).collect())
+    (pred, lj.iter().map(|v| (v - lse).exp()).collect(), lse)
 }
 
 fn vec_mat(v: &[f64], m: &[Vec<f64>]) -> Vec<f64> {
@@ -675,10 +920,31 @@ pub struct HmmFit {
     /// Panel row at which this fit went live.
     pub row: usize,
     pub loglik: f64,
+    /// Held-out loglik summed over the segment this frozen fit filtered.
+    pub oos_loglik: f64,
+    pub oos_bars: usize,
     pub n_iter: usize,
     pub converged: bool,
     /// Effective observations per state (filtered-probability mass).
     pub occupancy: Vec<f64>,
+    /// Expected duration 1/(1-P[i][i]) per state.
+    pub durations: Vec<f64>,
+    /// Occupancy-weighted mean of P[i][i] — regime persistence.
+    pub mean_diag: f64,
+    /// HMM state index -> BEAR/SIDEWAYS/BULL bucket for this fit.
+    pub label_map: Vec<i8>,
+}
+
+/// Roll-up diagnostics attached to `Chain` for `hmm_metrics.csv`.
+#[derive(Debug, Clone)]
+pub struct HmmMeta {
+    /// Feature names that survived the all-NaN column drop, in order.
+    pub features: Vec<String>,
+    /// Sum of the winning-state probability over signaled rows.
+    pub conf_sum: f64,
+    pub conf_n: usize,
+    /// Refits where the state->bucket map differed from the previous fit.
+    pub map_churn: usize,
 }
 
 struct Fitted {
@@ -689,6 +955,16 @@ struct Fitted {
     /// Stationary bucket masses (computed lazily for bear_rel).
     stat_bear: f64,
     last: Vec<f64>,
+    // fields mirrored into HmmFit when the next refit retires this model
+    fit_row: usize,
+    loglik: f64,
+    n_iter: usize,
+    converged: bool,
+    occupancy: Vec<f64>,
+    durations: Vec<f64>,
+    mean_diag: f64,
+    oos_loglik: f64,
+    oos_bars: usize,
 }
 
 /// Walk-forward HMM chain on one OHLCV series. Refits at `mp.min_train` then
@@ -699,35 +975,55 @@ pub fn hmm_chain(
     high: &[f64],
     low: &[f64],
     volume: &[f64],
+    ref_close: Option<&[f64]>,
     hp: &HmmParams,
     mp: &MarkovParams,
     seed: u64,
 ) -> Result<Chain, String> {
     let rows = close.len();
-    let feats = market_features(close, high, low, volume, hp)?;
+    let feats = market_features(close, high, low, volume, ref_close, hp)?;
     let m = feats.values.len();
     let mut labels = vec![UNLABELED; rows];
     let mut signal = vec![f64::NAN; rows];
     let mut fits = Vec::new();
+    let mut meta = HmmMeta {
+        features: feats.names.clone(),
+        conf_sum: 0.0,
+        conf_n: 0,
+        map_churn: 0,
+    };
     if m <= mp.min_train {
         return Ok(Chain {
             labels,
             signal,
             fits,
+            meta: Some(meta),
         });
     }
-    // Daily log return column (unscaled) drives the post-fit state ordering;
-    // fall back to zeros if it was ever dropped.
-    let ret_col = feats.names.iter().position(|&n| n == FEATURE_NAMES[F_RET]);
-    let rets: Vec<f64> = match ret_col {
-        Some(c) => feats.values.iter().map(|r| r[c]).collect(),
-        None => vec![0.0; m],
-    };
+    // Raw daily log returns aligned to feature rows drive the post-fit state
+    // ordering (independent of whether `ret` is a selected feature).
+    let all_rets = log_returns(close, 1);
+    let rets: Vec<f64> = feats.rows.iter().map(|&r| all_rets[r]).collect();
     let mut rng = Rng::new(seed);
     let mut fitted: Option<Fitted> = None;
+    let mut prev_map: Option<Vec<i8>> = None;
     let mut next_refit = mp.min_train;
     for j in mp.min_train..m {
         if fitted.is_none() || j >= next_refit {
+            if let Some(old) = fitted.take() {
+                fits.push(HmmFit {
+                    row: old.fit_row,
+                    loglik: old.loglik,
+                    oos_loglik: old.oos_loglik,
+                    oos_bars: old.oos_bars,
+                    n_iter: old.n_iter,
+                    converged: old.converged,
+                    occupancy: old.occupancy,
+                    durations: old.durations,
+                    mean_diag: old.mean_diag,
+                    label_map: old.label,
+                });
+            }
             let t0 = if hp.train_window > 0 {
                 j.saturating_sub(hp.train_window)
             } else {
@@ -743,9 +1039,33 @@ pub fn hmm_chain(
             });
             let (model, f_train) = fit_hmm(&x, hp, &mut rng)?;
             let label = order_states(&f_train, &rets[t0..j], model.n_states);
+            if prev_map.as_ref().is_some_and(|p| *p != label) {
+                meta.map_churn += 1;
+            }
+            prev_map = Some(label.clone());
             let occupancy: Vec<f64> = (0..model.n_states)
                 .map(|s| f_train.iter().map(|r| r[s]).sum::<f64>())
                 .collect();
+            let durations: Vec<f64> = model
+                .transition
+                .iter()
+                .enumerate()
+                .map(|(i, r)| {
+                    if r[i] >= 1.0 - EPS {
+                        f64::INFINITY
+                    } else {
+                        1.0 / (1.0 - r[i])
+                    }
+                })
+                .collect();
+            let total_occ: f64 = occupancy.iter().sum();
+            let mean_diag = model
+                .transition
+                .iter()
+                .enumerate()
+                .map(|(i, r)| r[i] * occupancy[i])
+                .sum::<f64>()
+                / total_occ.max(EPS);
             let stat_bear = if mp.signal_mode == SignalMode::BearRel {
                 stationary(&model.transition)
                     .iter()
@@ -756,19 +1076,21 @@ pub fn hmm_chain(
             } else {
                 0.0
             };
-            fits.push(HmmFit {
-                row: feats.rows[j],
+            fitted = Some(Fitted {
+                fit_row: feats.rows[j],
                 loglik: model.loglik,
                 n_iter: model.n_iter,
                 converged: model.converged,
-                occupancy,
-            });
-            fitted = Some(Fitted {
+                durations,
+                mean_diag,
+                oos_loglik: 0.0,
+                oos_bars: 0,
                 last: model.last_filtered.clone(),
                 model,
                 scaler,
                 label,
                 stat_bear,
+                occupancy,
             });
             next_refit = j + hp.refit_every;
         }
@@ -777,7 +1099,9 @@ pub fn hmm_chain(
         if let Some(s) = &f.scaler {
             s.apply(&mut x);
         }
-        let (pred, filt) = filter_step(&f.last, &f.model, &x);
+        let (pred, filt, lse) = filter_step(&f.last, &f.model, &x);
+        f.oos_loglik += lse;
+        f.oos_bars += 1;
         let (base, extra) = if hp.filtered {
             (&filt, mp.horizon)
         } else {
@@ -802,13 +1126,133 @@ pub fn hmm_chain(
             SignalMode::BearRel => f.stat_bear - pr,
         };
         labels[row] = f.label[argmax];
+        meta.conf_sum += probs[argmax];
+        meta.conf_n += 1;
         f.last = filt;
+    }
+    if let Some(old) = fitted.take() {
+        fits.push(HmmFit {
+            row: old.fit_row,
+            loglik: old.loglik,
+            oos_loglik: old.oos_loglik,
+            oos_bars: old.oos_bars,
+            n_iter: old.n_iter,
+            converged: old.converged,
+            occupancy: old.occupancy,
+            durations: old.durations,
+            mean_diag: old.mean_diag,
+            label_map: old.label,
+        });
     }
     Ok(Chain {
         labels,
         signal,
         fits,
+        meta: Some(meta),
     })
+}
+
+/// Per-variant diagnostics for the standalone `hmm_regime` study (the overlay
+/// path emits its own `hmm_fits.csv` via `OverlayReport`). Writes
+/// `{variant}__hmm_fits.csv` (per-refit) and `{variant}__hmm_metrics.csv`
+/// (per-symbol roll-up) under `results/<strategy>/`.
+pub fn write_diag(cfg: &Config, named: &[(String, Chain)]) -> Result<(), String> {
+    use std::fs;
+    use std::path::PathBuf;
+
+    let dir = PathBuf::from("results").join(&cfg.strategy);
+    fs::create_dir_all(&dir).map_err(|e| format!("{}: {e}", dir.display()))?;
+    let prefix = cfg.prefix();
+
+    let mut fits = String::from(
+        "symbol,row,loglik,oos_loglik,oos_bars,n_iter,converged,mean_diag,occupancy,durations,label_map\n",
+    );
+    let mut met = String::from(
+        "symbol,features,n_feat,oos_ll_per_bar,persist,mean_dur,flip_rate,mean_conf,map_churn,refits,conv_pct,mean_iter\n",
+    );
+    for (name, c) in named {
+        let mut persist_sum = 0.0;
+        let mut dur_sum = 0.0;
+        let mut dur_n = 0;
+        for f in &c.fits {
+            let occ = f
+                .occupancy
+                .iter()
+                .map(|v| format!("{v:.2}"))
+                .collect::<Vec<_>>()
+                .join(";");
+            let dur = f
+                .durations
+                .iter()
+                .map(|v| format!("{v:.1}"))
+                .collect::<Vec<_>>()
+                .join(";");
+            let lbl = f
+                .label_map
+                .iter()
+                .map(|v| v.to_string())
+                .collect::<Vec<_>>()
+                .join(";");
+            fits.push_str(&format!(
+                "{name},{},{:.4},{:.4},{},{},{},{:.4},{},{},{}\n",
+                f.row,
+                f.loglik,
+                f.oos_loglik,
+                f.oos_bars,
+                f.n_iter,
+                f.converged,
+                f.mean_diag,
+                occ,
+                dur,
+                lbl
+            ));
+            persist_sum += f.mean_diag;
+            for &d in &f.durations {
+                if d.is_finite() {
+                    dur_sum += d;
+                    dur_n += 1;
+                }
+            }
+        }
+        if c.fits.is_empty() {
+            continue;
+        }
+        let n_fits = c.fits.len() as f64;
+        let oos_ll: f64 = c.fits.iter().map(|f| f.oos_loglik).sum();
+        let oos_bars: usize = c.fits.iter().map(|f| f.oos_bars).sum();
+        let conv = c.fits.iter().filter(|f| f.converged).count() as f64 / n_fits;
+        let mean_iter = c.fits.iter().map(|f| f.n_iter as f64).sum::<f64>() / n_fits;
+        let labeled: Vec<i8> = c.labels.iter().copied().filter(|&l| l >= 0).collect();
+        let flips = labeled.windows(2).filter(|w| w[0] != w[1]).count();
+        let flip_rate = flips as f64 / labeled.len().max(1) as f64;
+        let (feats, conf, churn) = match &c.meta {
+            Some(m) => (
+                m.features.join(";"),
+                m.conf_sum / m.conf_n.max(1) as f64,
+                m.map_churn,
+            ),
+            None => (String::new(), f64::NAN, 0),
+        };
+        met.push_str(&format!(
+            "{name},{},{},{:.4},{:.4},{:.1},{:.4},{:.4},{},{},{:.3},{:.1}\n",
+            feats,
+            feats.matches(';').count() + 1,
+            oos_ll / oos_bars.max(1) as f64,
+            persist_sum / n_fits,
+            dur_sum / dur_n.max(1) as f64,
+            flip_rate,
+            conf,
+            churn,
+            c.fits.len(),
+            conv,
+            mean_iter
+        ));
+    }
+    fs::write(dir.join(format!("{prefix}hmm_fits.csv")), fits)
+        .map_err(|e| format!("hmm_fits.csv: {e}"))?;
+    fs::write(dir.join(format!("{prefix}hmm_metrics.csv")), met)
+        .map_err(|e| format!("hmm_metrics.csv: {e}"))?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -834,6 +1278,11 @@ mod tests {
             skew_window: 5,
             ma_fast: 3,
             ma_slow: 8,
+            features: ["ret", "rv", "atr", "volchg", "skew", "ma"]
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+            beta_window: 10,
         }
     }
 
@@ -956,7 +1405,7 @@ mod tests {
         let vol = vec![1e6; n];
         let p = hp();
         let m = mp();
-        let a = hmm_chain(&close, &high, &low, &vol, &p, &m, 9).unwrap();
+        let a = hmm_chain(&close, &high, &low, &vol, None, &p, &m, 9).unwrap();
         let mut tail = close.clone();
         let mut th = high.clone();
         let mut tl = low.clone();
@@ -971,7 +1420,7 @@ mod tests {
             tl.push(c * 0.99);
             tv.push(1e6);
         }
-        let b = hmm_chain(&tail, &th, &tl, &tv, &p, &m, 9).unwrap();
+        let b = hmm_chain(&tail, &th, &tl, &tv, None, &p, &m, 9).unwrap();
         for t in 0..n {
             let (x, y) = (a.signal[t], b.signal[t]);
             assert!(
@@ -1006,13 +1455,13 @@ mod tests {
         // All-zero volume -> the volume feature column is dropped entirely.
         let vol = vec![0.0; n];
         let p = hp();
-        let f = market_features(&close, &high, &low, &vol, &p).unwrap();
+        let f = market_features(&close, &high, &low, &vol, None, &p).unwrap();
         assert!(!f.values.is_empty());
         assert_eq!(f.values[0].len(), 5);
         assert!(f.rows[0] >= p.ma_slow - 1);
         // Positive volume restores the sixth column.
         let vol = vec![1e6; n];
-        let f = market_features(&close, &high, &low, &vol, &p).unwrap();
+        let f = market_features(&close, &high, &low, &vol, None, &p).unwrap();
         assert_eq!(f.values[0].len(), 6);
     }
 }

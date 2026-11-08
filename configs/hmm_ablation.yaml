@@ -1,0 +1,65 @@
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: QQQ
+benchmark: SPY
+risk_symbol: SPY
+start_date: "2008-01-01"
+cost_bps_per_side: 1.0
+fills: next_open,close
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+n_timing_draws: 500
+seed: 20261106
+book_slots: 1
+markov_model: hmm
+markov_min_train: 252
+markov_regime: strict
+markov_position: long_flat
+markov_cap: 1.0
+hmm_states: 3
+hmm_max_iter: 500
+hmm_tol: 0.000001
+hmm_min_iter: 5
+hmm_restarts: 4
+hmm_cov_floor: 0.000001
+hmm_trans_prior: 1.0
+hmm_refit_every: 21
+hmm_train_window: 0
+hmm_scale: true
+hmm_probs: filtered
+hmm_rv_window: 20
+hmm_atr_window: 14
+hmm_volchg_window: 5
+hmm_skew_window: 20
+hmm_ma_fast: 10
+hmm_ma_slow: 50
+hmm_features: ret,rv,atr,volchg,skew,ma
+hmm_beta_window: 60
+
+# Ablation experiments A-G: baseline is A; each variant changes only
+# hmm_features (H skipped: identical to F).
+variants:
+  B: {hmm_features: "ret,rv,atr,volchg,ma"}
+  C: {hmm_features: "ret,rv,volchg,skew,ma"}
+  D: {hmm_features: "ret,atr,volchg,skew,ma"}
+  E: {hmm_features: "ret,rv,atr,skew,ma"}
+  F: {hmm_features: "ret,rv,atr,volchg,skew,ma,ret5"}
+  G: {hmm_features: "ret,rv,atr,volchg,skew,ma,downvol"}
+  I: {hmm_features: "ret,rv,atr,volchg,skew,ma,ema10_dist"}
+  J: {hmm_features: "ret,rv,atr,volchg,skew,ma,ema10_20"}
+  K: {hmm_features: "ret,rv,atr,volchg,skew,ma,sma200_dist"}
+  L: {hmm_features: "ret,rv,atr,volchg,skew,ma,vwap_dist"}
+  M: {hmm_features: "ret,rv,atr,volchg,skew,ma,park_vol"}
+  N: {hmm_features: "ret,rv,atr,volchg,skew,ma,wilder_atr"}
+  O: {hmm_features: "ret,rv,atr,volchg,skew,ma,pearson_skew"}
+  P: {hmm_features: "ret,rv,atr,volchg,skew,ma,vol_surprise"}
+  Q: {hmm_features: "ret,rv,atr,volchg,skew,ma,spy_ret"}
+  R: {hmm_features: "ret,rv,atr,volchg,skew,ma,rel_spy"}
+  S: {hmm_features: "ret,rv,atr,volchg,skew,ma,ema10_dist,ema10_20"}
+  T: {hmm_features: "ret,rv,atr,volchg,skew,ma,ema10_dist,sma200_dist"}
+  U: {hmm_features: "ret,rv,atr,volchg,skew,ma,vwap_dist,ema10_dist"}
+  V: {hmm_features: "ret,rv,atr,volchg,skew,ma,spy_ret,rel_spy"}
+  W: {hmm_features: "ret,rv,atr,volchg,skew,ma,ret5,ema10_20"}
+  X: {hmm_features: "ret,rv,atr,volchg,skew,ma,ema10_dist,ema10_20,sma200_dist"}
+  Y: {hmm_features: "ret,rv,atr,volchg,skew,ma,vwap_dist,spy_ret"}

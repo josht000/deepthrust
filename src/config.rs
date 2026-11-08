@@ -731,6 +731,10 @@ pub struct Config {
     pub hmm_ma_fast: usize,
     #[serde(default = "d_hmm_ma_slow")]
     pub hmm_ma_slow: usize,
+    #[serde(default = "d_hmm_features")]
+    pub hmm_features: String,
+    #[serde(default = "d_hmm_beta_window")]
+    pub hmm_beta_window: usize,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1469,6 +1473,12 @@ fn d_hmm_ma_fast() -> usize {
 }
 fn d_hmm_ma_slow() -> usize {
     50
+}
+fn d_hmm_features() -> String {
+    "ret,rv,atr,volchg,skew,ma".into()
+}
+fn d_hmm_beta_window() -> usize {
+    60
 }
 fn d_band_mode() -> String {
     "binary".into()

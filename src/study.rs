@@ -157,6 +157,16 @@ pub trait StrategyDefinition: Sync {
     fn name(&self) -> &'static str;
     fn title(&self) -> &'static str;
     fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String>;
+    /// Signal computation with the loaded benchmark available (only the
+    /// regime models consume cross-asset reference features).
+    fn compute_signals_with_bench(
+        &self,
+        panel: &Panel,
+        _bench: Option<&data::Bars>,
+        cfg: &Config,
+    ) -> Result<Signals, String> {
+        self.compute_signals(panel, cfg)
+    }
     fn build_trades(
         &self,
         panel: &Panel,
@@ -225,7 +235,16 @@ impl StrategyDefinition for MarkovRegimeStrategyDefinition {
     }
 
     fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
-        crate::markov::compute_markov_signals(panel, cfg)
+        crate::markov::compute_markov_signals(panel, cfg, None)
+    }
+
+    fn compute_signals_with_bench(
+        &self,
+        panel: &Panel,
+        bench: Option<&data::Bars>,
+        cfg: &Config,
+    ) -> Result<Signals, String> {
+        crate::markov::compute_markov_signals(panel, cfg, bench)
     }
 
     fn build_trades(
@@ -251,7 +270,16 @@ impl StrategyDefinition for HmmRegimeStrategyDefinition {
     }
 
     fn compute_signals(&self, panel: &Panel, cfg: &Config) -> Result<Signals, String> {
-        crate::markov::compute_markov_signals(panel, cfg)
+        crate::markov::compute_markov_signals(panel, cfg, None)
+    }
+
+    fn compute_signals_with_bench(
+        &self,
+        panel: &Panel,
+        bench: Option<&data::Bars>,
+        cfg: &Config,
+    ) -> Result<Signals, String> {
+        crate::markov::compute_markov_signals(panel, cfg, bench)
     }
 
     fn build_trades(
@@ -2394,7 +2422,11 @@ impl<'a> Study<'a> {
             .ok_or_else(|| format!("unregistered strategy {:?}", cfg.strategy))?;
         let mut sig = {
             let _g = timing::stage("signals");
-            definition.compute_signals(&panel, cfg)?
+            definition.compute_signals_with_bench(
+                &panel,
+                bench.as_ref().map(|(_, b)| b),
+                cfg,
+            )?
         };
         if cfg.markov_active() {
             let report = {

@@ -413,6 +413,8 @@ pub struct Chain {
     pub signal: Vec<f64>,
     /// Per-refit EM diagnostics; populated only by the `hmm` model.
     pub fits: Vec<crate::hmm::HmmFit>,
+    /// Roll-up diagnostics (active features, confidence, map churn).
+    pub meta: Option<crate::hmm::HmmMeta>,
 }
 
 fn finish_chain(
@@ -433,6 +435,7 @@ fn finish_chain(
         labels,
         signal,
         fits: Vec::new(),
+        meta: None,
     }
 }
 
@@ -450,19 +453,32 @@ pub fn chain(close: &[f64], p: &MarkovParams) -> Chain {
 }
 
 /// Model dispatch for `markov_model`: the observable chain consumes close
-/// only; `hmm` fits Gaussian emissions on the OHLCV feature set.
+/// only; `hmm` fits Gaussian emissions on the OHLCV feature set. `ref_close`
+/// is the panel-aligned benchmark series for `spy_*` cross-asset features;
+/// pass `None` when the chain's own series IS the benchmark (spy features
+/// would be degenerate).
 fn model_chain(
     close: &[f64],
     high: &[f64],
     low: &[f64],
     volume: &[f64],
+    ref_close: Option<&[f64]>,
     cfg: &Config,
     p: &MarkovParams,
     prior: Option<&[[f64; 3]; 3]>,
     seed: u64,
 ) -> Result<Chain, String> {
     if cfg.markov_model == "hmm" {
-        crate::hmm::hmm_chain(close, high, low, volume, &crate::hmm::params(cfg)?, p, seed)
+        crate::hmm::hmm_chain(
+            close,
+            high,
+            low,
+            volume,
+            ref_close,
+            &crate::hmm::params(cfg)?,
+            p,
+            seed,
+        )
     } else {
         Ok(build_chain(close, p, prior))
     }
@@ -698,13 +714,25 @@ pub fn apply_overlay(
     }
 
     let prior = (!hmm && p.shrink > 0.0).then(|| pooled_prior(panel, &p));
+    // Panel-aligned benchmark close feeds the `spy_*` cross-asset features.
+    // Chains whose own input IS the benchmark get None (spy features would be
+    // degenerate); the synthetic universe chain keeps it as a real reference.
+    let bench_close: Option<Vec<f64>> = (hmm && cfg.markov_source != "benchmark")
+        .then(|| benchmark.map(|b| aligned_close(&panel.dates, b)))
+        .flatten();
     let shared: Option<Chain> = if !cfg.markov_symbol.is_empty() {
         let j = crate::family7::symbol_index(panel, &cfg.markov_symbol)?;
+        let rf = if cfg.markov_symbol == cfg.benchmark {
+            None
+        } else {
+            bench_close.as_deref()
+        };
         Some(model_chain(
             &panel.close[j],
             &panel.high[j],
             &panel.low[j],
             &panel.volume[j],
+            rf,
             cfg,
             &p,
             prior.as_ref(),
@@ -723,14 +751,24 @@ pub fn apply_overlay(
                         "markov_source=benchmark needs a loaded benchmark".to_string()
                     })?,
                 );
-                Some(model_chain(&c, &h, &l, &v, cfg, &p, None, cfg.seed ^ 0xBEA4)?)
+                Some(model_chain(&c, &h, &l, &v, None, cfg, &p, None, cfg.seed ^ 0xBEA4)?)
             }
             "universe" => {
                 if prior.is_some() {
                     warnings.push("markov_shrink ignored for universe source".into());
                 }
                 let (_o, h, l, c, v) = universe_bars(panel);
-                Some(model_chain(&c, &h, &l, &v, cfg, &p, None, cfg.seed ^ 0xA115)?)
+                Some(model_chain(
+                    &c,
+                    &h,
+                    &l,
+                    &v,
+                    bench_close.as_deref(),
+                    cfg,
+                    &p,
+                    None,
+                    cfg.seed ^ 0xA115,
+                )?)
             }
             "breadth" => {
                 if hmm {
@@ -759,11 +797,17 @@ pub fn apply_overlay(
     if shared.is_none() {
         for j in 0..panel.symbols.len() {
             if panel.close[j].iter().any(|v| v.is_finite()) {
+                let rf = if panel.symbols[j] == cfg.benchmark {
+                    None
+                } else {
+                    bench_close.as_deref()
+                };
                 per_symbol.push(Some(model_chain(
                     &panel.close[j],
                     &panel.high[j],
                     &panel.low[j],
                     &panel.volume[j],
+                    rf,
                     cfg,
                     &p,
                     prior.as_ref(),
@@ -870,7 +914,9 @@ pub fn apply_overlay(
     }
 
     let hmm_csv = hmm.then(|| {
-        let mut csv = String::from("symbol,row,loglik,n_iter,converged,occupancy\n");
+        let mut csv = String::from(
+            "symbol,row,loglik,oos_loglik,oos_bars,n_iter,converged,mean_diag,occupancy,durations,label_map\n",
+        );
         let emit = |name: &str, c: &Chain, csv: &mut String| {
             for f in &c.fits {
                 let occ = f
@@ -879,9 +925,30 @@ pub fn apply_overlay(
                     .map(|v| format!("{v:.2}"))
                     .collect::<Vec<_>>()
                     .join(";");
+                let dur = f
+                    .durations
+                    .iter()
+                    .map(|v| format!("{v:.1}"))
+                    .collect::<Vec<_>>()
+                    .join(";");
+                let lbl = f
+                    .label_map
+                    .iter()
+                    .map(|v| v.to_string())
+                    .collect::<Vec<_>>()
+                    .join(";");
                 csv.push_str(&format!(
-                    "{name},{},{:.4},{},{},{}\n",
-                    f.row, f.loglik, f.n_iter, f.converged, occ
+                    "{name},{},{:.4},{:.4},{},{},{},{:.4},{},{},{}\n",
+                    f.row,
+                    f.loglik,
+                    f.oos_loglik,
+                    f.oos_bars,
+                    f.n_iter,
+                    f.converged,
+                    f.mean_diag,
+                    occ,
+                    dur,
+                    lbl
                 ));
             }
         };
@@ -907,19 +974,34 @@ pub fn apply_overlay(
 
 /// Standalone study: each symbol trades its own walk-forward chain. Weights are
 /// NaN until the signal is estimable, so no position is held during warm-up.
-pub fn compute_markov_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+/// `benchmark` feeds the `spy_*` cross-asset features under `markov_model=hmm`.
+pub fn compute_markov_signals(
+    panel: &Panel,
+    cfg: &Config,
+    benchmark: Option<&Bars>,
+) -> Result<Signals, String> {
     let p = params(cfg)?;
     let n = panel.dates.len();
     let mut result = crate::family4::blank_signals(panel, "markov_signal");
     let mut weights = vec![vec![f64::NAN; n]; panel.symbols.len()];
     let hmm = cfg.markov_model == "hmm";
     let prior = (!hmm && p.shrink > 0.0).then(|| pooled_prior(panel, &p));
+    let bench_close: Option<Vec<f64>> =
+        hmm.then(|| benchmark.map(|b| aligned_close(&panel.dates, b)))
+            .flatten();
+    let mut named: Vec<(String, Chain)> = Vec::new();
     for j in 0..panel.symbols.len() {
+        let rf = if panel.symbols[j] == cfg.benchmark {
+            None
+        } else {
+            bench_close.as_deref()
+        };
         let c = model_chain(
             &panel.close[j],
             &panel.high[j],
             &panel.low[j],
             &panel.volume[j],
+            rf,
             cfg,
             &p,
             prior.as_ref(),
@@ -942,6 +1024,10 @@ pub fn compute_markov_signals(panel: &Panel, cfg: &Config) -> Result<Signals, St
             weights[j][t] = w;
             result.signal[j][t] = w.is_finite() && w.abs() > 1e-9;
         }
+        named.push((panel.symbols[j].clone(), c));
+    }
+    if hmm {
+        crate::hmm::write_diag(cfg, &named)?;
     }
     result.trade_weights = Some(weights);
     result.benchmark_returns = crate::family4::benchmark_returns(panel, &cfg.risk_symbol);
