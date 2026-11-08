@@ -85,28 +85,31 @@ pub fn compute_s010_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
             if cfg.weekday > 0 && weekday_of(panel.dates[day]) != cfg.weekday {
                 continue;
             }
+            let t = day + 1;
+            if t >= n {
+                continue;
+            }
             let (c, p, o) = (close[day], close[day - 1], open[day]);
             if !c.is_finite() || !p.is_finite() || p <= 0.0 || !o.is_finite() {
                 continue;
             }
-            result.tradable[j][day - 1] = true;
-            result.pool[j][day - 1] = true;
+            result.tradable[j][day] = true;
+            result.pool[j][day] = true;
             let ret = c / p - 1.0;
             let weak = match cfg.signal_mode.as_str() {
                 "ret_le" => ret <= cfg.weakness_threshold,
                 "gap_down" => o < p,
                 _ => c < p,
             };
-            result.rsi[j][day - 1] = ret;
+            result.rsi[j][day] = ret;
             if !weak {
                 continue;
             }
-            result.signal[j][day - 1] = true;
-            let trade_row = day;
-            entries[j][trade_row] = c;
-            exits[j][trade_row] = if cfg.exit_offset == 0 { open[trade_row] } else { close[trade_row] };
-            if exits[j][trade_row].is_finite() {
-                weights[j][trade_row] = 1.0;
+            result.signal[j][day] = true;
+            entries[j][t] = c;
+            exits[j][t] = if cfg.exit_offset == 0 { open[t] } else { close[t] };
+            if c.is_finite() && exits[j][t].is_finite() {
+                weights[j][t] = 1.0;
             }
         }
     }
@@ -436,4 +439,63 @@ pub fn compute_s082_signals(panel: &Panel, cfg: &Config) -> Result<Signals, Stri
 
 pub fn s082_trades(panel: &Panel, sig: &Signals, cfg: &Config, fill: &str) -> Result<Vec<Trade>, String> {
     calendar_hold_trades(panel, sig, cfg, fill)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn config() -> Config {
+        let mut cfg: Config = serde_yaml::from_str("partition_split_date: '2020-01-01'\n").unwrap();
+        cfg.cost_bps_per_side = 0.0;
+        cfg.weekday = 1;
+        cfg.signal_mode = "close_below_prev".into();
+        cfg.exit_offset = 0;
+        cfg
+    }
+
+    // Fri, Mon (weak close), Tue, Wed
+    fn panel() -> Panel {
+        Panel {
+            dates: vec![
+                NaiveDate::from_ymd_opt(2024, 1, 5).unwrap(),
+                NaiveDate::from_ymd_opt(2024, 1, 8).unwrap(),
+                NaiveDate::from_ymd_opt(2024, 1, 9).unwrap(),
+                NaiveDate::from_ymd_opt(2024, 1, 10).unwrap(),
+            ],
+            symbols: vec!["XYZ".into()],
+            open: vec![vec![100.0, 99.0, 97.0, 99.0]],
+            high: vec![vec![101.0; 4]],
+            low: vec![vec![98.0; 4]],
+            close: vec![vec![100.0, 98.0, 99.0, 100.0]],
+            volume: vec![vec![1_000.0; 4]],
+        }
+    }
+
+    #[test]
+    fn s010_exits_next_session_open_after_weak_close() {
+        let panel = panel();
+        let cfg = config();
+        let sig = compute_s010_signals(&panel, &cfg).unwrap();
+        let trades = s010_trades(&panel, &sig, &cfg, "close_to_open").unwrap();
+        assert_eq!(trades.len(), 1);
+        let trade = &trades[0];
+        assert_eq!(trade.signal_idx, 1);
+        assert_eq!(trade.entry_idx, 2);
+        assert_eq!(trade.exit_idx, 2);
+        assert_eq!(trade.entry_px, 98.0);
+        assert_eq!(trade.exit_px, 97.0);
+
+        let mut cfg = config();
+        cfg.exit_offset = 1;
+        let sig = compute_s010_signals(&panel, &cfg).unwrap();
+        let trades = s010_trades(&panel, &sig, &cfg, "close_to_open").unwrap();
+        assert_eq!(trades.len(), 1);
+        assert_eq!(trades[0].entry_px, 98.0);
+        assert_eq!(trades[0].exit_px, 99.0);
+        // entry is the prior session's close; no exit uses the same session's open
+        for trade in &trades {
+            assert_eq!(trade.entry_px, panel.close[trade.sym_idx][trade.entry_idx - 1]);
+        }
+    }
 }
