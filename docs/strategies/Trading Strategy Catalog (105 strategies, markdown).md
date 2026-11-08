@@ -459,7 +459,16 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 - notes: Earlier note corrected: the 56% win rate, 212 trades and 0.3% avg gain are Quantified Strategies figures (unverified) and do not appear on the cited page. The old rule 'open(t) < close(t-1)' was a Monday GAP-down, a different event from a weak Monday; both are now explicit variants. Run the identical rule for every weekday as a placebo.
 - parameter_variants: Monday weakness {close(Mon) < close(Fri) primary; return <= -0.5% (ex-S085: Monday close-to-close decline > 0.5%); gap-down open(Mon) < close(Fri)}; VIX filter {off primary; VIX(t) > VIX(t-1) (ex-S085)}; exit {Tuesday open, Tuesday close}; placebo weekdays {Mon..Fri}
 - merged_from: S085
-- implementation_results: Rust in `src/family8.rs` / `src/study.rs`, config `configs/s010_turnaround_tuesday.yaml`; SPY TR bars (`etf_tr`), close_to_open fill (Monday close -> Tuesday open), 1 bp/side. Daily-bar faithful; the ex-S085 VIX filter variant is not run (no DP-VIX on disk). Baseline (close(Mon)<close(Fri) trigger): DEV 155 trades, +0.585 log, Sharpe +2.121, PF 5.943, win 72.3%; TEST 49 trades, +0.109, Sharpe +1.194, PF 2.564, win 69.4%. Engine flags: PF/Sharpe > 2 - leakage and timing review required.
+- implementation_results: Rust in `src/family8.rs` / `src/study.rs`, config `configs/s010_turnaround_tuesday.yaml`; SPY TR bars (`etf_tr`), close_to_open fill (Monday close -> Tuesday open), 1 bp/side; dev < 2024-01-01 <= test. Daily-bar faithful; the ex-S085 VIX filter variant is not run (no DP-VIX on disk). Fixed 2026-11-08: prior run exited at the signal day's own open (look-ahead); all earlier S010 numbers void. `tuesday` is the dev-selected variant (only positive dev skill of 31 trials). Both rows below are DECAYED (test skill sign differs from dev); trade counts pass the >=100 dev / >=30 test gate.
+
+  | variant | period | total_log | trend | random | skill (p) | bias | skill% | Sharpe | PF | win% | maxDD | trades |
+  |---|---|---|---|---|---|---|---|---|---|---|---|---|
+  | baseline | dev | +0.226 | +0.522 | +0.226 | -0.296 (p=0.991) | +0.000 | n/a | +0.84 | 1.84 | 60.0% | -3.6% | 155 |
+  | baseline | test | +0.015 | +0.004 | +0.015 | +0.011 (p=0.458) | +0.000 | n/a | +0.20 | 1.16 | 53.1% | -2.1% | 49 |
+  | tuesday | dev | +0.200 | +0.095 | +0.200 | +0.105 (p=0.194) | +0.000 | +52% | +0.82 | 1.68 | 62.5% | -3.7% | 200 |
+  | tuesday | test | +0.044 | +0.055 | +0.044 | -0.011 (p=0.480) | +0.000 | n/a | +0.72 | 1.46 | 58.3% | -2.3% | 72 |
+
+  Reproduce: `target\release\deepthrust.exe --strategy s010_turnaround_tuesday --variant exit_close,ret05,ret1,ret2,gap_down,gap_down_exit_close,ret05_exit_close,ret1_exit_close,tuesday,wednesday,thursday,friday,monday_today_only,qqq,iwm,dia,qqq_exit_close,iwm_exit_close,qqq_ret05,iwm_ret05,qqq_gap_down,iwm_gap_down,cost025,cost05,cost2,cost5,qqq_cost05,qqq_cost2,iwm_cost05,iwm_cost2`
 - data_needs: ETF raw prices (DP-ETF); VIX for the S085 filter (DP-VIX)
 - review: RESOLVED
 
