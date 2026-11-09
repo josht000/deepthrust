@@ -1,111 +1,120 @@
----
-name: pal_dash
-description: Build or extend the PAL presenter dashboard — the single offline HTML page set for the ES/NQ Price Action Lab findings (src/pal/dash.rs + tools/check_dash.py). Use when asked to regenerate, fix, or add pages/charts to the PAL dashboard, when provenance or layout checks fail, or when wiring new PAL result tables into the presenter.
----
-
 # pal_dash
 
-Rebuild or extend the offline presenter dashboard for the Price Action
-Lab (ES/NQ futures, five-prompts spec prompt 5). One self-contained
-`dashboard.html` + provenance trail, generated only from saved result
-tables — never raw or sealed data.
+Build or extend DeepThrust presenter dashboards — the single offline
+HTML page sets with a full provenance trail, generated only from saved
+result tables, never raw or sealed data. Two deck types share one
+engine:
+
+- **PAL deck** — the Price Action Lab findings (`results/pal/`),
+  PAL-specific page builders in `src/pal/dash.rs`.
+- **Study deck** — ANY standard `results/<study>/` directory
+  (partition_dev/test.csv, trade_summary, baselines, daily_returns,
+  variants_comparison, cost_ladder, symbols_summary, per_etf). Page
+  builders live in `src/dash.rs::study_pages`.
 
 ## Commands
 
 ```bat
-target\release\pal.exe dash                                  :: build dashboard.html
-C:\data\envs\trading_framework\Scripts\python.exe tools\check_dash.py   :: layout check + screenshots
+target\release\pal.exe dash                      :: PAL deck -> results/pal/dash/
+target\release\pal.exe dash --study g070_supertrend   :: one study deck
+target\release\pal.exe dash --all                :: every study w/ partition_dev.csv
+C:\data\envs\trading_framework\Scripts\python.exe tools\check_dash.py [--html <dir>/dashboard.html]
 ```
 
-Run both from the repo root (`C:\data\trading\deepthrust`). `pal dash`
-writes `results/pal/dash/{dashboard.html,provenance.csv,
-provenance_check.json,pages.json}` and REFUSES to write the HTML if the
-provenance re-read finds any mismatch. `check_dash.py` then verifies
-layout at 1920x1080 and 1280x720 in headless Chrome/Edge and writes
-`layout_check.json` + `shots/*.png` (exit 1 on violations; set
-`CHROME_PATH` if no browser is found).
+Run from the repo root (`C:\data\trading\deepthrust`). Each build writes
+`<out>/dashboard.html` + `provenance.csv`, `provenance_check.json`,
+`pages.json` and REFUSES the HTML if the independent provenance re-read
+finds any mismatch. `check_dash.py` verifies layout at 1920x1080 and
+1280x720 in headless Chrome/Edge (needs `CHROME_PATH` if no browser is
+found) and writes `layout_check.json` + `shots/*.png`; it resolves
+pages.json/shots next to whatever `--html` you pass, so the same command
+works for every deck.
 
-## Architecture (src/pal/dash.rs, ~970 lines)
+## Architecture
 
-- `Book` — caches parsed CSVs (`read_csv`, naive `split(',')` — no quoted
-  fields allowed in sources) and JSONLs (`read_jsonl`, objects keyed by
-  `"name"`). All paths are relative to `results/pal/`.
-- `Prov` + `Book::num(page, element, file, row, col, fmt)` — THE way every
-  on-screen number enters the page. It looks up the value, applies the
-  format (`money`, `pct`, `f2`-`f4`, `int`), records provenance, and
-  returns the display text. Special columns: `__count__` (row count of
-  csv/jsonl/json-array), `__sum__:<col>` (column sum). Missing values
-  render `NA` — prefer gating the whole page on file existence instead.
-- `verify_provenance()` — deliberately a SECOND, independent code path:
-  re-opens each source file fresh, re-parses with different code, and
-  re-formats. Any value or format mismatch aborts the build. Keep it
-  independent — do not "refactor" it to share `Book`'s readers.
-- `build_pages(root)` — returns `(Vec<Page>, Vec<Prov>)`. Each page is
-  gated on its source file existing, so the dashboard degrades
-  gracefully as prompts 2-4 results land.
-- `render_html(pages)` — one `<style>`+`<script>` block, no external
-  assets. `run_dash` writes provenance.csv, runs the check, writes
-  pages.json, then dashboard.html.
+- `src/dash.rs` (~1200 lines) — the shared engine: `Book`/`Prov`
+  provenance, `verify_provenance` (deliberately a SECOND, independent
+  reader — do not "refactor" it onto Book's code), `Page`, SVG chart
+  helpers (`svg_bars`, `svg_lines`, `svg_ci`, all `pub(crate)`),
+  `render_html` presenter, `emit()`, plus the generic
+  `study_pages()`/`run_study_dash()`.
+- `src/pal/dash.rs` (~330 lines) — ONLY the PAL page builders
+  (`build_pages`) + `run_dash` delegating to `dash::emit`.
+- `src/bin/pal.rs` — `pal dash` arg parsing: bare = PAL deck,
+  `--study <name>` = one study, `--all` = every `results/<dir>/` that
+  has `partition_dev.csv` (failures are reported per-study, not fatal).
 
-## Page contract (spec prompt 5)
+## Provenance rules (spec prompt 5 — applies to BOTH decks)
 
-- Stage: fixed 1920x1080 `#stage`, CSS-scaled to any window. Palette:
-  navy `#0b0f1a`, cyan `#22d3ee`, amber `#f59e0b`, green `#34d399`,
-  red `#f87171`. Mono uppercase `.eyebrow` = section name.
+- Every on-screen number goes through `Book::num`/`numk` (or the
+  `pv()` wrapper in study_pages, which also returns the chart value).
+  Row keys are the LEADING CONTIGUOUS columns: single key = first
+  column (`fill`, `baseline` name); multi key = `k1|k2|..` joined by
+  `|` and matched positionally — e.g. `variants_comparison` uses
+  `variant|fill`, `cost_ladder` needs `fill|cost_mult|cost_bps_side|
+  period` because `cost_bps_side` sits between `cost_mult` and
+  `period`. Check the header before writing keys.
+- Special columns: `__count__` (row count), `__sum__:<col>`,
+  `__uniq__:<col>` (distinct values — used for symbol/variant counts).
+  Both `num()` and `verify_provenance()` implement them — keep the two
+  implementations in sync.
+- Formats (`fmt_value`, shared by display AND verify): `money`, `pct`
+  (0-1 fraction -> "52%"), `pct1` (already-percent -> "51.9%" —
+  partition tables store win_pct 0-100), `f2`-`f4`, `int`.
+- `Book`'s CSV reader is a naive `split(',')` — no quoted fields.
+- Missing values render `NA`; prefer gating whole pages on file
+  existence so decks degrade gracefully.
+
+## Study deck pages (study_pages)
+
+Slide (symbols/variants/dev+test trade cards) -> Dev Versus Test ->
+Trade Profile -> Skill Decomposition -> Buy Hold And Timing (baselines
+incl. random_timing p) -> Equity Curve (per-fill `*_r_day` + `b_day`
+from daily_returns.csv) -> Dev Leaderboard (top 16 variants by
+`dev_total_log`, primary fill only) -> Cost Ladder -> Where It Earned
+(per-symbol, baseline variant, skipped for single-symbol studies) ->
+closing slide. Each page is gated on its source CSV existing.
+
+## Page contract
+
+- Stage: fixed 1920x1080 `#stage`, CSS-scaled. Palette navy `#0b0f1a`,
+  cyan `#22d3ee`, amber `#f59e0b`, green `#34d399`, red `#f87171`.
 - Finding page: eyebrow, plain-noun title, one-line subtitle (no em
-  dashes), ONE chart, at most two big stats, short conclusion, optional
-  verdict badge (`supported`/`survived`→SURVIVED ok, `split`→SPLIT mid,
-  else DIDN'T SURVIVE bad). Slides (`slide: true`) are concept beats:
-  big white title, grey tagline, amber numbered badges, cards.
-- Facecam corner: bottom-right 520x368 (`FACECAM` const) must stay
-  empty — the layout check fails on any element intruding.
-- Charts build in on page open (`buildline` dash animation); `R`
-  replays. Keyboard: arrows/space/pageup/down, Home/End, `#N` deep link,
-  `M` section list, `F` facecam placeholder, mouse ring + drag-to-draw
-  yellow highlighter (fades). `?check=1` exposes
-  `window.__layoutReport()` — do not remove it; check_dash.py depends on it.
-
-## Chart helpers (fixed viewBox SVG strings)
-
-- `svg_bars(&[(label, f64)], w, h)` — diverging horizontal bars, zero
-  line at 42% width, green/red by sign, value labels.
-- `svg_lines(&[(name, Vec<f64>, color)], dates, w, h)` — cumulative-sum
-  polylines with end labels; used for daily-P&L equity curves (feed it
-  per-day USD vectors sorted by date).
-- `svg_ci(&[(label, diff, lo, hi)], w, h)` — CI-dot chart, dot colored
-  by whether the interval excludes zero.
-
-## Data sources consumed (all under results/pal/)
-
-`funnel/{versions.jsonl,candidates.json,working_setups.json,
-setup_results.csv,stage_shares.csv}`, `behavior_verdicts.csv`,
-`final|final_rehearse/{held_up.csv,named_final.csv,daily_pnl.jsonl}`.
-`final/` wins over `final_rehearse/` when both exist (the tag switches
-to FINAL TEST vs FINAL REHEARSAL). The equity page takes the top-5 NQ
-versions by total P&L from `daily_pnl.jsonl`.
+  dashes), ONE chart, <=2 big stats, short conclusion, optional verdict
+  badge (`supported`/`survived`->SURVIVED, `split`->SPLIT, else
+  DIDN'T SURVIVE). Slides: big white title, grey tagline, amber
+  numbered badges, cards.
+- Facecam corner bottom-right 520x368 (`dash::FACECAM`) must stay
+  empty — layout check fails on intrusions.
+- Charts animate on page open; `R` replays. Keys: arrows/space/
+  pageup/down, Home/End, `#N` deep link, `M` section list, `F`
+  facecam, mouse ring + drag highlighter. `?check=1` exposes
+  `window.__layoutReport()` — check_dash.py depends on it; do not
+  remove.
 
 ## Extending
 
-1. Add the page inside `build_pages` where its siblings live, gated on
-   the new file (e.g. `results.join("funnel/new_table.csv").exists()`).
-2. Route EVERY displayed number through `b.num(...)` — hardcoded digits
-   violate the spec and are untraceable.
-3. Keep titles plain nouns / subtitles plain descriptions, no em dashes.
-4. Rebuild (`pal dash`) — provenance check must pass — then
-   `check_dash.py`; fix layout violations (off-stage, facecam intrude,
-   subtitle overflow, page scroll) before calling it done.
-5. New result tables should be written by the producing stage as CSV
-   (first column = row key) or JSONL (objects with a `"name"` field) so
-   `Book` can read them.
+1. Study deck: add a gated block inside `study_pages` reading the new
+   CSV via `b.read_csv` + `col_idx`, route every number through `pv()`.
+2. PAL deck: add the page inside `build_pages` in `src/pal/dash.rs`.
+3. Rebuild (`pal dash [--study X]`) — provenance must pass — then
+   `check_dash.py --html <that deck>/dashboard.html`; fix layout
+   violations (off-stage, facecam, subtitle overflow, page scroll)
+   before calling it done.
+4. New result tables: write CSV (first columns = row key) or JSONL
+   (objects with `"name"`) so `Book` can read them.
 
 ## Pitfalls
 
-- The CSV reader cannot handle quoted commas — keep source tables
-  comma-simple or the row/col lookup silently misaligns.
-- `prov.text` is what the page shows; `verify_provenance` re-derives it
-  from `value`+`format`, so exotic formats need matching arms in BOTH
-  places.
-- `pages.json` is the checker's page list — regenerate via `pal dash`,
-  don't hand-edit.
-- Screenshots land in `results/pal/dash/shots/`; `layout_check.json`
-  `ok:true` + empty `bad` lists at both sizes = DONE WHEN met.
+- `svg_bars` scale: bars are `value * min(avail/max)` — do NOT re-add a
+  `.max(1.0)` clamp; it forces 1px-per-unit and huge values (63k PAL
+  trades) render off-stage. Fixed once; keep it that way.
+- `win_pct`-style columns in study tables are 0-100 — use `pct1`, not
+  `pct` (which expects 0-1 fractions like PAL's own tables).
+- `prov.text` is what the page shows; verify re-derives it from
+  `value`+`format`, so exotic formats need matching arms in BOTH
+  places (fmt_value is shared — one arm covers both).
+- `pages.json` is the checker's page list — regenerate, don't
+  hand-edit. `results/` is gitignored; decks are local artifacts.
+- Screenshots land in `<deck>/shots/`; `layout_check.json` `ok:true` +
+  empty `bad` lists at both sizes = DONE WHEN met.

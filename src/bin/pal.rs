@@ -55,7 +55,16 @@ enum Cmd {
         limit: Option<usize>,
     },
     /// Build the presenter dashboard with provenance checks.
-    Dash,
+    /// Bare `pal dash` builds the PAL deck; --study builds a generic
+    /// deck for results/<study>/; --all builds every study that has one.
+    Dash {
+        /// study name under results/ (e.g. g070_supertrend)
+        #[arg(long)]
+        study: Option<String>,
+        /// build decks for every results/<study>/ with partition_dev.csv
+        #[arg(long)]
+        all: bool,
+    },
 }
 
 fn main() -> ExitCode {
@@ -79,7 +88,14 @@ fn main() -> ExitCode {
         Cmd::Behavior => run_behavior(&store),
         Cmd::Funnel { limit } => run_funnel(&store, limit),
         Cmd::FinalTest { rehearse, limit } => run_final_test(&store, rehearse, limit),
-        Cmd::Dash => match deepthrust::pal::dash::run_dash(std::path::Path::new(".")) {
+        Cmd::Dash { study, all } => run_dash_cmd(study, all),
+    }
+}
+
+fn run_dash_cmd(study: Option<String>, all: bool) -> ExitCode {
+    let root = std::path::Path::new(".");
+    if let Some(name) = study {
+        return match deepthrust::dash::run_study_dash(root, &name) {
             Ok(p) => {
                 println!("dash: wrote {}", p.display());
                 ExitCode::SUCCESS
@@ -88,7 +104,49 @@ fn main() -> ExitCode {
                 eprintln!("dash: {e}");
                 ExitCode::FAILURE
             }
-        },
+        };
+    }
+    if all {
+        let results = root.join("results");
+        let mut names: Vec<String> = std::fs::read_dir(&results)
+            .map(|rd| {
+                rd.filter_map(|e| e.ok())
+                    .filter(|e| e.path().join("partition_dev.csv").exists())
+                    .filter_map(|e| e.file_name().to_str().map(|s| s.to_string()))
+                    .collect()
+            })
+            .unwrap_or_default();
+        names.sort();
+        if names.is_empty() {
+            eprintln!("dash --all: no study directories with partition_dev.csv");
+            return ExitCode::FAILURE;
+        }
+        let mut failed = 0;
+        for name in &names {
+            match deepthrust::dash::run_study_dash(root, name) {
+                Ok(p) => println!("dash: {name} -> {}", p.display()),
+                Err(e) => {
+                    eprintln!("dash: {name}: {e}");
+                    failed += 1;
+                }
+            }
+        }
+        return if failed == 0 {
+            ExitCode::SUCCESS
+        } else {
+            eprintln!("dash --all: {failed} study(s) failed");
+            ExitCode::FAILURE
+        };
+    }
+    match deepthrust::pal::dash::run_dash(root) {
+        Ok(p) => {
+            println!("dash: wrote {}", p.display());
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("dash: {e}");
+            ExitCode::FAILURE
+        }
     }
 }
 

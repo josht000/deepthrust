@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
-"""Headless-Chrome layout check for the PAL dashboard (spec prompt 5).
+"""Headless-Chrome layout check for presenter dashboards.
+
+Works for the PAL deck and any generic study deck — point --html at the
+dashboard.html; pages.json, shots/ and layout_check.json resolve next to it.
 
 For every page, at 1920x1080 and 1280x720:
   - nothing renders off the 1920x1080 stage
   - nothing sits in the facecam corner (bottom-right 520x368)
   - subtitles stay one line, no page scrolling
-Screenshots every page at both sizes and writes
-results/pal/dash/layout_check.json. Exit 1 on any violation.
+Screenshots every page at both sizes and writes layout_check.json next to
+the html. Exit 1 on any violation.
 
 Usage:
   python tools/check_dash.py [--html results/pal/dash/dashboard.html]
+  python tools/check_dash.py --html results/g070_supertrend/dash/dashboard.html
 """
 
 import argparse
