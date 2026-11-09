@@ -22,6 +22,10 @@ pub struct Trade {
     pub exit_turnover: f64,
     pub weighted: bool,
     pub borrow_cost_per_bar: f64,
+    /// +1.0 long, -1.0 short. The daily account series multiplies
+    /// price-path returns by this so short legs contribute their
+    /// (inverted) P&L instead of a sign-flipped loss.
+    pub dir_sign: f64,
 }
 
 /// Last row index with a finite close per symbol.
@@ -162,6 +166,7 @@ pub fn swing_trades(panel: &Panel, p: &SwingParams, cfg: &Config, fill: &str) ->
                     exit_turnover: 1.0,
                     weighted: false,
                     borrow_cost_per_bar: 0.0,
+                    dir_sign: 1.0,
                 });
             }
             t_prev = Some(u_exit);

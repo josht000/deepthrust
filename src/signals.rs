@@ -460,6 +460,7 @@ pub fn s019_trades(
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
             previous_exit = Some(exit);
         }
@@ -674,6 +675,7 @@ pub fn overnight_trades(
                 exit_turnover: weight,
                 weighted: true,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
         }
     }
@@ -959,6 +961,7 @@ pub(crate) fn rebalance_trades_with_breadth(
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
         }
     }
@@ -1307,6 +1310,7 @@ pub fn s032_trades(
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
         }
     }
@@ -1696,6 +1700,7 @@ pub fn s035_trades(
                 exit_turnover: if weighted { weight } else { 1.0 },
                 weighted,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
         }
     }
@@ -2500,6 +2505,7 @@ pub fn s075_trades(
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
         }
     }
@@ -2926,6 +2932,7 @@ pub fn s017_trades(
                 exit_turnover: turnover * weight,
                 weighted: true,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
         }
     }

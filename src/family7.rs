@@ -133,6 +133,7 @@ pub(crate) fn switch_trades(
                     exit_turnover: old_w.abs(),
                     weighted: true,
                     borrow_cost_per_bar: if old_w < 0.0 { borrow_per_bar } else { 0.0 },
+                    dir_sign: 1.0,
                 });
             }
             if w.abs() > 1e-9 {
@@ -166,6 +167,7 @@ pub(crate) fn switch_trades(
                 exit_turnover: w.abs(),
                 weighted: true,
                 borrow_cost_per_bar: if w < 0.0 { borrow_per_bar } else { 0.0 },
+                dir_sign: 1.0,
             });
         }
     }
@@ -451,6 +453,7 @@ pub fn s065_trades(panel: &Panel, sig: &Signals, cfg: &Config, fill: &str) -> Re
                                 exit_turnover: 1.0,
                                 weighted: false,
                                 borrow_cost_per_bar: 0.0,
+                                dir_sign: 1.0,
                             });
                             pos = None;
                         }
@@ -525,6 +528,7 @@ pub fn s065_trades(panel: &Panel, sig: &Signals, cfg: &Config, fill: &str) -> Re
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
         }
     }
@@ -941,6 +945,7 @@ fn push_pair_legs(
             exit_turnover: w.abs(),
             weighted: true,
             borrow_cost_per_bar: if w < 0.0 { borrow_per_bar } else { 0.0 },
+            dir_sign: 1.0,
         });
     }
 }

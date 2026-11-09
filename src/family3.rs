@@ -285,6 +285,7 @@ pub fn s031_trades(
                 exit_turnover: 0.0,
                 weighted: true,
                 borrow_cost_per_bar: borrow_bar,
+                dir_sign: 1.0,
             });
         }
     }

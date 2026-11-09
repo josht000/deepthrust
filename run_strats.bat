@@ -198,6 +198,9 @@ if errorlevel 1 exit /b %errorlevel%
 target\release\deepthrust.exe --strategy s103_yield_curve_rotation --variant weekly,daily,hold,weekly_hold,slope,slope_weekly,slope_hold,band0,band005,band015,band025,band05,slope_band0,slope_band025,weekly_band005,weekly_band025,chg10,chg42,chg63,chg126,chg63_weekly,slope_chg63,chg42_band005,level,level25,level_neg25,level50,level_weekly,level_hold,def_bil,def_ief,def_tlt,def_shy,def_xlp,def_xlv,cost05,cost2,cost5,weekly_cost05,weekly_cost2,weekly_slope_band0,hold_band025,slope_hold_band025,daily_band025 %DEBUG_ARGS%
 if errorlevel 1 exit /b %errorlevel%
 
+target\release\deepthrust.exe --strategy pal_sweep_reclaim --variant es,both,short,trig1m,chart15m,chart15m_t5m,chart15m_t1m,chart1h,chart1h_t15m,chart1d,chart1m,swing3,swing5,tol10,tol50,touches2,entry_closeback,entry_rejection,entry_engulfing,entry_atclose,entry_limitback,stop_swing,target1R,target2R,target_swing,filt_trend,filt_ny,filt_news,both_t1m,short_chart15,es_both,swing3_tol50,rej_stop_swing,target2R_filt_trend,chart1d_es,touches2_swing3,filt_ny_news %DEBUG_ARGS%
+if errorlevel 1 exit /b %errorlevel%
+
 "C:\data\envs\trading_framework\Scripts\python.exe" tools\update_all_trade_metrics.py
 if errorlevel 1 exit /b %errorlevel%
 

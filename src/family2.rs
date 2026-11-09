@@ -567,6 +567,7 @@ pub fn s023_trades(
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
         }
     }
@@ -752,6 +753,7 @@ pub fn s024_trades(
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
         }
     }

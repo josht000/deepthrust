@@ -257,6 +257,7 @@ pub fn s088_trades(
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
             available_after = exit_idx + 1;
         }
@@ -441,6 +442,7 @@ fn s091_resolve(
         exit_turnover: leg.weight.abs(),
         weighted: true,
         borrow_cost_per_bar: borrow_per_bar,
+        dir_sign: 1.0,
     });
 }
 
@@ -1000,6 +1002,7 @@ pub fn s095_trades(
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
             available_after = exit_idx + 1;
         }
@@ -1416,6 +1419,7 @@ pub fn s090_trades(
                     exit_turnover: if weighted { weight.abs() } else { 1.0 },
                     weighted,
                     borrow_cost_per_bar: if dir < 0.0 { borrow_bar } else { 0.0 },
+                    dir_sign: 1.0,
                 });
                 t_prev = Some(u_exit);
             }
@@ -1742,6 +1746,7 @@ pub fn s094_trades(
                         exit_turnover: slot_w,
                         weighted: true,
                         borrow_cost_per_bar: if dir < 0.0 { borrow_per_bar } else { 0.0 },
+                        dir_sign: 1.0,
                     });
                     pos = None;
                 }
@@ -1796,6 +1801,7 @@ pub fn s094_trades(
                 exit_turnover: slot_w,
                 weighted: true,
                 borrow_cost_per_bar: if dir < 0.0 { borrow_per_bar } else { 0.0 },
+                dir_sign: 1.0,
             });
         }
     }

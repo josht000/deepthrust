@@ -431,6 +431,7 @@ pub(crate) fn book_trades(
                 } else {
                     0.0
                 },
+                dir_sign: 1.0,
             });
         }
     }
@@ -635,6 +636,7 @@ pub fn s053_trades(panel: &Panel, sig: &Signals, cfg: &Config, fill: &str) -> Re
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
         }
     }
@@ -858,6 +860,7 @@ pub fn s054_trades(panel: &Panel, sig: &Signals, cfg: &Config, fill: &str) -> Re
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
             busy_until = exit_idx;
         }
@@ -1463,6 +1466,7 @@ pub fn s059_trades(
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
             busy_until = Some(decision_exit);
         }

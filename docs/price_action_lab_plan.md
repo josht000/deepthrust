@@ -155,6 +155,43 @@ file reader in the lab".)
 `parquet`, `csv`, `serde_json`, `sha2`, `plotters`. Python: add `databento` to
 `requirements-data.txt`.
 
+## Framework bridge (added 2026-11-09)
+
+`sweep_reclaim` also runs inside the daily study framework as
+`pal_sweep_reclaim` so its trades get the standard partition test,
+variant matrix, and reports (`src/family_pal.rs`,
+`configs/pal_sweep_reclaim.yaml`, `results/pal_sweep_reclaim/`).
+
+- Baseline = funnel candidate `h:sweep_reclaim:1169` (NQ, 5m/5m,
+  long-only, `limit_at_level`, beyond-level stop, 3R, 96-bar time exit,
+  no filters). `pal_market: es` variants replicate on ES.
+- The PAL engine (`detect_events` + `run_version`) generates trades on
+  the real 5-minute sessions; trades are mapped to session dates for the
+  framework's dev/test split (2023-01-01 = PAL era boundary).
+- Trade-level stats are exact PAL economics. The framework's daily
+  account series is its standard close-to-close approximation;
+  minute-level daily P&L remains authoritative in
+  `results/pal/funnel/daily_pnl.jsonl`.
+- Reads the discovery window only — no sealed access.
+- `engine::Trade`/`partition::Leg` carry `dir_sign` (+1/−1) so short
+  and `both` variants get correctly signed daily account stats
+  (decision #15). Caveat: the `random_timing` baseline null hardcodes
+  long legs, so its p-value row is only meaningful for long-only
+  variants; the primary random-pick universe/pool tests do propagate
+  direction.
+- `entry_atclose`/`entry_limitback` variants produce zero trades by
+  design: sweep events carry `SWEEP|CLOSEBACK` flags while those entry
+  kinds require `BREAK` (reserved for break-style setups in the
+  rulebook). They are kept in the matrix as documentation.
+
+Reproduce:
+
+```
+target\release\deepthrust.exe --strategy pal_sweep_reclaim --variant baseline
+target\release\deepthrust.exe --strategy pal_sweep_reclaim --variant es,both,short,trig1m,chart15m,chart15m_t5m,chart15m_t1m,chart1h,chart1h_t15m,chart1d,chart1m,swing3,swing5,tol10,tol50,touches2,entry_closeback,entry_rejection,entry_engulfing,entry_atclose,entry_limitback,stop_swing,target1R,target2R,target_swing,filt_trend,filt_ny,filt_news,both_t1m,short_chart15,es_both,swing3_tol50,rej_stop_swing,target2R_filt_trend,chart1d_es,touches2_swing3,filt_ny_news
+:: or the full matrix via run_strats.bat
+```
+
 ## Open items for user
 
 1. `DATABENTO_API_KEY` — needed before `pal ingest` runs (put in

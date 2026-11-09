@@ -271,6 +271,7 @@ pub fn g023_trades(
                 exit_turnover: w.abs(),
                 weighted: true,
                 borrow_cost_per_bar: if w < 0.0 { borrow_per_bar } else { 0.0 },
+                dir_sign: 1.0,
             });
         }
     };
@@ -741,6 +742,7 @@ fn push_g037_legs(
             exit_turnover: w.abs(),
             weighted: true,
             borrow_cost_per_bar: if w < 0.0 { borrow_per_bar } else { 0.0 },
+            dir_sign: 1.0,
         });
     }
 }
@@ -1317,6 +1319,7 @@ pub(crate) fn short_swing_trades(
                                 exit_turnover: 1.0,
                                 weighted: false,
                                 borrow_cost_per_bar: borrow_per_bar,
+                                dir_sign: 1.0,
                             });
                         }
                         open = None;
@@ -1343,6 +1346,7 @@ pub(crate) fn short_swing_trades(
                             exit_turnover: 1.0,
                             weighted: false,
                             borrow_cost_per_bar: borrow_per_bar,
+                            dir_sign: 1.0,
                         });
                     }
                     open = None;
@@ -1381,6 +1385,7 @@ pub(crate) fn short_swing_trades(
                     exit_turnover: 1.0,
                     weighted: false,
                     borrow_cost_per_bar: borrow_per_bar,
+                    dir_sign: 1.0,
                 });
             }
         }

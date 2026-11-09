@@ -41,6 +41,8 @@ pub struct Leg {
     pub exit_turnover: f64,
     pub weighted: bool,
     pub borrow_cost_per_bar: f64,
+    /// +1.0 long, -1.0 short — flips the price-path return for shorts.
+    pub dir_sign: f64,
 }
 
 pub fn legs_of(trades: &[Trade]) -> Vec<Leg> {
@@ -57,6 +59,7 @@ pub fn legs_of(trades: &[Trade]) -> Vec<Leg> {
             exit_turnover: t.exit_turnover,
             weighted: t.weighted,
             borrow_cost_per_bar: t.borrow_cost_per_bar,
+            dir_sign: t.dir_sign,
         })
         .collect()
 }
@@ -107,7 +110,10 @@ pub fn account_series_with_costs(
                     0.0
                 };
                 let borrow_cost = l.weight.abs() * l.borrow_cost_per_bar;
-                sums[day] += l.weight * (end / start - 1.0) - entry_cost - exit_cost - borrow_cost;
+                sums[day] += l.weight * l.dir_sign * (end / start - 1.0)
+                    - entry_cost
+                    - exit_cost
+                    - borrow_cost;
                 count[day] += 1.0;
                 continue;
             }
@@ -121,7 +127,7 @@ pub fn account_series_with_costs(
             } else {
                 close_ff[l.col][day]
             };
-            sums[day] += end / start - 1.0;
+            sums[day] += l.dir_sign * (end / start - 1.0);
             count[day] += 1.0;
         }
     }
@@ -198,6 +204,7 @@ fn random_books(
                     exit_turnover: t.exit_turnover,
                     weighted: t.weighted,
                     borrow_cost_per_bar: t.borrow_cost_per_bar,
+                    dir_sign: t.dir_sign,
                 }
             })
             .collect();
@@ -417,7 +424,7 @@ pub fn evaluate_fill(
                 };
                 for day in first..=trade.exit_idx {
                     exposure[day] += trade.weight.abs();
-                    net_exposure[day] += trade.weight;
+                    net_exposure[day] += trade.weight * trade.dir_sign;
                     count[day] += 1.0;
                 }
                 ew[trade.entry_idx] += trade.entry_turnover;
@@ -690,6 +697,56 @@ pub fn cost_ladder(
     rows
 }
 
+/// Per-symbol segment tree over entry rows storing the max exit row placed
+/// so far. Answers "does any placed leg with entry < x have exit > e" — the
+/// exact `e < px && x > pe` overlap predicate — in O(log n) instead of a
+/// linear scan of every placed leg. Max-assign updates keep only the
+/// dominant (largest-exit) leg per entry row, which cannot change the answer.
+struct EntryMaxTree {
+    base: usize,
+    t: Vec<usize>,
+}
+
+impl EntryMaxTree {
+    fn new(n: usize) -> Self {
+        let base = n.next_power_of_two().max(1);
+        Self {
+            base,
+            t: vec![0; 2 * base],
+        }
+    }
+
+    fn add(&mut self, entry: usize, exit: usize) {
+        let mut p = self.base + entry.min(self.base - 1);
+        while p > 0 {
+            if exit <= self.t[p] {
+                break;
+            }
+            self.t[p] = exit;
+            p /= 2;
+        }
+    }
+
+    /// Max exit among placed entries in `[0, x)`.
+    fn max_before(&self, x: usize) -> usize {
+        let (mut l, mut r) = (self.base, self.base + x.min(self.base));
+        let mut res = 0;
+        while l < r {
+            if l & 1 == 1 {
+                res = res.max(self.t[l]);
+                l += 1;
+            }
+            if r & 1 == 1 {
+                r -= 1;
+                res = res.max(self.t[r]);
+            }
+            l /= 2;
+            r /= 2;
+        }
+        res
+    }
+}
+
 /// Exposure-matched random-timing null: same instruments and hold lengths, uniform random entry rows.
 pub fn random_timing(
     trades: &[Trade],
@@ -704,7 +761,9 @@ pub fn random_timing(
     let mut totals = vec![vec![0.0; masks.len()]; n_draws];
     for total in totals.iter_mut() {
         let mut legs = vec![];
-        let mut placed: Vec<Vec<(usize, usize)>> = vec![vec![]; book.close_ff.len()];
+        let mut placed: Vec<EntryMaxTree> = (0..book.close_ff.len())
+            .map(|_| EntryMaxTree::new(book.n_rows))
+            .collect();
         for t in trades {
             let (s, h) = (t.sym_idx, t.exit_idx - t.entry_idx);
             let Some(last) = last_by_col[s] else { continue };
@@ -716,11 +775,11 @@ pub fn random_timing(
                 let x = (e + h).min(last);
                 if !book.entry_mat[s][e].is_finite()
                     || !book.exit_mat[s][x].is_finite()
-                    || placed[s].iter().any(|&(pe, px)| e < px && x > pe)
+                    || placed[s].max_before(x) > e
                 {
                     continue;
                 }
-                placed[s].push((e, x));
+                placed[s].add(e, x);
                 legs.push(Leg {
                     col: s,
                     entry: e,
@@ -732,6 +791,7 @@ pub fn random_timing(
                     exit_turnover: t.exit_turnover,
                     weighted: t.weighted,
                     borrow_cost_per_bar: t.borrow_cost_per_bar,
+                    dir_sign: 1.0,
                 });
                 break;
             }
@@ -832,6 +892,7 @@ mod tests {
             exit_turnover: 1.0,
             weighted: false,
             borrow_cost_per_bar: 0.0,
+            dir_sign: 1.0,
         }
     }
 
@@ -849,6 +910,7 @@ mod tests {
             exit_turnover: 1.0,
             weighted: false,
             borrow_cost_per_bar: 0.0,
+            dir_sign: 1.0,
         }];
         let (r, c) = account_series(&legs, &close, 0.001, 4, 1);
         assert_eq!(c, vec![0.0, 1.0, 1.0, 1.0]);
@@ -877,6 +939,7 @@ mod tests {
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             },
             Leg {
                 col: 1,
@@ -889,6 +952,7 @@ mod tests {
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             },
         ];
         let costs = [0.0005, 0.0015];
@@ -915,6 +979,7 @@ mod tests {
             exit_turnover: 0.5,
             weighted: true,
             borrow_cost_per_bar: 0.0,
+            dir_sign: 1.0,
         }];
         let (returns, _) = account_series(&legs, &close, 0.001, 2, 1);
         assert!((returns[1] - (0.5 * 0.01 - 0.001)).abs() < 1e-12);
@@ -1007,6 +1072,7 @@ mod tests {
                 exit_turnover: 1.0,
                 weighted: true,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             },
             Leg {
                 col: 1,
@@ -1019,6 +1085,7 @@ mod tests {
                 exit_turnover: 1.0,
                 weighted: true,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             },
         ];
         let (returns, _) = account_series(&legs, &close, 0.0, 3, 1);

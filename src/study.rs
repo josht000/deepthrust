@@ -569,6 +569,31 @@ impl StrategyDefinition for G003StrategyDefinition {
     }
 }
 
+struct PalSweepDefinition;
+impl StrategyDefinition for PalSweepDefinition {
+    fn name(&self) -> &'static str {
+        crate::family_pal::PAL_NAME
+    }
+
+    fn title(&self) -> &'static str {
+        crate::family_pal::PAL_TITLE
+    }
+
+    fn compute_signals(&self, panel: &Panel, _cfg: &Config) -> Result<Signals, String> {
+        Ok(crate::family_pal::pal_signals(panel))
+    }
+
+    fn build_trades(
+        &self,
+        panel: &Panel,
+        cfg: &Config,
+        _sig: &Signals,
+        _fill: &str,
+    ) -> Result<Vec<Trade>, String> {
+        crate::family_pal::pal_trades(panel, cfg)
+    }
+}
+
 struct G033StrategyDefinition;
 impl StrategyDefinition for G033StrategyDefinition {
     fn name(&self) -> &'static str {
@@ -2001,7 +2026,9 @@ static S100_STRATEGY: ThreeWhiteSoldiersStrategyDefinition =
     ThreeWhiteSoldiersStrategyDefinition;
 static S099_STRATEGY: OutsideDayReversalStrategyDefinition = OutsideDayReversalStrategyDefinition;
 static MARKOV_STRATEGY: MarkovRegimeStrategyDefinition = MarkovRegimeStrategyDefinition;
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 92] = [
+static PAL_STRATEGY: PalSweepDefinition = PalSweepDefinition;
+
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 93] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -2094,6 +2121,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 92] = [
     &G129_STRATEGY,
     &G130_STRATEGY,
     &G202_STRATEGY,
+    &PAL_STRATEGY,
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {
@@ -2223,6 +2251,9 @@ impl<'a> Study<'a> {
                 &cfg.start_date,
             )?;
             return Ok((panel, None));
+        }
+        if cfg.strategy == crate::family_pal::PAL_NAME {
+            return crate::family_pal::load_panel(cfg);
         }
         let sources = cfg.source_list();
         let event_symbols = match cfg.strategy.as_str() {
@@ -4531,6 +4562,7 @@ impl<'a> Study<'a> {
                     exit_turnover: trade.exit_turnover,
                     weighted: trade.weighted,
                     borrow_cost_per_bar: trade.borrow_cost_per_bar,
+                    dir_sign: 1.0,
                 })
                 .collect();
             let (strategy_r, _) = partition::account_series_with_costs(

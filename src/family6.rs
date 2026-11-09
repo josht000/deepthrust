@@ -302,6 +302,7 @@ pub fn news_trades(panel: &Panel, sig: &Signals, cfg: &Config, fill: &str) -> Re
                 exit_turnover: w.abs(),
                 weighted: true,
                 borrow_cost_per_bar: if w < 0.0 { borrow_per_bar } else { 0.0 },
+                dir_sign: 1.0,
             });
         }
     }

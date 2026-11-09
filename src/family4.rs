@@ -380,6 +380,7 @@ pub fn s040_trades(
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
             available_after = exit_idx + 1;
         }
@@ -684,6 +685,7 @@ pub fn s050_trades(
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
             available_after = exit_idx + 1;
         }
@@ -1902,6 +1904,7 @@ pub fn weighted_rebalance_trades(
                 } else {
                     0.0
                 },
+                dir_sign: 1.0,
             });
         }
     }
@@ -2066,6 +2069,7 @@ fn turtle_resolve(
         exit_turnover: leg.weight.abs(),
         weighted: true,
         borrow_cost_per_bar: borrow_per_bar,
+        dir_sign: 1.0,
     });
 }
 
@@ -3789,6 +3793,7 @@ pub fn s038_trades(
                             exit_turnover: 1.0,
                             weighted: false,
                             borrow_cost_per_bar: 0.0,
+                            dir_sign: 1.0,
                         });
                         pos = None;
                     }
@@ -3880,6 +3885,7 @@ pub fn s038_trades(
                         exit_turnover: 1.0,
                         weighted: false,
                         borrow_cost_per_bar: 0.0,
+                        dir_sign: 1.0,
                     });
                     pos = None;
                 }
@@ -3912,6 +3918,7 @@ pub fn s038_trades(
                     exit_turnover: 1.0,
                     weighted: false,
                     borrow_cost_per_bar: 0.0,
+                    dir_sign: 1.0,
                 });
             }
         }

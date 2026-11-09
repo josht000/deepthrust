@@ -695,6 +695,34 @@ pub struct Config {
     pub markov_signal_mode: String,
     #[serde(default = "d_markov_breadth_threshold")]
     pub markov_breadth_threshold: f64,
+    #[serde(default = "d_pal_market")]
+    pub pal_market: String,
+    #[serde(default = "d_pal_chart")]
+    pub pal_chart: String,
+    #[serde(default = "d_pal_trigger")]
+    pub pal_trigger: String,
+    #[serde(default = "d_pal_dir")]
+    pub pal_dir: String,
+    #[serde(default = "d_pal_swing")]
+    pub pal_swing: usize,
+    #[serde(default = "d_pal_tol")]
+    pub pal_tol_atr: f64,
+    #[serde(default = "d_pal_touches")]
+    pub pal_touches: usize,
+    #[serde(default = "d_pal_entry")]
+    pub pal_entry: String,
+    #[serde(default = "d_pal_stop")]
+    pub pal_stop: String,
+    #[serde(default = "d_pal_target")]
+    pub pal_target: String,
+    #[serde(default)]
+    pub pal_trend_agree: bool,
+    #[serde(default)]
+    pub pal_ny_only: bool,
+    #[serde(default)]
+    pub pal_skip_news: bool,
+    #[serde(default = "d_pal_size")]
+    pub pal_size: f64,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1385,6 +1413,39 @@ fn d_markov_signal_mode() -> String {
 }
 fn d_markov_breadth_threshold() -> f64 {
     0.05
+}
+fn d_pal_market() -> String {
+    "nq".into()
+}
+fn d_pal_chart() -> String {
+    "5m".into()
+}
+fn d_pal_trigger() -> String {
+    "5m".into()
+}
+fn d_pal_dir() -> String {
+    "long".into()
+}
+fn d_pal_swing() -> usize {
+    2
+}
+fn d_pal_tol() -> f64 {
+    0.25
+}
+fn d_pal_touches() -> usize {
+    1
+}
+fn d_pal_entry() -> String {
+    "limit_at_level".into()
+}
+fn d_pal_stop() -> String {
+    "beyond_level".into()
+}
+fn d_pal_target() -> String {
+    "3R".into()
+}
+fn d_pal_size() -> f64 {
+    1.0
 }
 fn d_band_mode() -> String {
     "binary".into()

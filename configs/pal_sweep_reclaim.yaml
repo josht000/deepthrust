@@ -1,0 +1,76 @@
+# PAL sweep_reclaim — Price Action Lab sweep-and-reclaim port.
+# Trades come from the PAL 5-minute engine (src/pal) over Databento ES/NQ
+# 1-minute sessions; this file only selects the dial point. Baseline =
+# funnel candidate h:sweep_reclaim:1169 (NQ, 5m/5m, long-only,
+# limit_at_level entry, beyond-level stop, 3R target, 96-bar time exit,
+# no filters, size 1). Partition split 2023-01-01 mirrors PAL era1/era2.
+# fills: pal = the PAL engine's own fill semantics (single pass).
+pal_market: nq
+pal_chart: 5m
+pal_trigger: 5m
+pal_dir: long
+pal_swing: 2
+pal_tol_atr: 0.25
+pal_touches: 1
+pal_entry: limit_at_level
+pal_stop: beyond_level
+pal_target: 3R
+pal_trend_agree: false
+pal_ny_only: false
+pal_skip_news: false
+pal_size: 1.0
+
+# symbols names the PAL 1m processed parquet so the standard input
+# check verifies the real data file the engine reads (per pal_market).
+data_dir: C:\data\trading\deepthrust\data\futures\processed
+data_suffix: .parquet
+symbols: nq_1m
+start_date: "2022-01-01"
+min_history: 0
+cost_bps_per_side: 0.05
+fills: pal
+book_slots: 1
+partition_split_date: "2023-01-01"
+n_draws: 1000
+n_boot: 5000
+n_timing_draws: 500
+seed: 20260731
+
+variants:
+  es: {pal_market: es, symbols: es_1m}
+  both: {pal_dir: both}
+  short: {pal_dir: short}
+  trig1m: {pal_trigger: 1m}
+  chart15m: {pal_chart: 15m, pal_trigger: 15m}
+  chart15m_t5m: {pal_chart: 15m, pal_trigger: 5m}
+  chart15m_t1m: {pal_chart: 15m, pal_trigger: 1m}
+  chart1h: {pal_chart: 1h, pal_trigger: 1h}
+  chart1h_t15m: {pal_chart: 1h, pal_trigger: 15m}
+  chart1d: {pal_chart: 1d, pal_trigger: 1h}
+  chart1m: {pal_chart: 1m, pal_trigger: 1m}
+  swing3: {pal_swing: 3}
+  swing5: {pal_swing: 5}
+  tol10: {pal_tol_atr: 0.1}
+  tol50: {pal_tol_atr: 0.5}
+  touches2: {pal_touches: 2}
+  entry_closeback: {pal_entry: close_back}
+  entry_rejection: {pal_entry: rejection}
+  entry_engulfing: {pal_entry: engulfing}
+  entry_atclose: {pal_entry: at_close}
+  entry_limitback: {pal_entry: limit_back}
+  stop_swing: {pal_stop: beyond_swing}
+  target1R: {pal_target: 1R}
+  target2R: {pal_target: 2R}
+  target_swing: {pal_target: next_swing}
+  filt_trend: {pal_trend_agree: true}
+  filt_ny: {pal_ny_only: true}
+  filt_news: {pal_skip_news: true}
+  both_t1m: {pal_dir: both, pal_trigger: 1m}
+  short_chart15: {pal_dir: short, pal_chart: 15m, pal_trigger: 15m}
+  es_both: {pal_market: es, symbols: es_1m, pal_dir: both}
+  swing3_tol50: {pal_swing: 3, pal_tol_atr: 0.5}
+  rej_stop_swing: {pal_entry: rejection, pal_stop: beyond_swing}
+  target2R_filt_trend: {pal_target: 2R, pal_trend_agree: true}
+  chart1d_es: {pal_chart: 1d, pal_trigger: 1h, pal_market: es, symbols: es_1m}
+  touches2_swing3: {pal_touches: 2, pal_swing: 3}
+  filt_ny_news: {pal_ny_only: true, pal_skip_news: true}
