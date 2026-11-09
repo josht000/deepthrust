@@ -1,0 +1,16 @@
+[package]
+name = "deepthrust-dash"
+version = "0.1.0"
+edition = "2021"
+description = "Offline presenter dashboards for DeepThrust study results (provenance-checked)"
+license = "GPL-3.0"
+
+[dependencies]
+serde_json = "1"
+
+[[bin]]
+name = "dash"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = 3

@@ -2,47 +2,51 @@
 
 Build or extend DeepThrust presenter dashboards — the single offline
 HTML page sets with a full provenance trail, generated only from saved
-result tables, never raw or sealed data. Two deck types share one
-engine:
+result tables, never raw or sealed data. The dashboard is its OWN
+crate (`dash/`) so deepthrust builds never compile it.
 
 - **PAL deck** — the Price Action Lab findings (`results/pal/`),
-  PAL-specific page builders in `src/pal/dash.rs`.
+  page builders in `dash/src/pal.rs`.
 - **Study deck** — ANY standard `results/<study>/` directory
   (partition_dev/test.csv, trade_summary, baselines, daily_returns,
   variants_comparison, cost_ladder, symbols_summary, per_etf). Page
-  builders live in `src/dash.rs::study_pages`.
+  builders in `dash/src/lib.rs::study_pages`.
+
+## Crate layout
+
+```
+dash/
+  Cargo.toml        deepthrust-dash, deps: serde_json only
+  src/lib.rs        engine: Book/Prov, verify_provenance, Page, SVG
+                    helpers, render_html, emit, study_pages,
+                    run_study_dash  (~1200 lines)
+  src/pal.rs        PAL page builders build_pages + run_dash
+  src/main.rs       `dash` CLI: bare | --study <name> | --all
+```
+
+Standalone: `cd dash && cargo build --release` produces
+`dash/target/release/dash.exe` with its own Cargo.lock and target/
+(gitignored). Deepthrust does NOT depend on it.
 
 ## Commands
 
 ```bat
-target\release\pal.exe dash                      :: PAL deck -> results/pal/dash/
-target\release\pal.exe dash --study g070_supertrend   :: one study deck
-target\release\pal.exe dash --all                :: every study w/ partition_dev.csv
+target\release\pal.exe dash                      :: forwards to dash.exe (PAL deck)
+target\release\pal.exe dash --study g070_supertrend
+target\release\pal.exe dash --all
+dash\target\release\dash.exe [--study <name>|--all]   :: direct, no pal needed
 C:\data\envs\trading_framework\Scripts\python.exe tools\check_dash.py [--html <dir>/dashboard.html]
 ```
 
-Run from the repo root (`C:\data\trading\deepthrust`). Each build writes
-`<out>/dashboard.html` + `provenance.csv`, `provenance_check.json`,
-`pages.json` and REFUSES the HTML if the independent provenance re-read
-finds any mismatch. `check_dash.py` verifies layout at 1920x1080 and
-1280x720 in headless Chrome/Edge (needs `CHROME_PATH` if no browser is
-found) and writes `layout_check.json` + `shots/*.png`; it resolves
-pages.json/shots next to whatever `--html` you pass, so the same command
-works for every deck.
-
-## Architecture
-
-- `src/dash.rs` (~1200 lines) — the shared engine: `Book`/`Prov`
-  provenance, `verify_provenance` (deliberately a SECOND, independent
-  reader — do not "refactor" it onto Book's code), `Page`, SVG chart
-  helpers (`svg_bars`, `svg_lines`, `svg_ci`, all `pub(crate)`),
-  `render_html` presenter, `emit()`, plus the generic
-  `study_pages()`/`run_study_dash()`.
-- `src/pal/dash.rs` (~330 lines) — ONLY the PAL page builders
-  (`build_pages`) + `run_dash` delegating to `dash::emit`.
-- `src/bin/pal.rs` — `pal dash` arg parsing: bare = PAL deck,
-  `--study <name>` = one study, `--all` = every `results/<dir>/` that
-  has `partition_dev.csv` (failures are reported per-study, not fatal).
+Run from the repo root. `pal dash` shells out to `dash.exe` (located
+via CARGO_MANIFEST_DIR at pal's compile time); if the exe is missing it
+prints the build command. Each build writes `<out>/dashboard.html` +
+`provenance.csv`, `provenance_check.json`, `pages.json` and REFUSES
+the HTML if the independent provenance re-read finds any mismatch.
+`check_dash.py` verifies layout at 1920x1080 and 1280x720 in headless
+Chrome/Edge (needs `CHROME_PATH` if no browser is found) and writes
+`layout_check.json` + `shots/*.png`; it resolves pages.json/shots next
+to whatever `--html` you pass, so the same command works for every deck.
 
 ## Provenance rules (spec prompt 5 — applies to BOTH decks)
 
@@ -84,7 +88,7 @@ closing slide. Each page is gated on its source CSV existing.
   badge (`supported`/`survived`->SURVIVED, `split`->SPLIT, else
   DIDN'T SURVIVE). Slides: big white title, grey tagline, amber
   numbered badges, cards.
-- Facecam corner bottom-right 520x368 (`dash::FACECAM`) must stay
+- Facecam corner bottom-right 520x368 (`FACECAM`) must stay
   empty — layout check fails on intrusions.
 - Charts animate on page open; `R` replays. Keys: arrows/space/
   pageup/down, Home/End, `#N` deep link, `M` section list, `F`
@@ -94,11 +98,12 @@ closing slide. Each page is gated on its source CSV existing.
 
 ## Extending
 
-1. Study deck: add a gated block inside `study_pages` reading the new
-   CSV via `b.read_csv` + `col_idx`, route every number through `pv()`.
-2. PAL deck: add the page inside `build_pages` in `src/pal/dash.rs`.
-3. Rebuild (`pal dash [--study X]`) — provenance must pass — then
-   `check_dash.py --html <that deck>/dashboard.html`; fix layout
+1. Study deck: add a gated block inside `study_pages` in
+   `dash/src/lib.rs` reading the new CSV via `b.read_csv` + `col_idx`,
+   route every number through `pv()`.
+2. PAL deck: add the page inside `build_pages` in `dash/src/pal.rs`.
+3. Rebuild: `cd dash && cargo build --release` — provenance must pass —
+   then `check_dash.py --html <that deck>/dashboard.html`; fix layout
    violations (off-stage, facecam, subtitle overflow, page scroll)
    before calling it done.
 4. New result tables: write CSV (first columns = row key) or JSONL
@@ -118,3 +123,5 @@ closing slide. Each page is gated on its source CSV existing.
   hand-edit. `results/` is gitignored; decks are local artifacts.
 - Screenshots land in `<deck>/shots/`; `layout_check.json` `ok:true` +
   empty `bad` lists at both sizes = DONE WHEN met.
+- After moving machines: `cd dash && cargo build --release` once, then
+  `pal dash` works; deepthrust builds alone never produce dash.exe.

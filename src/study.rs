@@ -2120,13 +2120,9 @@ static S100_STRATEGY: ThreeWhiteSoldiersStrategyDefinition =
     ThreeWhiteSoldiersStrategyDefinition;
 static S099_STRATEGY: OutsideDayReversalStrategyDefinition = OutsideDayReversalStrategyDefinition;
 static MARKOV_STRATEGY: MarkovRegimeStrategyDefinition = MarkovRegimeStrategyDefinition;
-<<<<<<< HEAD
 static PAL_STRATEGY: PalSweepDefinition = PalSweepDefinition;
 
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 93] = [
-=======
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 105] = [
->>>>>>> g-catalog-tier3
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 106] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -2219,9 +2215,7 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 105] = [
     &G129_STRATEGY,
     &G130_STRATEGY,
     &G202_STRATEGY,
-<<<<<<< HEAD
     &PAL_STRATEGY,
-=======
     &G077_STRATEGY,
     &G078_STRATEGY,
     &G079_STRATEGY,
@@ -2235,7 +2229,6 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 105] = [
     &G010_STRATEGY,
     &G114_STRATEGY,
     &G139_STRATEGY,
->>>>>>> g-catalog-tier3
 ];
 
 pub fn strategy_definition(name: &str) -> Option<&'static dyn StrategyDefinition> {

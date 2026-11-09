@@ -14,6 +14,8 @@
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 
+pub mod pal;
+
 const W: f64 = 1920.0;
 const H: f64 = 1080.0;
 pub const FACECAM: (f64, f64, f64, f64) = (W - 520.0, H - 368.0, 520.0, 368.0);

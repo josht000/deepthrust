@@ -1014,6 +1014,7 @@ fn weighted_trades_on(
                 } else {
                     0.0
                 },
+                dir_sign: direction,
             });
         }
     }
@@ -1267,6 +1268,7 @@ fn push_pair_legs(
             exit_turnover: w.abs(),
             weighted: true,
             borrow_cost_per_bar: if w < 0.0 { borrow_per_bar } else { 0.0 },
+            dir_sign: w.signum(),
         });
     }
 }
@@ -1440,6 +1442,7 @@ pub fn g114_trades(
                 exit_turnover: 1.0,
                 weighted: false,
                 borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
             });
             available_after = exit_idx + 1;
         }

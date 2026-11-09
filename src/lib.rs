@@ -1,7 +1,6 @@
 //! deepthrust: Rust port of the trading_framework daily-bar study runner.
 
 pub mod config;
-pub mod dash;
 pub mod dashboard;
 pub mod data;
 pub mod engine;
@@ -18,11 +17,8 @@ pub mod family10;
 pub mod family11;
 pub mod markov;
 pub mod family12;
-<<<<<<< HEAD
 pub mod family_pal;
-=======
 pub mod family13;
->>>>>>> g-catalog-tier3
 pub mod partition;
 pub mod report;
 #[path = "strategies/s041_mom_12_1/cash_ledger.rs"]

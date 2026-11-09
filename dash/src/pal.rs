@@ -1,14 +1,14 @@
 //! PAL presenter pages for the Price Action Lab (ES/NQ futures, spec
 //! prompt 5). The shared dashboard machinery - Book/Prov provenance,
 //! verify, page model, SVG charts, presenter HTML - lives in
-//! crate::dash; this module only knows which result tables exist
+//! crate:: this module only knows which result tables exist
 //! under results/pal/ and how to chart them. Generic study decks for
 //! any results/<study>/ directory are built by
-//! crate::dash::study_pages / run_study_dash.
+//! crate::study_pages / run_study_dash.
 
 use std::path::{Path, PathBuf};
 
-use crate::dash::{self, Book, Page, Prov, svg_bars, svg_ci, svg_lines, title_case};
+use crate::{emit, Book, Page, Prov, svg_bars, svg_ci, svg_lines, title_case};
 
 /// Build all pages from result tables. Missing tables skip their pages.
 pub fn build_pages(root: &Path) -> (Vec<Page>, Vec<Prov>) {
@@ -311,20 +311,20 @@ pub fn build_pages(root: &Path) -> (Vec<Page>, Vec<Prov>) {
 }
 
 /// `pal dash` driver: PAL deck only. For a standard study directory use
-/// `pal dash --study <name>` (`crate::dash::run_study_dash`).
+/// `pal dash --study <name>` (`crate::run_study_dash`).
 pub fn run_dash(root: &Path) -> Result<PathBuf, String> {
     let results_pal = root.join("results/pal");
     if !results_pal.exists() {
         return Err("no results/pal - run behavior/funnel/final-test first".into());
     }
     let (pages, provs) = build_pages(root);
-    dash::emit(&results_pal, &results_pal.join("dash"), pages, provs)
+    emit(&results_pal, &results_pal.join("dash"), pages, provs)
 }
 
 #[cfg(test)]
 mod tests {
     #[test]
     fn facecam_rect_is_corner() {
-        assert_eq!(crate::dash::FACECAM, (1400.0, 712.0, 520.0, 368.0));
+        assert_eq!(crate::FACECAM, (1400.0, 712.0, 520.0, 368.0));
     }
 }

@@ -92,59 +92,38 @@ fn main() -> ExitCode {
     }
 }
 
+/// `pal dash` forwards to the standalone dashboard crate
+/// (dash/target/release/dash.exe). Build it once with
+/// `cd dash && cargo build --release`; deepthrust itself never
+/// compiles dashboard code.
 fn run_dash_cmd(study: Option<String>, all: bool) -> ExitCode {
-    let root = std::path::Path::new(".");
-    if let Some(name) = study {
-        return match deepthrust::dash::run_study_dash(root, &name) {
-            Ok(p) => {
-                println!("dash: wrote {}", p.display());
-                ExitCode::SUCCESS
-            }
-            Err(e) => {
-                eprintln!("dash: {e}");
-                ExitCode::FAILURE
-            }
-        };
+    let exe = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("dash")
+        .join("target")
+        .join("release")
+        .join(if cfg!(windows) { "dash.exe" } else { "dash" });
+    if !exe.exists() {
+        eprintln!("dash: {} not found", exe.display());
+        eprintln!("build the dashboard crate first: cd dash && cargo build --release");
+        return ExitCode::FAILURE;
+    }
+    let mut cmd = std::process::Command::new(&exe);
+    cmd.current_dir(env!("CARGO_MANIFEST_DIR"));
+    if let Some(s) = study {
+        cmd.arg("--study").arg(s);
     }
     if all {
-        let results = root.join("results");
-        let mut names: Vec<String> = std::fs::read_dir(&results)
-            .map(|rd| {
-                rd.filter_map(|e| e.ok())
-                    .filter(|e| e.path().join("partition_dev.csv").exists())
-                    .filter_map(|e| e.file_name().to_str().map(|s| s.to_string()))
-                    .collect()
-            })
-            .unwrap_or_default();
-        names.sort();
-        if names.is_empty() {
-            eprintln!("dash --all: no study directories with partition_dev.csv");
-            return ExitCode::FAILURE;
-        }
-        let mut failed = 0;
-        for name in &names {
-            match deepthrust::dash::run_study_dash(root, name) {
-                Ok(p) => println!("dash: {name} -> {}", p.display()),
-                Err(e) => {
-                    eprintln!("dash: {name}: {e}");
-                    failed += 1;
-                }
-            }
-        }
-        return if failed == 0 {
-            ExitCode::SUCCESS
-        } else {
-            eprintln!("dash --all: {failed} study(s) failed");
-            ExitCode::FAILURE
-        };
+        cmd.arg("--all");
     }
-    match deepthrust::pal::dash::run_dash(root) {
-        Ok(p) => {
-            println!("dash: wrote {}", p.display());
-            ExitCode::SUCCESS
-        }
+    match cmd.status() {
+        Ok(st) if st.success() => ExitCode::SUCCESS,
+        Ok(st) => st
+            .code()
+            .and_then(|c| u8::try_from(c).ok())
+            .map(ExitCode::from)
+            .unwrap_or(ExitCode::FAILURE),
         Err(e) => {
-            eprintln!("dash: {e}");
+            eprintln!("dash: failed to run {}: {e}", exe.display());
             ExitCode::FAILURE
         }
     }
