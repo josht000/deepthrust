@@ -1,0 +1,60 @@
+# G078 CTA 2.0: sign(EWM32-96)/EWM-std(pct_chg com32) x 1e5 cash / 1e8 AUM,
+# 300-obs warmup. Futures legs proxied by TR ETFs (DELTA).
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,EFA,EEM,TLT,IEF,UUP,GLD,SLV,CPER,USO,GSG,DBC
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2005-01-01"
+min_history: 300
+ewma_fast: "32"
+ewma_slow: "96"
+vol_window: 32
+cash_scale: 0.001
+rebalance: daily
+periods_per_year: 252
+borrow_bps_annual: 25.0
+cost_bps_per_side: 10.0
+book_slots: 12
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+fills: next_open,close
+
+variants:
+  f8s24: {ewma_fast: "8", ewma_slow: "24"}
+  f16s48: {ewma_fast: "16", ewma_slow: "48"}
+  f20s60: {ewma_fast: "20", ewma_slow: "60"}
+  f24s72: {ewma_fast: "24", ewma_slow: "72"}
+  f32s96: {ewma_fast: "32", ewma_slow: "96"}
+  f32s128: {ewma_fast: "32", ewma_slow: "128"}
+  f48s144: {ewma_fast: "48", ewma_slow: "144"}
+  f64s192: {ewma_fast: "64", ewma_slow: "192"}
+  vol16: {vol_window: 16}
+  vol32: {vol_window: 32}
+  vol48: {vol_window: 48}
+  vol64: {vol_window: 64}
+  vol96: {vol_window: 96}
+  vol128: {vol_window: 128}
+  cs500: {cash_scale: 0.0005}
+  cs2000: {cash_scale: 0.002}
+  cs3000: {cash_scale: 0.003}
+  cs5000: {cash_scale: 0.005}
+  weekly: {rebalance: weekly}
+  monthly: {rebalance: monthly}
+  warm200: {min_history: 200}
+  warm400: {min_history: 400}
+  f16s48_vol64: {ewma_fast: "16", ewma_slow: "48", vol_window: 64}
+  f64s192_vol64: {ewma_fast: "64", ewma_slow: "192", vol_window: 64}
+  f20s60_cs002: {ewma_fast: "20", ewma_slow: "60", cash_scale: 0.002}
+  f48s144_cs002: {ewma_fast: "48", ewma_slow: "144", cash_scale: 0.002}
+  f32s96_weekly: {rebalance: weekly}
+  vol64_cs002: {vol_window: 64, cash_scale: 0.002}
+  vol16_cs002: {vol_window: 16, cash_scale: 0.002}
+  vol96_cs002: {vol_window: 96, cash_scale: 0.002}
+  f16s48_cs002: {ewma_fast: "16", ewma_slow: "48", cash_scale: 0.002}
+  f64s192_cs002: {ewma_fast: "64", ewma_slow: "192", cash_scale: 0.002}
+  f24s72_vol48: {ewma_fast: "24", ewma_slow: "72", vol_window: 48}
+  f40s120_vol48: {ewma_fast: "40", ewma_slow: "120", vol_window: 48}

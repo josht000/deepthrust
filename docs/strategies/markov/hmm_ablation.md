@@ -235,6 +235,38 @@ Important: Generate labels using the HMM on training data only, then freeze the 
 
 Important: HMM state IDs are arbitrary. Keep each experiment's HMM and its state-label mapping fixed across its training, validation, and test periods. XGBoost does not require feature standardization.
 
+### Results (run: `tools/hmm_xgb.py`, QQQ vs SPY, `etf_tr` parquet)
+
+Labeler: canonical 6-feature diagonal Gaussian HMM (numpy port of `src/hmm.rs`),
+fit once on the train slice (2016-03-15..2022-06-07, n=1570) and frozen;
+val (2022-06-08..2023-12-29, n=393) and test (2024-01-02..2026-10-23, n=705)
+labels produced by the frozen causal filter. Class IDs ordered by fitted
+mean return. K=5 fit: loglik -8010, 66 iters, P_ii 0.92-0.95.
+K=7 fit: loglik -7259, 42 iters, P_ii 0.87-0.94.
+
+| Exp    | K | best_iter | XGB macroF1 (val/test) | XGB balAcc (val/test) | persist balAcc (val/test) | test logloss |
+| ------ | - | --------- | -------------------- | ------------------- | ------------------------ | ------------ |
+| XGB-A  | 5 | 187       | 0.913 / 0.864        | 0.928 / 0.863       | 0.956 / 0.916            | 0.240        |
+| XGB-B  | 5 | 97        | 0.896 / 0.872        | 0.914 / 0.868       | 0.956 / 0.916            | 0.242        |
+| XGB-C  | 5 | 96        | 0.892 / 0.860        | 0.911 / 0.853       | 0.956 / 0.916            | 0.245        |
+| XGB-D  | 5 | 115       | 0.913 / 0.876        | 0.923 / 0.869       | 0.956 / 0.916            | 0.231        |
+| XGB-E  | 7 | 262       | 0.766 / 0.886        | 0.929 / 0.888       | 0.947 / 0.916            | 0.284        |
+
+**Finding: the persistence baseline beats every XGBoost variant on both
+splits.** With P_ii ~0.92-0.95 the filtered state is overwhelmingly
+self-propagating - predicting "tomorrow = today" is right ~92% of the time,
+and no feature set gives XGBoost extra information about *when* a transition
+will occur. Every transition bet it makes costs more than it earns
+(macroF1 0.86-0.89 vs 0.92). XGB-E (7 classes) is the best XGB variant on
+test but collapses on rare classes during val (two classes at 0 recall).
+Practical conclusion: regime *identification* is feature-driven, but regime
+*persistence* is not - the transition matrix is the predictor. A supervised
+classifier would need labels with more transition events (higher-frequency
+data or a noisier state definition) to have anything to learn.
+
+Artifacts: `results/hmm_regime/xgb_summary.csv`, `xgb_confusion_xgb-*.csv`,
+`xgb_labels_k{5,7}.csv`, `xgb_report.md`.
+
 ## Appendix
 
 ### reference for regime metrics calculation
@@ -267,3 +299,19 @@ def calculate_regime_metrics(states, transition_matrix):
         "stationary_weighted_persistence": weighted_persistence,
     }
 ```
+
+### Gaussian config sweep: refit windows 14/28/35
+
+All 24 experiments re-run at hmm_refit_every = 14, 28, 35 (72 variants, ~55 min).
+
+| Refit | Best dev skill | Runner-up | Best OOS LL/bar | Notes |
+|---|---|---|---|---|
+| 14 | r14_X +0.112 (31 tr) | r14_N +0.099 | r14_B -5.95 | most refits, most trades |
+| 28 | r28_X +0.134 (26 tr) | r28_N +0.077 | r28_B -6.06 | |
+| 35 | r35_K +0.115 (18 tr) | r35_M +0.113 | r35_B -6.27 | stalest fits, fewest trades |
+
+Conclusions: (1) B (-skew, 5 cols) wins held-out likelihood at every window; OOS LL mildly
+degrades as refits get sparser (-5.95 / -6.06 / -6.27). (2) Skill leaders are always
+trend/vol features — X (ema+sma200) and N (wilder_atr) repeat across windows; K (sma200)
+tops refit-35. (3) Test skills stay near zero on 6-14 trades; nothing approaches 100 dev
+trades.

@@ -1,0 +1,67 @@
+# G081 CTA 5.0: CTA 3.0 mu + EWM(com200) corr of vol_adj returns shrunk 0.5
+# toward I; risk_pos = C^-1 mu / sqrt(mu'C^-1 mu); w = 1e6*risk_pos/vo.
+# ETF proxies (DELTA).
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,EFA,EEM,TLT,IEF,UUP,GLD,SLV,CPER,USO,GSG,DBC
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2005-01-01"
+min_history: 300
+ewma_fast: "32"
+ewma_slow: "96"
+vol_window: 32
+clip: 4.2
+corr_window: 200
+shrinkage: 0.5
+cash_scale: 0.01
+rebalance: daily
+periods_per_year: 252
+borrow_bps_annual: 25.0
+cost_bps_per_side: 10.0
+book_slots: 12
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+fills: next_open,close
+
+variants:
+  corr100: {corr_window: 100}
+  corr150: {corr_window: 150}
+  corr200: {corr_window: 200}
+  corr250: {corr_window: 250}
+  corr300: {corr_window: 300}
+  corr400: {corr_window: 400}
+  sh0: {shrinkage: 0.0}
+  sh25: {shrinkage: 0.25}
+  sh50: {shrinkage: 0.5}
+  sh75: {shrinkage: 0.75}
+  sh100: {shrinkage: 1.0}
+  clip30: {clip: 3.0}
+  clip42: {clip: 4.2}
+  clip50: {clip: 5.0}
+  cs50: {cash_scale: 0.005}
+  cs100: {cash_scale: 0.01}
+  cs200: {cash_scale: 0.02}
+  f16s48: {ewma_fast: "16", ewma_slow: "48"}
+  f20s60: {ewma_fast: "20", ewma_slow: "60"}
+  f32s96: {ewma_fast: "32", ewma_slow: "96"}
+  f32s128: {ewma_fast: "32", ewma_slow: "128"}
+  f48s144: {ewma_fast: "48", ewma_slow: "144"}
+  f64s192: {ewma_fast: "64", ewma_slow: "192"}
+  weekly: {rebalance: weekly}
+  corr100_sh25: {corr_window: 100, shrinkage: 0.25}
+  corr300_sh75: {corr_window: 300, shrinkage: 0.75}
+  corr150_sh50: {corr_window: 150, shrinkage: 0.5}
+  corr200_sh0: {corr_window: 200, shrinkage: 0.0}
+  corr200_sh100: {corr_window: 200, shrinkage: 1.0}
+  corr100_cs02: {corr_window: 100, cash_scale: 0.02}
+  corr200_f16s48: {corr_window: 200, ewma_fast: "16", ewma_slow: "48"}
+  corr200_f64s192: {corr_window: 200, ewma_fast: "64", ewma_slow: "192"}
+  corr150_clip3: {corr_window: 150, clip: 3.0}
+  corr250_sh25: {corr_window: 250, shrinkage: 0.25}
+  corr100_weekly: {corr_window: 100, rebalance: weekly}
+  warm200: {min_history: 200}
+  warm400: {min_history: 400}

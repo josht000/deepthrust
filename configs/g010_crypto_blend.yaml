@@ -1,0 +1,55 @@
+# G010 crypto blend: sign(mean(-zscore(px,20), rollsum(ret,20))) long/flat
+# on BTC/ETH spot via yfinance (CoinGecko in source).
+data_dir: C:\data\trading\trading_framework\data\cache\crypto
+data_suffix: .parquet
+symbols: BTCUSD,ETHUSD
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2015-09-01"
+min_history: 30
+z_window: 20
+strategy_mode: ""
+rebalance: daily
+periods_per_year: 365
+borrow_bps_annual: 50.0
+cost_bps_per_side: 15.0
+book_slots: 4
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+fills: next_open,close
+
+variants:
+  w5: {z_window: 5}
+  w10: {z_window: 10}
+  w15: {z_window: 15}
+  w20: {z_window: 20}
+  w30: {z_window: 30}
+  w40: {z_window: 40}
+  w60: {z_window: 60}
+  w90: {z_window: 90}
+  w10_ls: {z_window: 10, strategy_mode: ls}
+  w15_ls: {z_window: 15, strategy_mode: ls}
+  w20_ls: {z_window: 20, strategy_mode: ls}
+  w30_ls: {z_window: 30, strategy_mode: ls}
+  w40_ls: {z_window: 40, strategy_mode: ls}
+  w60_ls: {z_window: 60, strategy_mode: ls}
+  w90_ls: {z_window: 90, strategy_mode: ls}
+  ls: {strategy_mode: ls}
+  weekly: {rebalance: weekly}
+  w10_weekly: {z_window: 10, rebalance: weekly}
+  w20_weekly: {z_window: 20, rebalance: weekly}
+  w30_weekly: {z_window: 30, rebalance: weekly}
+  w60_weekly: {z_window: 60, rebalance: weekly}
+  w10_ls_weekly: {z_window: 10, strategy_mode: ls, rebalance: weekly}
+  w20_ls_weekly: {z_window: 20, strategy_mode: ls, rebalance: weekly}
+  w30_ls_weekly: {z_window: 30, strategy_mode: ls, rebalance: weekly}
+  w60_ls_weekly: {z_window: 60, strategy_mode: ls, rebalance: weekly}
+  w5_weekly: {z_window: 5, rebalance: weekly}
+  w15_weekly: {z_window: 15, rebalance: weekly}
+  w40_weekly: {z_window: 40, rebalance: weekly}
+  w90_weekly: {z_window: 90, rebalance: weekly}
+  w120: {z_window: 120}
+  w120_ls: {z_window: 120, strategy_mode: ls}

@@ -1,0 +1,73 @@
+# G063 Treasury z/t-score RV entry: futures basket proxied by ln(TLT)-w*ln(IEF)
+# spread (DELTA); tick = mean|ds| over z_window; tranche exits on tick bands;
+# roll date proxied by max_hold.
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: TLT,IEF
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2005-01-01"
+pairs: "TLT,IEF"
+min_history: 100
+z_window: 60
+z_entry: 2.0
+min_t_stat: 4.0
+take_profit: 8.0
+stop_loss: 4.0
+spread_weight: 1.0
+max_units: 4
+max_hold: 63
+periods_per_year: 252
+borrow_bps_annual: 25.0
+cost_bps_per_side: 5.0
+book_slots: 8
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+fills: next_open,close
+
+variants:
+  z10: {z_entry: 1.0}
+  z15: {z_entry: 1.5}
+  z20: {z_entry: 2.0}
+  z25: {z_entry: 2.5}
+  z30: {z_entry: 3.0}
+  t2: {min_t_stat: 2.0}
+  t3: {min_t_stat: 3.0}
+  t4: {min_t_stat: 4.0}
+  t6: {min_t_stat: 6.0}
+  t8: {min_t_stat: 8.0}
+  up4: {take_profit: 4.0}
+  up6: {take_profit: 6.0}
+  up8: {take_profit: 8.0}
+  up12: {take_profit: 12.0}
+  dn2: {stop_loss: 2.0}
+  dn4: {stop_loss: 4.0}
+  dn6: {stop_loss: 6.0}
+  dn8: {stop_loss: 8.0}
+  zw40: {z_window: 40}
+  zw60: {z_window: 60}
+  zw120: {z_window: 120}
+  zw180: {z_window: 180}
+  w05: {spread_weight: 0.5}
+  w10: {spread_weight: 1.0}
+  w15: {spread_weight: 1.5}
+  w20: {spread_weight: 2.0}
+  w25: {spread_weight: 2.5}
+  hold21: {max_hold: 21}
+  hold42: {max_hold: 42}
+  hold63: {max_hold: 63}
+  hold126: {max_hold: 126}
+  units1: {max_units: 1}
+  units8: {max_units: 8}
+  z15_t3: {z_entry: 1.5, min_t_stat: 3.0}
+  z2_t3: {z_entry: 2.0, min_t_stat: 3.0}
+  z25_t6: {z_entry: 2.5, min_t_stat: 6.0}
+  z15_up6: {z_entry: 1.5, take_profit: 6.0}
+  z2_dn6: {z_entry: 2.0, stop_loss: 6.0}
+  z15_hold42: {z_entry: 1.5, max_hold: 42}
+  zw40_z15: {z_window: 40, z_entry: 1.5}
+  w15_z15: {spread_weight: 1.5, z_entry: 1.5}
+  w2_z15: {spread_weight: 2.0, z_entry: 1.5}

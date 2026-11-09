@@ -1,0 +1,64 @@
+# G085 local-extreme breakout x EWM(com60) vol scaling, target 40% cap 0.95,
+# month-end. Private vivace signal -> DELTA: Donchian high/low sign, lookback 63.
+data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+data_suffix: .parquet
+symbols: SPY,EFA,EEM,TLT,IEF,UUP,GLD,SLV,CPER,USO,GSG,DBC
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+start_date: "2005-01-01"
+min_history: 100
+lookback: 63
+vol_window: 60
+target_vol: 0.40
+pos_cap: 0.95
+rebalance: monthly
+periods_per_year: 252
+borrow_bps_annual: 25.0
+cost_bps_per_side: 10.0
+book_slots: 12
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261101
+fills: next_open,close
+
+variants:
+  lb20: {lookback: 20}
+  lb40: {lookback: 40}
+  lb60: {lookback: 60}
+  lb63: {lookback: 63}
+  lb80: {lookback: 80}
+  lb100: {lookback: 100}
+  lb126: {lookback: 126}
+  lb189: {lookback: 189}
+  lb252: {lookback: 252}
+  lb315: {lookback: 315}
+  tv15: {target_vol: 0.15}
+  tv25: {target_vol: 0.25}
+  tv40: {target_vol: 0.4}
+  tv60: {target_vol: 0.6}
+  tv80: {target_vol: 0.8}
+  cap50: {pos_cap: 0.5}
+  cap75: {pos_cap: 0.75}
+  cap95: {pos_cap: 0.95}
+  cap150: {pos_cap: 1.5}
+  cap200: {pos_cap: 2.0}
+  vol20: {vol_window: 20}
+  vol40: {vol_window: 40}
+  vol60: {vol_window: 60}
+  vol120: {vol_window: 120}
+  weekly: {rebalance: weekly}
+  dom1: {rebalance: dom1}
+  dom15: {rebalance: dom15}
+  lb40_tv25: {lookback: 40, target_vol: 0.25}
+  lb126_tv25: {lookback: 126, target_vol: 0.25}
+  lb252_tv25: {lookback: 252, target_vol: 0.25}
+  lb126_tv60: {lookback: 126, target_vol: 0.6}
+  lb63_weekly: {lookback: 63, rebalance: weekly}
+  lb126_weekly: {lookback: 126, rebalance: weekly}
+  lb252_weekly: {lookback: 252, rebalance: weekly}
+  lb40_cap50: {lookback: 40, pos_cap: 0.5}
+  lb126_cap50: {lookback: 126, pos_cap: 0.5}
+  lb63_vol20: {lookback: 63, vol_window: 20}
+  lb126_vol120: {lookback: 126, vol_window: 120}

@@ -99,3 +99,15 @@ That distinction will matter considerably when integrating regime probabilities 
   coincide — the row `P[c_t, :]` is exactly the predicted distribution.
 - Not yet ported: Gaussian HMM, MS-AR, MS-GARCH, TVTP-HMM, and `build_market_features`. When ported,
   each should emit the filtered/predicted probability rows the overlay consumes.
+
+
+# Takeaway
+
+The Gaussian HMM works — it finds sticky, interpretable regimes (P_ii ~0.96, durations ~30 days) and the filtered spread is a coherent signal. But as a standalone single-ETF timing strategy it's underpowered: regimes flip too rarely to generate the trade count needed to prove skill, and dev skills of ~+0.1 vs an exposure-weighted benchmark aren't compelling at this sample size.
+
+Two plausible ways to actually move it:
+
+1. Use it as designed — an overlay. markov_mode: gate,exit on a multi-symbol strategy where the regime only needs to be right often enough to help, not to generate trades itself. This matches how the reference framework intends regime probabilities to be consumed.
+2. Attack the fit weakness, not the features. The monotone OOS-LL penalty per added column suggests the diagonal-Gaussian emissions are too rigid for these correlated features — which is exactly what your doc's new sections target: full covariance (captures feature correlations directly), Student-t (fat tails — likely part of why the fit is bad on vol/skew features), and PCA (decorrelate before fitting, which may let you keep the trend features without paying the fit penalty). Of the three, Student-t is the most promising — financial returns are fat-tailed, and a Gaussian is structurally misspecified there.
+
+If forced to pick one next experiment: implement the Student-t emission (it reuses the entire EM/forward-backward skeleton; the M-step just becomes a weighted mean/dispersion + df update) and re-run A–G. If held-out likelihood jumps materially, that's the signal the features were fine and the distribution was wrong.
