@@ -121,6 +121,19 @@ N consecutive labels before a state change; `markov_decay` (<1) recency-weights 
 (default) or `bear_rel` (stationary-relative bear excess). Overlay runs write
 `<variant>__markov_summary.csv` (regime mix, persistence, stationary mix, risk-off share, flips).
 `tradable`/`pool` are never modified.
+
+`markov_model: hmm` swaps the observable chain for a Gaussian-emission HMM (`src/hmm.rs`, port of
+`docs/strategies/markov/markov_regime_models.py`): six OHLCV features (log return, realized vol,
+normalized ATR, log volume change, rolling skew, MA spread) standardized on each train window;
+Baum-Welch EM (`hmm_states`, `hmm_restarts`, `hmm_max_iter`/`hmm_tol`/`hmm_min_iter`,
+`hmm_cov_floor`, `hmm_trans_prior`) refits every `hmm_refit_every` bars on an expanding or
+`hmm_train_window` rolling window; between refits the frozen model filters causally. Hidden states
+are ordered by weighted mean return into Bear/Sideways/Bull; `hmm_probs` picks the filtered
+(default) or predicted distribution for the same spread/bear_rel signal, so `markov_source`,
+`markov_mode`, `markov_horizon`, and `markov_position` all carry over (`breadth` stays chain-only;
+the chain labeling/counting levers are ignored with a warning). Overlay runs additionally write
+`<variant>__hmm_fits.csv` (per-refit loglik, EM iterations, convergence, state occupancy).
+Standalone study: `hmm_regime` (`configs/hmm_regime.yaml`).
 S041 and S042 use explicitly weighted rebalance legs, so an outgoing overnight segment and an
 incoming intraday segment are not divided by their combined position count on rebalance days.
 Their existing cost model charges full entry and exit costs on each rebalance leg, including

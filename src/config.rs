@@ -749,6 +749,46 @@ pub struct Config {
     pub risk_reward: f64,
     #[serde(default = "d_n_legs")]
     pub n_legs: usize,
+    #[serde(default = "d_markov_model")]
+    pub markov_model: String,
+    #[serde(default = "d_hmm_states")]
+    pub hmm_states: usize,
+    #[serde(default = "d_hmm_max_iter")]
+    pub hmm_max_iter: usize,
+    #[serde(default = "d_hmm_tol")]
+    pub hmm_tol: f64,
+    #[serde(default = "d_hmm_min_iter")]
+    pub hmm_min_iter: usize,
+    #[serde(default = "d_hmm_restarts")]
+    pub hmm_restarts: usize,
+    #[serde(default = "d_hmm_cov_floor")]
+    pub hmm_cov_floor: f64,
+    #[serde(default = "d_hmm_trans_prior")]
+    pub hmm_trans_prior: f64,
+    #[serde(default = "d_hmm_refit_every")]
+    pub hmm_refit_every: usize,
+    #[serde(default)]
+    pub hmm_train_window: usize,
+    #[serde(default = "d_true")]
+    pub hmm_scale: bool,
+    #[serde(default = "d_hmm_probs")]
+    pub hmm_probs: String,
+    #[serde(default = "d_hmm_rv_window")]
+    pub hmm_rv_window: usize,
+    #[serde(default = "d_hmm_atr_window")]
+    pub hmm_atr_window: usize,
+    #[serde(default = "d_hmm_volchg_window")]
+    pub hmm_volchg_window: usize,
+    #[serde(default = "d_hmm_skew_window")]
+    pub hmm_skew_window: usize,
+    #[serde(default = "d_hmm_ma_fast")]
+    pub hmm_ma_fast: usize,
+    #[serde(default = "d_hmm_ma_slow")]
+    pub hmm_ma_slow: usize,
+    #[serde(default = "d_hmm_features")]
+    pub hmm_features: String,
+    #[serde(default = "d_hmm_beta_window")]
+    pub hmm_beta_window: usize,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -1511,6 +1551,60 @@ fn d_pal_target() -> String {
 }
 fn d_pal_size() -> f64 {
     1.0
+}
+fn d_markov_model() -> String {
+    "chain".into()
+}
+fn d_hmm_states() -> usize {
+    3
+}
+fn d_hmm_max_iter() -> usize {
+    500
+}
+fn d_hmm_tol() -> f64 {
+    1e-6
+}
+fn d_hmm_min_iter() -> usize {
+    5
+}
+fn d_hmm_restarts() -> usize {
+    4
+}
+fn d_hmm_cov_floor() -> f64 {
+    1e-6
+}
+fn d_hmm_trans_prior() -> f64 {
+    1.0
+}
+fn d_hmm_refit_every() -> usize {
+    21
+}
+fn d_hmm_probs() -> String {
+    "filtered".into()
+}
+fn d_hmm_rv_window() -> usize {
+    20
+}
+fn d_hmm_atr_window() -> usize {
+    14
+}
+fn d_hmm_volchg_window() -> usize {
+    5
+}
+fn d_hmm_skew_window() -> usize {
+    20
+}
+fn d_hmm_ma_fast() -> usize {
+    10
+}
+fn d_hmm_ma_slow() -> usize {
+    50
+}
+fn d_hmm_features() -> String {
+    "ret,rv,atr,volchg,skew,ma".into()
+}
+fn d_hmm_beta_window() -> usize {
+    60
 }
 fn d_band_mode() -> String {
     "binary".into()

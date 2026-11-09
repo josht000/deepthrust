@@ -97,8 +97,22 @@ That distinction will matter considerably when integrating regime probabilities 
   signals, stationary-relative bear signal, and the `markov_regime` standalone study
   (`configs/markov_regime.yaml`). For an observable chain the filtered and predicted probabilities
   coincide — the row `P[c_t, :]` is exactly the predicted distribution.
-- Not yet ported: Gaussian HMM, MS-AR, MS-GARCH, TVTP-HMM, and `build_market_features`. When ported,
-  each should emit the filtered/predicted probability rows the overlay consumes.
+- `src/hmm.rs` — the Gaussian HMM is implemented (`markov_model: hmm`, standalone study
+  `hmm_regime` / `configs/hmm_regime.yaml`): `build_market_features` port (six OHLCV features,
+  unusable columns dropped), train-window standardization, Baum-Welch EM with
+  `hmm_restarts`/`hmm_trans_prior`/`hmm_cov_floor`, walk-forward refits every `hmm_refit_every`
+  bars (expanding or `hmm_train_window`), causal filtering between refits, post-fit state ordering
+  by weighted mean return, filtered/predicted probability rows feeding the same `Chain` the
+  overlay consumes. Per-refit diagnostics land in `<variant>__hmm_fits.csv` for overlay runs.
+- `implementation_results:` baseline SPY `next_open`: 25 dev trades (skill -0.030, Sharpe 0.26),
+  10 test trades (skill +0.041, Sharpe 0.88) — insufficient evidence at the trade-count gates.
+  Dev-selected winner `k5` (5 states): dev skill +0.132 / Sharpe 0.82, test skill +0.011 on 4
+  trades. `refit5` is the next-best dev with the largest test skill (+0.061, 12 trades). Full
+  46-variant matrix in `results/hmm_regime/variants_comparison.csv`. Reproduce:
+  `cargo run --release --bin deepthrust -- --strategy hmm_regime --variant <names>` (~50s/variant,
+  38m for all 46).
+- Not yet ported: MS-AR, MS-GARCH, TVTP-HMM. When ported, each should emit the filtered/predicted
+  probability rows the overlay consumes.
 
 
 # Takeaway
