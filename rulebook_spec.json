@@ -1,0 +1,144 @@
+{
+  "charts": [
+    "1m",
+    "5m",
+    "15m",
+    "1h",
+    "4h",
+    "1d"
+  ],
+  "costs": {
+    "commission_per_side_usd": 2.0,
+    "limit_slippage_ticks": 0,
+    "market_stop_slippage_ticks": 1,
+    "tick_size": {
+      "ES": 0.25,
+      "NQ": 0.25
+    },
+    "tick_value_usd": {
+      "ES": 12.5,
+      "NQ": 5.0
+    }
+  },
+  "dials": {
+    "direction": [
+      "both",
+      "long",
+      "short"
+    ],
+    "entry": {
+      "break_setups": [
+        "at_close",
+        "limit_back"
+      ],
+      "level_setups": [
+        "limit_at_level",
+        "close_back",
+        "rejection",
+        "engulfing"
+      ]
+    },
+    "filters": [
+      "none",
+      "trend_agree",
+      "ny_only",
+      "skip_news"
+    ],
+    "filters_max": 2,
+    "level_shape": [
+      "line",
+      "box"
+    ],
+    "level_tol_atr": [
+      0.1,
+      0.25,
+      0.5
+    ],
+    "size": [
+      1.0,
+      0.5
+    ],
+    "stop": [
+      "beyond_level",
+      "beyond_swing"
+    ],
+    "stop_buffer_atr": 0.1,
+    "swing_strength": [
+      2,
+      3,
+      5,
+      8
+    ],
+    "target": [
+      "1R",
+      "2R",
+      "3R",
+      "next_swing"
+    ],
+    "time_exit_bars": 96,
+    "touches": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "trendline_anchors": [
+      2,
+      3
+    ],
+    "zone_atr": [
+      [
+        1.5,
+        3.0
+      ],
+      [
+        1.5,
+        2.0
+      ],
+      [
+        2.0,
+        3.0
+      ]
+    ],
+    "zone_run_candles": [
+      [
+        2,
+        2
+      ],
+      [
+        3,
+        3
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        2,
+        5
+      ]
+    ]
+  },
+  "lab": "price_action_lab",
+  "master_seed": 11400714819323198485,
+  "setups": [
+    "level_bounce",
+    "breakout",
+    "flip_zone",
+    "trend_pullback",
+    "trend_line",
+    "bos_continuation",
+    "choch_reversal",
+    "sweep_reclaim",
+    "supply_demand_zone",
+    "fair_value_gap"
+  ],
+  "trigger_rule": "same chart or 1-2 steps lower; daily setups trigger on 1h",
+  "windows": {
+    "discovery": "2022-01-03..2024-07-31",
+    "era1": "2022",
+    "era2": "2023-01-01..2024-07-31",
+    "sealed": "2024-08-01..end",
+    "warmup": "2021-10-01..2021-12-31"
+  }
+}

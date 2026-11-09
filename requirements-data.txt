@@ -4,3 +4,4 @@ pyarrow==25.0.1
 python-dotenv==1.2.4
 requests==2.34.2
 yfinance==0.2.58
+databento==0.90.0
