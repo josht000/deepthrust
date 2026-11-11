@@ -183,6 +183,12 @@ variant matrix, and reports (`src/family_pal.rs`,
   design: sweep events carry `SWEEP|CLOSEBACK` flags while those entry
   kinds require `BREAK` (reserved for break-style setups in the
   rulebook). They are kept in the matrix as documentation.
+- Causality (decision #16): level geometry is point-in-time —
+  `Level::as_of(at)` returns line/lo/hi over touches confirmed <= the
+  decision bar; `line`/`lo`/`hi` fields remain final-state for
+  `behavior.rs` probes only. Guarded by
+  `pal::setups::tests::detectors_are_causal_under_truncation` plus the
+  swings/ATR truncation tests.
 
 Reproduce:
 

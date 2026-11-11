@@ -217,45 +217,51 @@ fn detect_level_bounce(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
         .fold(0.0f64, f64::max);
     let index = MidIndex::new(lvls.len(), |i| lvls[i].line);
     let mut out = Vec::new();
+    // usable chart count at the previous trigger bar — the previous
+    // contact check must see the level as it stood then, not now
+    let mut pu = 0usize;
     for (ti, pos, session, minute, u) in each_trigger(ctx, cfg) {
         let tb = &tbars[ti];
         let mut cands = index.range(tb.low - pad, tb.high + pad);
         cands.sort_unstable();
         for li in cands {
             let lv = &lvls[li];
-            if lv.born > u.saturating_sub(1) {
+            let Some(la) = lv.as_of(u.saturating_sub(1)) else {
                 continue;
-            }
-            let (dir, inside, stop_ref) = match lv.kind {
-                LevelKind::Support => (Direction::Long, tb.close > lv.line, lv.lo),
-                LevelKind::Resistance => (Direction::Short, tb.close < lv.line, lv.hi),
             };
-            let touched = tb.low <= lv.line && lv.line <= tb.high;
+            let (dir, inside, stop_ref) = match lv.kind {
+                LevelKind::Support => (Direction::Long, tb.close > la.line, la.lo),
+                LevelKind::Resistance => (Direction::Short, tb.close < la.line, la.hi),
+            };
+            let touched = tb.low <= la.line && la.line <= tb.high;
             let poked = match dir {
-                Direction::Long => tb.low < lv.lo,
-                Direction::Short => tb.high > lv.hi,
+                Direction::Long => tb.low < la.lo,
+                Direction::Short => tb.high > la.hi,
             };
             if !(touched || poked && inside) {
                 continue;
             }
             // one event per contact episode: skip bars continuing a
             // touch that already started on the previous trigger bar
+            // (level geometry as of that bar's own decision time)
             let prev_contact = ti > 0
-                && lv.born <= u.saturating_sub(2)
-                && {
-                    let pb = &tbars[ti - 1];
-                    (pb.low <= lv.line && lv.line <= pb.high)
-                        || match dir {
-                            Direction::Long => pb.low < lv.lo,
-                            Direction::Short => pb.high > lv.hi,
-                        }
-                };
+                && pu > 0
+                && lv.as_of(pu.saturating_sub(1))
+                    .map(|pa| {
+                        let pb = &tbars[ti - 1];
+                        (pb.low <= pa.line && pa.line <= pb.high)
+                            || match dir {
+                                Direction::Long => pb.low < pa.lo,
+                                Direction::Short => pb.high > pa.hi,
+                            }
+                    })
+                    .unwrap_or(false);
             if prev_contact {
                 continue;
             }
             let mut ev = base_event(ctx, cfg, pos, session, minute, u);
             ev.dir = dir;
-            ev.ref_price = lv.line;
+            ev.ref_price = la.line;
             ev.stop_level = stop_ref;
             ev.kinds = kind::TOUCH;
             if inside && poked {
@@ -275,6 +281,7 @@ fn detect_level_bounce(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
             };
             out.push(ev);
         }
+        pu = u;
     }
     out
 }
@@ -300,13 +307,16 @@ fn detect_breakout(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
         let start = us.partition_point(|&uu| uu <= lv.born);
         let mut broken = false;
         for &(ti, pos, session, minute, u) in &trig[start..] {
-            if broken || lv.born > u.saturating_sub(1) {
+            if broken {
                 continue;
             }
+            let Some(la) = lv.as_of(u.saturating_sub(1)) else {
+                continue;
+            };
             let tb = &tbars[ti];
             let (dir, broke) = match lv.kind {
-                LevelKind::Resistance => (Direction::Long, tb.close > lv.hi),
-                LevelKind::Support => (Direction::Short, tb.close < lv.lo),
+                LevelKind::Resistance => (Direction::Long, tb.close > la.hi),
+                LevelKind::Support => (Direction::Short, tb.close < la.lo),
             };
             if !broke {
                 continue;
@@ -314,10 +324,10 @@ fn detect_breakout(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
             broken = true;
             let mut ev = base_event(ctx, cfg, pos, session, minute, u);
             ev.dir = dir;
-            ev.ref_price = lv.line;
+            ev.ref_price = la.line;
             ev.stop_level = match dir {
-                Direction::Long => lv.lo,
-                Direction::Short => lv.hi,
+                Direction::Long => la.lo,
+                Direction::Short => la.hi,
             };
             ev.kinds = kind::BREAK;
             ev.swing_ref = match dir {
@@ -354,14 +364,14 @@ fn detect_flip(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
         let start = us.partition_point(|&uu| uu <= lv.born);
         let mut broke_at: Option<usize> = None;
         for &(ti, pos, session, minute, u) in &trig[start..] {
-            if lv.born > u.saturating_sub(1) {
+            let Some(la) = lv.as_of(u.saturating_sub(1)) else {
                 continue;
-            }
+            };
             let tb = &tbars[ti];
             if broke_at.is_none() {
                 let broke = match lv.kind {
-                    LevelKind::Resistance => tb.close > lv.hi,
-                    LevelKind::Support => tb.close < lv.lo,
+                    LevelKind::Resistance => tb.close > la.hi,
+                    LevelKind::Support => tb.close < la.lo,
                 };
                 if broke {
                     broke_at = Some(ti);
@@ -369,7 +379,7 @@ fn detect_flip(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
                 continue;
             }
             // retest: bar's range contains the line
-            let touched = tb.low <= lv.line && lv.line <= tb.high;
+            let touched = tb.low <= la.line && la.line <= tb.high;
             if !touched {
                 continue;
             }
@@ -378,15 +388,15 @@ fn detect_flip(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
                 LevelKind::Support => Direction::Short,
             };
             let inside = match dir {
-                Direction::Long => tb.close >= lv.line,
-                Direction::Short => tb.close <= lv.line,
+                Direction::Long => tb.close >= la.line,
+                Direction::Short => tb.close <= la.line,
             };
             let mut ev = base_event(ctx, cfg, pos, session, minute, u);
             ev.dir = dir;
-            ev.ref_price = lv.line;
+            ev.ref_price = la.line;
             ev.stop_level = match dir {
-                Direction::Long => lv.lo,
-                Direction::Short => lv.hi,
+                Direction::Long => la.lo,
+                Direction::Short => la.hi,
             };
             ev.kinds = kind::FLIP | if inside { kind::CLOSEBACK } else { 0 };
             ev.kinds |= candle_flags(&tbars, ti, dir);
@@ -576,28 +586,34 @@ fn detect_sweep(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
         lvls.extend(levels(sbars, &sw, k, cfg.level_tol_atr, &atr, cfg.touches));
     }
     let tbars = ctx.charts[&cfg.trigger].bars.clone();
-    // index the edge being swept: support -> lo, resistance -> hi
+    // index the edge being swept: support -> lo, resistance -> hi.
+    // Prefilter only: the as-of edge lives inside the final box, so
+    // widen the query by the max box width to stay a superset.
     let index = MidIndex::new(lvls.len(), |i| match lvls[i].kind {
         LevelKind::Support => lvls[i].lo,
         LevelKind::Resistance => lvls[i].hi,
     });
+    let pad = lvls
+        .iter()
+        .map(|lv| lv.hi - lv.lo)
+        .fold(0.0f64, f64::max);
     let mut out = Vec::new();
     for (ti, pos, session, minute, u) in each_trigger(ctx, cfg) {
         let tb = &tbars[ti];
-        let mut cands = index.range_gt(tb.low, tb.high);
+        let mut cands = index.range_gt(tb.low - pad, tb.high + pad);
         cands.sort_unstable();
         for li in cands {
             let lv = &lvls[li];
-            if lv.born > u.saturating_sub(1) {
+            let Some(la) = lv.as_of(u.saturating_sub(1)) else {
                 continue;
-            }
+            };
             // sweep: wick through the box then close back inside
             let (dir, swept) = match lv.kind {
                 LevelKind::Support => {
-                    (Direction::Long, tb.low < lv.lo && tb.close > lv.lo)
+                    (Direction::Long, tb.low < la.lo && tb.close > la.lo)
                 }
                 LevelKind::Resistance => {
-                    (Direction::Short, tb.high > lv.hi && tb.close < lv.hi)
+                    (Direction::Short, tb.high > la.hi && tb.close < la.hi)
                 }
             };
             if !swept {
@@ -605,7 +621,7 @@ fn detect_sweep(ctx: &DetCtx, cfg: &DetectCfg) -> Vec<Event> {
             }
             let mut ev = base_event(ctx, cfg, pos, session, minute, u);
             ev.dir = dir;
-            ev.ref_price = lv.line;
+            ev.ref_price = la.line;
             ev.stop_level = match dir {
                 Direction::Long => tb.low,   // stop under the sweep wick
                 Direction::Short => tb.high,
@@ -791,6 +807,106 @@ pub fn random_events(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::pal::detctx::DetCtx;
+    use crate::pal::synth::synth_sessions;
+    use crate::pal::types::ChartId;
+
+    fn same_event(a: &Event, b: &Event) -> bool {
+        a.pos == b.pos
+            && a.dir == b.dir
+            && a.ref_price.to_bits() == b.ref_price.to_bits()
+            && a.stop_level.to_bits() == b.stop_level.to_bits()
+            && a.swing_ref.to_bits() == b.swing_ref.to_bits()
+            && a.next_swing.to_bits() == b.next_swing.to_bits()
+            && a.atr.to_bits() == b.atr.to_bits()
+            && a.kinds == b.kinds
+            && a.session == b.session
+            && a.minute == b.minute
+            && a.trend == b.trend
+            && a.meta == b.meta
+    }
+
+    /// No-look-ahead proof: events decided inside the truncated window
+    /// must be identical to the full-history run. Any leak of swings or
+    /// level touches confirmed after the cut changes the event stream.
+    #[test]
+    fn detectors_are_causal_under_truncation() {
+        let sessions = synth_sessions(
+            chrono::NaiveDate::from_ymd_opt(2022, 1, 3).unwrap(),
+            60,
+            "setups-causality",
+            4.0,
+        );
+        let cut = 40usize; // drop the last 20 sessions
+        let full = DetCtx::build(&sessions, &Default::default());
+        let trunc = DetCtx::build(&sessions[..cut], &Default::default());
+        let cut_bars = trunc.bars.len();
+
+        for tol in [0.25, 3.0] {
+            let cfg = DetectCfg {
+                chart: ChartId::M5,
+                trigger: ChartId::M5,
+                swing_strength: 2,
+                level_tol_atr: tol,
+                touches: 1,
+                zone_run: (2, 5),
+                zone_atr: (1.5, 3.0),
+                trendline_anchors: 3,
+            };
+
+            // sanity: this dial must create multi-touch clusters —
+            // otherwise the as-of/final distinction is never exercised
+            let sw = trunc.swings(cfg.chart, cfg.swing_strength);
+            let atr = trunc.atr(cfg.chart);
+            let sbars = &trunc.charts[&cfg.chart].bars;
+            let multi = [LevelKind::Support, LevelKind::Resistance]
+                .iter()
+                .flat_map(|k| levels(sbars, &sw, *k, tol, &atr, 1))
+                .filter(|l| l.touches.len() > 1)
+                .count();
+            if tol > 1.0 {
+                assert!(multi > 0, "tol {tol}: no multi-touch levels");
+                // the leak channel must actually be open: some level's
+                // final geometry differs from what was known at born
+                let sw_full = full.swings(cfg.chart, cfg.swing_strength);
+                let atr_full = full.atr(cfg.chart);
+                let sb_full = &full.charts[&cfg.chart].bars;
+                let revised = [LevelKind::Support, LevelKind::Resistance]
+                    .iter()
+                    .flat_map(|k| levels(sb_full, &sw_full, *k, tol, &atr_full, 1))
+                    .any(|l| {
+                        let g = l.as_of(l.born).unwrap();
+                        g.line != l.line || g.lo != l.lo || g.hi != l.hi
+                    });
+                assert!(revised, "tol {tol}: no level revises after born");
+            }
+
+            for setup in [
+                Setup::SweepReclaim,
+                Setup::LevelBounce,
+                Setup::Breakout,
+                Setup::FlipZone,
+            ] {
+                let fev = detect_events(&full, setup, &cfg);
+                let tev = detect_events(&trunc, setup, &cfg);
+                let fp: Vec<&Event> = fev.iter().filter(|e| e.pos < cut_bars).collect();
+                let tp: Vec<&Event> = tev.iter().filter(|e| e.pos < cut_bars).collect();
+                assert!(!tp.is_empty(), "{setup:?}: no events — vacuous test");
+                assert_eq!(
+                    fp.len(),
+                    tp.len(),
+                    "{setup:?} tol {tol}: event count changed under truncation"
+                );
+                for (a, b) in fp.iter().zip(tp.iter()) {
+                    assert!(
+                        same_event(a, b),
+                        "{setup:?} tol {tol}: event at pos {} changed under truncation",
+                        a.pos
+                    );
+                }
+            }
+        }
+    }
 
     #[test]
     fn accepts_maps_entries() {
