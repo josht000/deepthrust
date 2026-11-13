@@ -65,10 +65,12 @@ pub struct HmmParams {
     pub min_iter: usize,
     pub restarts: usize,
     pub cov_floor: f64,
+    pub full_covariance: bool,
     pub trans_prior: f64,
     pub refit_every: usize,
     pub train_window: usize,
     pub scale: bool,
+    pub pca_components: usize,
     pub filtered: bool,
     pub rv_window: usize,
     pub atr_window: usize,
@@ -104,6 +106,12 @@ pub fn params(cfg: &Config) -> Result<HmmParams, String> {
         return Err(format!(
             "hmm_cov_floor must be positive, got {}",
             cfg.hmm_cov_floor
+        ));
+    }
+    if !matches!(cfg.hmm_covariance.as_str(), "diagonal" | "full") {
+        return Err(format!(
+            "hmm_covariance must be diagonal|full, got {:?}",
+            cfg.hmm_covariance
         ));
     }
     if !(cfg.hmm_trans_prior >= 0.0 && cfg.hmm_trans_prior.is_finite()) {
@@ -162,6 +170,15 @@ pub fn params(cfg: &Config) -> Result<HmmParams, String> {
     if features.is_empty() {
         return Err("hmm_features must list at least one feature".into());
     }
+    if cfg.hmm_pca_components > features.len() {
+        return Err(format!(
+            "hmm_pca_components exceeds {} selected features",
+            features.len()
+        ));
+    }
+    if cfg.hmm_pca_components > 0 && !cfg.hmm_scale {
+        return Err("hmm_pca_components requires hmm_scale: true".into());
+    }
     if cfg.hmm_beta_window < 2 {
         return Err(format!(
             "hmm_beta_window must be >= 2, got {}",
@@ -175,10 +192,12 @@ pub fn params(cfg: &Config) -> Result<HmmParams, String> {
         min_iter: cfg.hmm_min_iter,
         restarts: cfg.hmm_restarts,
         cov_floor: cfg.hmm_cov_floor,
+        full_covariance: cfg.hmm_covariance == "full",
         trans_prior: cfg.hmm_trans_prior,
         refit_every: cfg.hmm_refit_every,
         train_window: cfg.hmm_train_window,
         scale: cfg.hmm_scale,
+        pca_components: cfg.hmm_pca_components,
         filtered: cfg.hmm_probs == "filtered",
         rv_window: cfg.hmm_rv_window,
         atr_window: cfg.hmm_atr_window,
@@ -236,7 +255,11 @@ fn ema(x: &[f64], n: usize) -> Vec<f64> {
     let mut cur = f64::NAN;
     for (t, &v) in x.iter().enumerate() {
         if v.is_finite() {
-            cur = if cur.is_finite() { a * v + (1.0 - a) * cur } else { v };
+            cur = if cur.is_finite() {
+                a * v + (1.0 - a) * cur
+            } else {
+                v
+            };
         }
         out[t] = cur;
     }
@@ -253,7 +276,9 @@ fn true_range(close: &[f64], high: &[f64], low: &[f64]) -> Vec<f64> {
             }
             let mut m = h - l;
             if t > 0 && close[t - 1].is_finite() {
-                m = m.max((h - close[t - 1]).abs()).max((l - close[t - 1]).abs());
+                m = m
+                    .max((h - close[t - 1]).abs())
+                    .max((l - close[t - 1]).abs());
             }
             m
         })
@@ -336,11 +361,8 @@ fn feature_column(
             for t in (DOWNVOL_WINDOW - 1)..n {
                 let win = &ret[t + 1 - DOWNVOL_WINDOW..=t];
                 if win.iter().all(|v| v.is_finite()) {
-                    let s: f64 = win
-                        .iter()
-                        .map(|v| v.min(0.0).powi(2))
-                        .sum::<f64>()
-                        / DOWNVOL_WINDOW as f64;
+                    let s: f64 =
+                        win.iter().map(|v| v.min(0.0).powi(2)).sum::<f64>() / DOWNVOL_WINDOW as f64;
                     out[t] = s.sqrt();
                 }
             }
@@ -461,8 +483,7 @@ fn rolling_std(x: &[f64], w: usize) -> Vec<f64> {
         let win = &x[t + 1 - w..=t];
         if win.iter().all(|v| v.is_finite()) {
             let mean = win.iter().sum::<f64>() / w as f64;
-            let var = win.iter().map(|v| (v - mean).powi(2)).sum::<f64>()
-                / (w - 1).max(1) as f64;
+            let var = win.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (w - 1).max(1) as f64;
             out[t] = var.max(0.0).sqrt();
         }
     }
@@ -518,7 +539,11 @@ fn market_features(
     if rows.is_empty() {
         return Err("no valid feature rows after warm-up".into());
     }
-    Ok(FeatureSet { rows, values, names })
+    Ok(FeatureSet {
+        rows,
+        values,
+        names,
+    })
 }
 
 // ---------------- model ----------------
@@ -528,6 +553,8 @@ pub struct GaussianHmm {
     pub n_states: usize,
     pub means: Vec<Vec<f64>>,
     pub variances: Vec<Vec<f64>>,
+    /// Per-state Cholesky factors; present only for full covariance.
+    cholesky: Option<Vec<Vec<Vec<f64>>>>,
     pub transition: Vec<Vec<f64>>,
     pub initial: Vec<f64>,
     pub loglik: f64,
@@ -568,7 +595,83 @@ fn log_gaussian_diag(x: &[Vec<f64>], means: &[Vec<f64>], vars: &[Vec<f64>]) -> V
         .collect()
 }
 
+fn cholesky(matrix: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
+    let n = matrix.len();
+    let mut lower = vec![vec![0.0; n]; n];
+    for i in 0..n {
+        for j in 0..=i {
+            let residual = matrix[i][j] - (0..j).map(|c| lower[i][c] * lower[j][c]).sum::<f64>();
+            if i == j {
+                if !(residual > 0.0 && residual.is_finite()) {
+                    return None;
+                }
+                lower[i][j] = residual.sqrt();
+            } else {
+                lower[i][j] = residual / lower[j][j];
+                if !lower[i][j].is_finite() {
+                    return None;
+                }
+            }
+        }
+    }
+    Some(lower)
+}
+
+fn regularized_cholesky(
+    covariance: &[Vec<f64>],
+    floor: f64,
+) -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>), String> {
+    for attempt in 0..8_i32 {
+        let jitter = if attempt == 0 {
+            0.0
+        } else {
+            floor * 10_f64.powi(attempt - 1)
+        };
+        let mut regularized = covariance.to_vec();
+        for (i, row) in regularized.iter_mut().enumerate() {
+            row[i] += jitter;
+        }
+        if let Some(lower) = cholesky(&regularized) {
+            return Ok((regularized, lower));
+        }
+    }
+    Err("full covariance is not positive definite after regularization".into())
+}
+
+fn log_gaussian_full(
+    x: &[Vec<f64>],
+    means: &[Vec<f64>],
+    cholesky_factors: &[Vec<Vec<f64>>],
+) -> Vec<Vec<f64>> {
+    let d = x[0].len();
+    x.iter()
+        .map(|row| {
+            (0..means.len())
+                .map(|k| {
+                    let lower = &cholesky_factors[k];
+                    let mut whitened = vec![0.0; d];
+                    for i in 0..d {
+                        let residual = row[i]
+                            - means[k][i]
+                            - (0..i).map(|j| lower[i][j] * whitened[j]).sum::<f64>();
+                        whitened[i] = residual / lower[i][i];
+                    }
+                    let log_det = 2.0 * (0..d).map(|i| lower[i][i].ln()).sum::<f64>();
+                    let mahalanobis = whitened.iter().map(|v| v * v).sum::<f64>();
+                    -0.5 * (d as f64 * LOG_2PI + log_det + mahalanobis)
+                })
+                .collect()
+        })
+        .collect()
+}
+
 fn emission_row(x: &[f64], m: &GaussianHmm) -> Vec<f64> {
+    if let Some(cholesky) = &m.cholesky {
+        return log_gaussian_full(&[x.to_vec()], &m.means, cholesky)
+            .into_iter()
+            .next()
+            .expect("one emission row");
+    }
     let d = x.len() as f64;
     (0..m.n_states)
         .map(|k| {
@@ -608,9 +711,7 @@ fn forward_backward(
     for t in 1..t_count {
         let mut raw = vec![0.0; k];
         for j in 0..k {
-            let terms: Vec<f64> = (0..k)
-                .map(|i| log_alpha[t - 1][i] + log_p[i][j])
-                .collect();
+            let terms: Vec<f64> = (0..k).map(|i| log_alpha[t - 1][i] + log_p[i][j]).collect();
             raw[j] = log_b[t][j] + logsumexp(&terms);
         }
         log_scales[t] = logsumexp(&raw);
@@ -680,8 +781,12 @@ fn normalize(v: &mut [f64]) {
 }
 
 /// One EM restart: init means at `states` distinct random observations,
-/// variances at the global column variance, uniform transition/initial.
-fn em_once(x: &[Vec<f64>], hp: &HmmParams, rng: &mut Rng) -> (GaussianHmm, Vec<Vec<f64>>) {
+/// covariance at the global variance, uniform transition/initial.
+fn em_once(
+    x: &[Vec<f64>],
+    hp: &HmmParams,
+    rng: &mut Rng,
+) -> Result<(GaussianHmm, Vec<Vec<f64>>), String> {
     let t = x.len();
     let k = hp.states;
     let d = x[0].len();
@@ -698,7 +803,20 @@ fn em_once(x: &[Vec<f64>], hp: &HmmParams, rng: &mut Rng) -> (GaussianHmm, Vec<V
             var.max(hp.cov_floor)
         })
         .collect();
-    let mut variances = vec![gvar; k];
+    let mut variances = vec![gvar.clone(); k];
+    let mut cholesky_factors = if hp.full_covariance {
+        let mut factors = Vec::with_capacity(k);
+        for _ in 0..k {
+            let mut covariance = vec![vec![0.0; d]; d];
+            for c in 0..d {
+                covariance[c][c] = gvar[c];
+            }
+            factors.push(regularized_cholesky(&covariance, hp.cov_floor)?.1);
+        }
+        Some(factors)
+    } else {
+        None
+    };
     let mut transition = vec![vec![1.0 / k as f64; k]; k];
     let mut initial = vec![1.0 / k as f64; k];
 
@@ -708,7 +826,10 @@ fn em_once(x: &[Vec<f64>], hp: &HmmParams, rng: &mut Rng) -> (GaussianHmm, Vec<V
     let mut converged = false;
     let mut filtered = vec![vec![1.0 / k as f64; k]];
     for it in 1..=hp.max_iter {
-        let log_b = log_gaussian_diag(x, &means, &variances);
+        let log_b = match &cholesky_factors {
+            Some(factors) => log_gaussian_full(x, &means, factors),
+            None => log_gaussian_diag(x, &means, &variances),
+        };
         let (f, smoothed, xi_sum, ll) = forward_backward(&log_b, &transition, &initial);
         filtered = f;
 
@@ -726,17 +847,42 @@ fn em_once(x: &[Vec<f64>], hp: &HmmParams, rng: &mut Rng) -> (GaussianHmm, Vec<V
         for s in 0..k {
             let denom = occupancy[s].max(EPS);
             for c in 0..d {
-                means[s][c] =
-                    smoothed.iter().zip(x).map(|(w, r)| w[s] * r[c]).sum::<f64>() / denom;
-            }
-            for c in 0..d {
-                let var = smoothed
+                means[s][c] = smoothed
                     .iter()
                     .zip(x)
-                    .map(|(w, r)| w[s] * (r[c] - means[s][c]).powi(2))
+                    .map(|(w, r)| w[s] * r[c])
                     .sum::<f64>()
                     / denom;
-                variances[s][c] = var.max(hp.cov_floor);
+            }
+            if hp.full_covariance {
+                let mut covariance = vec![vec![0.0; d]; d];
+                for c in 0..d {
+                    for e in 0..d {
+                        covariance[c][e] = smoothed
+                            .iter()
+                            .zip(x)
+                            .map(|(w, row)| w[s] * (row[c] - means[s][c]) * (row[e] - means[s][e]))
+                            .sum::<f64>()
+                            / denom;
+                    }
+                    covariance[c][c] = covariance[c][c].max(hp.cov_floor);
+                    variances[s][c] = covariance[c][c];
+                }
+                let (covariance, factor) = regularized_cholesky(&covariance, hp.cov_floor)?;
+                for c in 0..d {
+                    variances[s][c] = covariance[c][c];
+                }
+                cholesky_factors.as_mut().expect("full covariance")[s] = factor;
+            } else {
+                for c in 0..d {
+                    let var = smoothed
+                        .iter()
+                        .zip(x)
+                        .map(|(w, r)| w[s] * (r[c] - means[s][c]).powi(2))
+                        .sum::<f64>()
+                        / denom;
+                    variances[s][c] = var.max(hp.cov_floor);
+                }
             }
         }
 
@@ -749,20 +895,24 @@ fn em_once(x: &[Vec<f64>], hp: &HmmParams, rng: &mut Rng) -> (GaussianHmm, Vec<V
         }
         prev = ll;
     }
-    (
+    Ok((
         GaussianHmm {
             n_states: k,
             means,
             variances,
+            cholesky: cholesky_factors,
             transition,
             initial,
             loglik,
             n_iter,
             converged,
-            last_filtered: filtered.last().cloned().unwrap_or_else(|| vec![1.0 / k as f64; k]),
+            last_filtered: filtered
+                .last()
+                .cloned()
+                .unwrap_or_else(|| vec![1.0 / k as f64; k]),
         },
         filtered,
-    )
+    ))
 }
 
 /// Best-of-`restarts` Baum-Welch fit; returns the winner plus its final
@@ -784,7 +934,7 @@ fn fit_hmm(
     }
     let mut best: Option<(GaussianHmm, Vec<Vec<f64>>)> = None;
     for _ in 0..hp.restarts {
-        let (m, f) = em_once(x, hp, rng);
+        let (m, f) = em_once(x, hp, rng)?;
         if best.as_ref().map_or(true, |(b, _)| m.loglik > b.loglik) {
             best = Some((m, f));
         }
@@ -880,7 +1030,11 @@ fn order_states(filtered: &[Vec<f64>], rets: &[f64], k: usize) -> Vec<i8> {
             / mass.max(EPS);
     }
     let mut ord: Vec<usize> = (0..k).collect();
-    ord.sort_by(|&a, &b| mean[a].partial_cmp(&mean[b]).unwrap_or(std::cmp::Ordering::Equal));
+    ord.sort_by(|&a, &b| {
+        mean[a]
+            .partial_cmp(&mean[b])
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     let mut labels = vec![SIDEWAYS as i8; k];
     labels[ord[0]] = BEAR as i8;
     labels[ord[k - 1]] = BULL as i8;
@@ -900,13 +1054,108 @@ impl Scaler {
         let mut std = vec![0.0; d];
         for c in 0..d {
             mean[c] = x.iter().map(|r| r[c]).sum::<f64>() / t as f64;
-            let var = x.iter().map(|r| (r[c] - mean[c]).powi(2)).sum::<f64>()
-                / (t - 1).max(1) as f64;
+            let var =
+                x.iter().map(|r| (r[c] - mean[c]).powi(2)).sum::<f64>() / (t - 1).max(1) as f64;
             std[c] = var.sqrt().max(EPS);
         }
         Scaler { mean, std }
     }
+}
 
+struct Pca {
+    mean: Vec<f64>,
+    components: Vec<Vec<f64>>,
+}
+
+impl Pca {
+    fn fit(x: &[Vec<f64>], count: usize) -> Result<Self, String> {
+        let n = x.len();
+        let d = x[0].len();
+        if count == 0 || count > d || n < 2 {
+            return Err(format!(
+                "invalid PCA dimensions: {n} rows, {d} features, {count} components"
+            ));
+        }
+        let mean: Vec<f64> = (0..d)
+            .map(|c| x.iter().map(|r| r[c]).sum::<f64>() / n as f64)
+            .collect();
+        let mut a = vec![vec![0.0; d]; d];
+        for i in 0..d {
+            for j in 0..d {
+                a[i][j] = x
+                    .iter()
+                    .map(|r| (r[i] - mean[i]) * (r[j] - mean[j]))
+                    .sum::<f64>()
+                    / (n - 1) as f64;
+            }
+        }
+        let mut vectors = vec![vec![0.0; d]; d];
+        for i in 0..d {
+            vectors[i][i] = 1.0;
+        }
+        let mut converged = d == 1;
+        for _ in 0..(if d == 1 { 0 } else { 100 * d * d }) {
+            let mut p = 0;
+            let mut q = 1;
+            for i in 0..d {
+                for j in i + 1..d {
+                    if a[i][j].abs() > a[p][q].abs() {
+                        p = i;
+                        q = j;
+                    }
+                }
+            }
+            if a[p][q].abs() < 1e-12 {
+                converged = true;
+                break;
+            }
+            let theta = 0.5 * (2.0 * a[p][q]).atan2(a[q][q] - a[p][p]);
+            let (s, c) = theta.sin_cos();
+            let (app, aqq, apq) = (a[p][p], a[q][q], a[p][q]);
+            a[p][p] = c * c * app - 2.0 * s * c * apq + s * s * aqq;
+            a[q][q] = s * s * app + 2.0 * s * c * apq + c * c * aqq;
+            a[p][q] = 0.0;
+            a[q][p] = 0.0;
+            for i in 0..d {
+                if i != p && i != q {
+                    let (ip, iq) = (a[i][p], a[i][q]);
+                    a[i][p] = c * ip - s * iq;
+                    a[p][i] = a[i][p];
+                    a[i][q] = s * ip + c * iq;
+                    a[q][i] = a[i][q];
+                }
+                let (vp, vq) = (vectors[i][p], vectors[i][q]);
+                vectors[i][p] = c * vp - s * vq;
+                vectors[i][q] = s * vp + c * vq;
+            }
+        }
+        if !converged {
+            return Err("PCA eigendecomposition did not converge".into());
+        }
+        let mut order: Vec<usize> = (0..d).collect();
+        order.sort_by(|&i, &j| a[j][j].total_cmp(&a[i][i]));
+        let components = order[..count]
+            .iter()
+            .map(|&j| (0..d).map(|i| vectors[i][j]).collect())
+            .collect();
+        Ok(Self { mean, components })
+    }
+
+    fn apply(&self, x: &[f64]) -> Vec<f64> {
+        self.components
+            .iter()
+            .map(|v| {
+                x.iter()
+                    .zip(&self.mean)
+                    .zip(v)
+                    .map(|((&x, &m), &w)| (x - m) * w)
+                    .sum()
+            })
+            .collect()
+    }
+}
+
+impl Scaler {
     fn apply(&self, row: &mut [f64]) {
         for (c, v) in row.iter_mut().enumerate() {
             *v = (*v - self.mean[c]) / self.std[c];
@@ -950,6 +1199,7 @@ pub struct HmmMeta {
 struct Fitted {
     model: GaussianHmm,
     scaler: Option<Scaler>,
+    pca: Option<Pca>,
     /// HMM state index -> BEAR/SIDEWAYS/BULL.
     label: Vec<i8>,
     /// Stationary bucket masses (computed lazily for bear_rel).
@@ -982,6 +1232,13 @@ pub fn hmm_chain(
 ) -> Result<Chain, String> {
     let rows = close.len();
     let feats = market_features(close, high, low, volume, ref_close, hp)?;
+    if hp.pca_components > feats.names.len() {
+        return Err(format!(
+            "PCA requires {} usable features, found {}",
+            hp.pca_components,
+            feats.names.len()
+        ));
+    }
     let m = feats.values.len();
     let mut labels = vec![UNLABELED; rows];
     let mut signal = vec![f64::NAN; rows];
@@ -1037,6 +1294,13 @@ pub fn hmm_chain(
                 }
                 s
             });
+            let pca = if hp.pca_components > 0 {
+                let p = Pca::fit(&x, hp.pca_components)?;
+                x = x.iter().map(|r| p.apply(r)).collect();
+                Some(p)
+            } else {
+                None
+            };
             let (model, f_train) = fit_hmm(&x, hp, &mut rng)?;
             let label = order_states(&f_train, &rets[t0..j], model.n_states);
             if prev_map.as_ref().is_some_and(|p| *p != label) {
@@ -1088,6 +1352,7 @@ pub fn hmm_chain(
                 last: model.last_filtered.clone(),
                 model,
                 scaler,
+                pca,
                 label,
                 stat_bear,
                 occupancy,
@@ -1098,6 +1363,9 @@ pub fn hmm_chain(
         let mut x = feats.values[j].clone();
         if let Some(s) = &f.scaler {
             s.apply(&mut x);
+        }
+        if let Some(p) = &f.pca {
+            x = p.apply(&x);
         }
         let (pred, filt, lse) = filter_step(&f.last, &f.model, &x);
         f.oos_loglik += lse;
@@ -1168,7 +1436,7 @@ pub fn write_diag(cfg: &Config, named: &[(String, Chain)]) -> Result<(), String>
         "symbol,row,loglik,oos_loglik,oos_bars,n_iter,converged,mean_diag,occupancy,durations,label_map\n",
     );
     let mut met = String::from(
-        "symbol,features,n_feat,oos_ll_per_bar,persist,mean_dur,flip_rate,mean_conf,map_churn,refits,conv_pct,mean_iter\n",
+        "symbol,features,n_feat,pca_components,covariance,oos_ll_per_bar,persist,mean_dur,flip_rate,mean_conf,map_churn,refits,conv_pct,mean_iter\n",
     );
     for (name, c) in named {
         let mut persist_sum = 0.0;
@@ -1234,9 +1502,11 @@ pub fn write_diag(cfg: &Config, named: &[(String, Chain)]) -> Result<(), String>
             None => (String::new(), f64::NAN, 0),
         };
         met.push_str(&format!(
-            "{name},{},{},{:.4},{:.4},{:.1},{:.4},{:.4},{},{},{:.3},{:.1}\n",
+            "{name},{},{},{},{},{:.4},{:.4},{:.1},{:.4},{:.4},{},{},{:.3},{:.1}\n",
             feats,
             feats.matches(';').count() + 1,
+            cfg.hmm_pca_components,
+            cfg.hmm_covariance,
             oos_ll / oos_bars.max(1) as f64,
             persist_sum / n_fits,
             dur_sum / dur_n.max(1) as f64,
@@ -1267,10 +1537,12 @@ mod tests {
             min_iter: 5,
             restarts: 3,
             cov_floor: 1e-6,
+            full_covariance: false,
             trans_prior: 1.0,
             refit_every: 10,
             train_window: 0,
             scale: true,
+            pca_components: 0,
             filtered: true,
             rv_window: 5,
             atr_window: 5,
@@ -1337,7 +1609,10 @@ mod tests {
         let p = vec![vec![0.9, 0.1], vec![0.2, 0.8]];
         let pi = vec![0.6, 0.4];
         let (_, _, _, ll) = forward_backward(&log_b, &p, &pi);
-        let b: Vec<Vec<f64>> = log_b.iter().map(|r| r.iter().map(|v| v.exp()).collect()).collect();
+        let b: Vec<Vec<f64>> = log_b
+            .iter()
+            .map(|r| r.iter().map(|v| v.exp()).collect())
+            .collect();
         let mut total = 0.0;
         for s1 in 0..2 {
             for s2 in 0..2 {
@@ -1351,6 +1626,89 @@ mod tests {
             }
         }
         assert!((ll - total.ln()).abs() < 1e-10, "{ll} vs {}", total.ln());
+    }
+
+    #[test]
+    fn full_gaussian_density_uses_feature_correlations() {
+        let covariance = vec![vec![2.0, 1.0], vec![1.0, 2.0]];
+        let lower = cholesky(&covariance).unwrap();
+        let densities = log_gaussian_full(&[vec![1.0, 1.0]], &[vec![0.0, 0.0]], &[lower]);
+        let expected = -0.5 * (2.0 * LOG_2PI + 3.0_f64.ln() + 2.0 / 3.0);
+        assert!((densities[0][0] - expected).abs() < 1e-12);
+        assert!(
+            densities[0][0]
+                > log_gaussian_diag(&[vec![1.0, 1.0]], &[vec![0.0, 0.0]], &[vec![2.0, 2.0]],)[0][0]
+        );
+    }
+
+    #[test]
+    fn full_covariance_em_fit_is_finite() {
+        let base = two_regime_1d(240, 37);
+        let mut rng = Rng::new(71);
+        let x: Vec<Vec<f64>> = base
+            .iter()
+            .map(|row| {
+                let noise = rng.next_f64() - 0.5;
+                vec![row[0], row[0] * 0.65 + noise]
+            })
+            .collect();
+        let p = HmmParams {
+            states: 2,
+            full_covariance: true,
+            scale: false,
+            ..hp()
+        };
+        let (model, _) = fit_hmm(&x, &p, &mut Rng::new(13)).unwrap();
+        let factors = model.cholesky.as_ref().unwrap();
+        assert_eq!(factors.len(), 2);
+        assert!(factors.iter().flatten().flatten().all(|v| v.is_finite()));
+        assert!(model.loglik.is_finite());
+    }
+
+    #[test]
+    fn pca_orders_components_and_decorrelates_without_whitening() {
+        let x = vec![
+            vec![-2.0, -2.0],
+            vec![-1.0, -1.0],
+            vec![1.0, 1.0],
+            vec![2.0, 2.0],
+        ];
+        let pca = Pca::fit(&x, 2).unwrap();
+        let z: Vec<Vec<f64>> = x.iter().map(|r| pca.apply(r)).collect();
+        let v0 = z.iter().map(|r| r[0] * r[0]).sum::<f64>() / 3.0;
+        let v1 = z.iter().map(|r| r[1] * r[1]).sum::<f64>() / 3.0;
+        assert!((v0 - 20.0 / 3.0).abs() < 1e-10);
+        assert!(v1 < 1e-20);
+        assert_eq!(
+            Pca::fit(&x, 3).err().unwrap(),
+            "invalid PCA dimensions: 4 rows, 2 features, 3 components"
+        );
+    }
+
+    #[test]
+    fn pca_full_projection_preserves_distances_and_diagonalizes_covariance() {
+        let x = vec![
+            vec![1.0, 3.0, 2.0],
+            vec![2.0, 0.0, 1.0],
+            vec![4.0, 2.0, 3.0],
+            vec![0.0, 1.0, 5.0],
+            vec![5.0, 4.0, 0.0],
+        ];
+        let pca = Pca::fit(&x, 3).unwrap();
+        let z: Vec<Vec<f64>> = x.iter().map(|r| pca.apply(r)).collect();
+        let variance: Vec<f64> = (0..3)
+            .map(|j| z.iter().map(|r| r[j] * r[j]).sum::<f64>() / 4.0)
+            .collect();
+        assert!(variance[0] >= variance[1] && variance[1] >= variance[2]);
+        for i in 0..3 {
+            for j in i + 1..3 {
+                let covariance = z.iter().map(|r| r[i] * r[j]).sum::<f64>() / 4.0;
+                assert!(covariance.abs() < 1e-10);
+            }
+        }
+        let dist =
+            |a: &[f64], b: &[f64]| a.iter().zip(b).map(|(i, j)| (i - j).powi(2)).sum::<f64>();
+        assert!((dist(&x[0], &x[1]) - dist(&z[0], &z[1])).abs() < 1e-10);
     }
 
     #[test]
@@ -1403,9 +1761,7 @@ mod tests {
         let high: Vec<f64> = close.iter().map(|c| c * 1.005).collect();
         let low: Vec<f64> = close.iter().map(|c| c * 0.995).collect();
         let vol = vec![1e6; n];
-        let p = hp();
         let m = mp();
-        let a = hmm_chain(&close, &high, &low, &vol, None, &p, &m, 9).unwrap();
         let mut tail = close.clone();
         let mut th = high.clone();
         let mut tl = low.clone();
@@ -1420,13 +1776,48 @@ mod tests {
             tl.push(c * 0.99);
             tv.push(1e6);
         }
-        let b = hmm_chain(&tail, &th, &tl, &tv, None, &p, &m, 9).unwrap();
-        for t in 0..n {
-            let (x, y) = (a.signal[t], b.signal[t]);
-            assert!(
-                (x.is_nan() && y.is_nan()) || x == y,
-                "row {t} changed: {x} -> {y}"
-            );
+        let ref_close: Vec<f64> = close.iter().map(|value| value * 1.03).collect();
+        let ref_tail: Vec<f64> = tail.iter().map(|value| value * 1.03).collect();
+        for (components, full_covariance, use_spy) in
+            [(0, false, false), (2, false, false), (2, true, true)]
+        {
+            let mut p = HmmParams {
+                pca_components: components,
+                full_covariance,
+                ..hp()
+            };
+            if use_spy {
+                p.features.push("spy_ret".into());
+            }
+            let a = hmm_chain(
+                &close,
+                &high,
+                &low,
+                &vol,
+                use_spy.then_some(ref_close.as_slice()),
+                &p,
+                &m,
+                9,
+            )
+            .unwrap();
+            let b = hmm_chain(
+                &tail,
+                &th,
+                &tl,
+                &tv,
+                use_spy.then_some(ref_tail.as_slice()),
+                &p,
+                &m,
+                9,
+            )
+            .unwrap();
+            for t in 0..n {
+                let (x, y) = (a.signal[t], b.signal[t]);
+                assert!(
+                    (x.is_nan() && y.is_nan()) || x == y,
+                    "row {t} changed: {x} -> {y}"
+                );
+            }
         }
     }
 

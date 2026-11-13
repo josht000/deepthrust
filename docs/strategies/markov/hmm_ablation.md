@@ -194,6 +194,11 @@ fit penalty for every extra column. Nothing clears the winner bar (>= 100 dev tr
 | 3 | Student-t HMM | Better accommodate fat-tailed observations |
 | 4 | GMM-HMM | Model more complex distributions within each regime
 
+## Gaussian Exp results
+
+| Experiment | Dev/Test PF | Dev/Test Sharpe | Dev/Test Trades | Out-of-sample log likelihood | Regime persistence | Transition frequency | State stability | Downstream trading performance |
+|---|---|---|---|---|---|---|---|---|---|
+
 ## PCA experiments
 
 | Experiment | Input feature set                 | PCA components  | Covariance type |
@@ -206,6 +211,88 @@ fit penalty for every extra column. Nothing clears the winner bar (>= 100 dev tr
 | PCA-F      | Promising expanded set (e.g., AB) | 2, 3, 4, 5, 6   | Diagonal, Full  |
 
 Controls: Fit scaler and PCA on training data only; whitening off; keep state count, seeds, trading logic, and walk-forward splits fixed.
+
+PCA-E/F use AB (`ret,rv,atr,volchg,ma,spy_ret`). Set
+`hmm_pca_components: 0` to disable PCA, or a positive component count to fit
+unwhitened PCA on each scaled training window and freeze it until the next
+refit. Both covariance modes use the same fixed restart seed and trading setup.
+The existing HMM baseline uses `ln(mean(true_range)/close)` for `atr`, rather
+than the unlogged ratio specified above; it is retained here for comparability.
+The existing partition trend/skill calculation uses QQQ, not SPY: SPY is not
+in the traded panel, so the risk-symbol calculation falls back to QQQ. SPY
+remains the external feature and chart benchmark.
+Likelihoods in different dimensions are densities on different spaces and
+should not be ranked against one another.
+
+## PCA Exp Results
+
+QQQ, next-open, 1 bp per side. SPY is used for market features and charts;
+the partition trend/skill benchmark is QQQ buy-and-hold, not SPY, because
+SPY is not in the tradable panel. All 34 configurations use the fixed
+three-state walk-forward HMM and four restarts. PCA-A diagonal is `baseline`.
+The table is ranked by DEV Sharpe; eligibility requires DEV Sharpe > 1,
+profit factor > 1, and at least 100 trades. TEST is shown only for the
+baseline and the DEV-selected candidate. TEST has been inspected in earlier
+experiments and is not a fresh holdout.
+
+**Best DEV Sharpe, exploratory (no eligible winner): `pca_d5_full`.**
+
+| DEV rank | Experiment | PF | Sharpe | Trades | Win % | Trend | Random pick | Bias | Skill | Skill % | OOS LL/bar | Persistence | Flip rate | Map churn / confidence |
+|---:|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|
+| 1 | pca_d5_full | 2.74 | 0.97 | 49 | 61.2 | 0.651 | 0.740 | 0.000 | 0.089 | 12.1 | -5.70 | 0.969 | 0.076 | 78% / 0.92 |
+| 2 | pca_f3_diag | 6.03 | 0.96 | 30 | 76.7 | 0.750 | 0.813 | 0.000 | 0.063 | 7.8 | -4.32 | 0.956 | 0.053 | 82% / 0.91 |
+| 3 | pca_f2_diag | 4.25 | 0.82 | 30 | 50.0 | 0.770 | 0.698 | 0.000 | -0.072 | n/a | -3.00 | 0.957 | 0.052 | 84% / 0.91 |
+| 4 | pca_b4_diag | 3.54 | 0.76 | 33 | 72.7 | 0.482 | 0.602 | 0.000 | 0.120 | 20.0 | -5.47 | 0.957 | 0.061 | 84% / 0.91 |
+| 5 | pca_c_full | 2.91 | 0.76 | 35 | 60.0 | 0.539 | 0.551 | 0.000 | 0.012 | 2.2 | -5.74 | 0.968 | 0.066 | 84% / 0.93 |
+| 6 | pca_f2_full | 2.51 | 0.71 | 35 | 48.6 | 0.453 | 0.539 | 0.000 | 0.086 | 15.9 | -3.06 | 0.958 | 0.047 | 86% / 0.92 |
+| 7 | pca_e_full | 2.31 | 0.66 | 40 | 60.0 | 0.444 | 0.478 | 0.000 | 0.034 | 7.1 | -6.22 | 0.968 | 0.071 | 78% / 0.93 |
+| 8 | pca_e_diag | 2.72 | 0.65 | 33 | 42.4 | 0.495 | 0.500 | 0.000 | 0.005 | 1.0 | -7.29 | 0.960 | 0.062 | 82% / 0.93 |
+| 9 | pca_b3_full | 2.32 | 0.62 | 37 | 54.1 | 0.524 | 0.474 | 0.000 | -0.050 | n/a | -4.23 | 0.960 | 0.058 | 78% / 0.92 |
+| 10 | pca_b3_diag | 2.17 | 0.61 | 34 | 55.9 | 0.453 | 0.439 | 0.000 | -0.014 | n/a | -4.22 | 0.958 | 0.058 | 84% / 0.91 |
+| 11 | pca_b2_diag | 3.00 | 0.57 | 24 | 62.5 | 0.360 | 0.438 | 0.000 | 0.078 | 17.8 | -2.83 | 0.957 | 0.048 | 82% / 0.92 |
+| 12 | pca_f6_diag | 1.85 | 0.57 | 49 | 59.2 | 0.575 | 0.527 | 0.000 | -0.048 | n/a | -6.48 | 0.960 | 0.059 | 85% / 0.92 |
+| 13 | pca_d3_full | 2.08 | 0.57 | 40 | 52.5 | 0.405 | 0.361 | 0.000 | -0.044 | n/a | -4.04 | 0.958 | 0.050 | 87% / 0.92 |
+| 14 | pca_d2_full | 2.23 | 0.56 | 31 | 45.2 | 0.427 | 0.380 | 0.000 | -0.047 | n/a | -2.82 | 0.958 | 0.048 | 84% / 0.93 |
+| 15 | pca_b6_full | 2.30 | 0.54 | 38 | 52.6 | 0.306 | 0.374 | 0.000 | 0.068 | 18.2 | -7.28 | 0.968 | 0.060 | 83% / 0.94 |
+| 16 | pca_b5_full | 1.83 | 0.52 | 37 | 54.1 | 0.246 | 0.293 | 0.000 | 0.047 | 16.0 | -6.98 | 0.969 | 0.070 | 84% / 0.93 |
+| 17 | pca_f5_diag | 2.19 | 0.49 | 40 | 62.5 | 0.494 | 0.412 | 0.000 | -0.083 | n/a | -6.20 | 0.964 | 0.053 | 87% / 0.92 |
+| 18 | pca_b4_full | 1.76 | 0.49 | 42 | 47.6 | 0.376 | 0.358 | 0.000 | -0.018 | n/a | -5.52 | 0.960 | 0.065 | 84% / 0.92 |
+| 19 | pca_f5_full | 1.61 | 0.46 | 42 | 54.8 | 0.429 | 0.343 | 0.000 | -0.086 | n/a | -5.96 | 0.969 | 0.062 | 86% / 0.93 |
+| 20 | pca_d5_diag | 2.50 | 0.44 | 28 | 60.7 | 0.410 | 0.365 | 0.000 | -0.045 | n/a | -5.98 | 0.963 | 0.051 | 82% / 0.93 |
+| 21 | pca_b2_full | 2.06 | 0.40 | 29 | 41.4 | 0.245 | 0.277 | 0.000 | 0.032 | 11.7 | -2.83 | 0.959 | 0.051 | 89% / 0.92 |
+| 22 | pca_f3_full | 1.64 | 0.39 | 45 | 51.1 | 0.304 | 0.272 | 0.000 | -0.032 | n/a | -4.34 | 0.958 | 0.054 | 85% / 0.92 |
+| 23 | pca_a_full | 1.64 | 0.36 | 28 | 50.0 | 0.168 | 0.235 | 0.000 | 0.067 | 28.4 | -7.32 | 0.968 | 0.065 | 84% / 0.93 |
+| 24 | pca_d4_diag | 1.51 | 0.31 | 44 | 56.8 | 0.252 | 0.242 | 0.000 | -0.010 | n/a | -5.54 | 0.968 | 0.060 | 83% / 0.92 |
+| 25 | pca_f6_full | 1.50 | 0.30 | 44 | 52.3 | 0.262 | 0.213 | 0.000 | -0.049 | n/a | -6.29 | 0.968 | 0.065 | 84% / 0.93 |
+| 26 | pca_d3_diag | 1.94 | 0.29 | 26 | 57.7 | 0.251 | 0.244 | 0.000 | -0.007 | n/a | -4.07 | 0.956 | 0.044 | 84% / 0.92 |
+| 27 | pca_c_diag | 1.70 | 0.28 | 26 | 50.0 | 0.339 | 0.183 | 0.000 | -0.157 | n/a | -5.97 | 0.962 | 0.052 | 87% / 0.93 |
+| 28 | baseline | 1.87 | 0.24 | 31 | 48.4 | 0.336 | 0.159 | 0.000 | -0.177 | n/a | -7.41 | 0.963 | 0.057 | 82% / 0.93 |
+| 29 | pca_f4_full | 1.29 | 0.18 | 43 | 46.5 | 0.095 | 0.097 | 0.000 | 0.002 | 1.8 | -5.69 | 0.970 | 0.056 | 81% / 0.93 |
+| 30 | pca_b6_diag | 1.31 | 0.14 | 32 | 53.1 | 0.253 | 0.080 | 0.000 | -0.173 | n/a | -7.31 | 0.964 | 0.054 | 78% / 0.93 |
+| 31 | pca_f4_diag | 1.21 | 0.12 | 43 | 46.5 | 0.157 | 0.054 | 0.000 | -0.103 | n/a | -5.78 | 0.969 | 0.057 | 80% / 0.92 |
+| 32 | pca_d4_full | 1.07 | 0.03 | 38 | 50.0 | 0.067 | -0.004 | 0.000 | -0.071 | n/a | -5.38 | 0.970 | 0.053 | 86% / 0.94 |
+| 33 | pca_d2_diag | 1.12 | 0.02 | 27 | 48.1 | -0.064 | -0.056 | 0.000 | 0.008 | n/a | -2.82 | 0.957 | 0.049 | 86% / 0.92 |
+| 34 | pca_b5_diag | 1.04 | -0.02 | 38 | 42.1 | -0.060 | -0.082 | 0.000 | -0.021 | n/a | -6.94 | 0.967 | 0.060 | 78% / 0.92 |
+
+OOS likelihood and regime diagnostics summarize frozen-model segments across
+the full timeline; they were not used for DEV selection. Map churn compares
+arbitrary state IDs across refits and is not label-invariant. `n/a` denotes
+an undefined statistic; skill % requires positive total and nonnegative skill.
+
+| Candidate | Period | Total log | Trend | Random pick | Skill | Bias | Skill % | Sharpe | PF | Trades | Win % | Max DD % |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| baseline | dev | 0.159 | 0.336 | 0.159 | -0.177 | 0.000 | n/a | 0.24 | 1.87 | 31 | 48.4 | -27.0 |
+| baseline | test | 0.291 | 0.289 | 0.288 | 0.002 | 0.000 | 0.7 | 0.76 | 3.00 | 5 | 60.0 | -17.6 |
+| pca_d5_full | dev | 0.740 | 0.651 | 0.740 | 0.089 | 0.000 | 12.1 | 0.97 | 2.74 | 49 | 61.2 | -17.0 |
+| pca_d5_full | test | 0.289 | 0.313 | 0.286 | -0.024 | 0.000 | n/a | 0.77 | 2.06 | 15 | 53.3 | -17.2 |
+- `baseline`: insufficient evidence, DECAYED, Sharpe or PF > 2: review for leakage.
+- `pca_d5_full`: insufficient evidence, DECAYED, Sharpe or PF > 2: review for leakage.
+
+Evidence is insufficient for any candidate with fewer than 100 DEV or 30 TEST
+trades. See the candidate reports for cost ladders and class gates; a change
+in the sign of skill between DEV and TEST is DECAYED.
+
+Reproduce: `scripts\run_hmm_pca.bat`
 
 ## XGBoost state-classification experiments
 
