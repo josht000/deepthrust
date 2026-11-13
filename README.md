@@ -117,6 +117,9 @@ are ordered by weighted mean return into Bear/Sideways/Bull; `hmm_probs` picks t
 the chain labeling/counting levers are ignored with a warning). Overlay runs additionally write
 `<variant>__hmm_fits.csv` (per-refit loglik, EM iterations, convergence, state occupancy).
 Standalone study: `hmm_regime` (`configs/hmm_regime.yaml`).
+Set `hmm_pca_components` to a positive count to fit unwhitened PCA on each scaled
+training window; `0` (default) disables PCA. Run `scripts\run_hmm_pca.bat` for
+the configured PCA experiment matrix and its DEV-selected report.
 S041 and S042 use explicitly weighted rebalance legs, so an outgoing overnight segment and an
 incoming intraday segment are not divided by their combined position count on rebalance days.
 Their existing cost model charges full entry and exit costs on each rebalance leg, including

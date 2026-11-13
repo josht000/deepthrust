@@ -28,6 +28,7 @@ hmm_trans_prior: 1.0
 hmm_refit_every: 21
 hmm_train_window: 0
 hmm_scale: true
+hmm_pca_components: 0
 hmm_probs: filtered
 hmm_rv_window: 20
 hmm_atr_window: 14
@@ -41,6 +42,39 @@ hmm_beta_window: 60
 # Ablation experiments A-G: baseline is A; each variant changes only
 # hmm_features (H skipped: identical to F).
 variants:
+  pca_a_full: {hmm_covariance: full}
+  pca_b2_diag: {hmm_pca_components: 2, hmm_covariance: diagonal}
+  pca_b3_diag: {hmm_pca_components: 3, hmm_covariance: diagonal}
+  pca_b4_diag: {hmm_pca_components: 4, hmm_covariance: diagonal}
+  pca_b5_diag: {hmm_pca_components: 5, hmm_covariance: diagonal}
+  pca_b6_diag: {hmm_pca_components: 6, hmm_covariance: diagonal}
+  pca_b2_full: {hmm_pca_components: 2, hmm_covariance: full}
+  pca_b3_full: {hmm_pca_components: 3, hmm_covariance: full}
+  pca_b4_full: {hmm_pca_components: 4, hmm_covariance: full}
+  pca_b5_full: {hmm_pca_components: 5, hmm_covariance: full}
+  pca_b6_full: {hmm_pca_components: 6, hmm_covariance: full}
+  pca_c_diag: {hmm_features: "ret,rv,atr,volchg,ma", hmm_covariance: diagonal}
+  pca_c_full: {hmm_features: "ret,rv,atr,volchg,ma", hmm_covariance: full}
+  pca_d2_diag: {hmm_features: "ret,rv,atr,volchg,ma", hmm_pca_components: 2, hmm_covariance: diagonal}
+  pca_d3_diag: {hmm_features: "ret,rv,atr,volchg,ma", hmm_pca_components: 3, hmm_covariance: diagonal}
+  pca_d4_diag: {hmm_features: "ret,rv,atr,volchg,ma", hmm_pca_components: 4, hmm_covariance: diagonal}
+  pca_d5_diag: {hmm_features: "ret,rv,atr,volchg,ma", hmm_pca_components: 5, hmm_covariance: diagonal}
+  pca_d2_full: {hmm_features: "ret,rv,atr,volchg,ma", hmm_pca_components: 2, hmm_covariance: full}
+  pca_d3_full: {hmm_features: "ret,rv,atr,volchg,ma", hmm_pca_components: 3, hmm_covariance: full}
+  pca_d4_full: {hmm_features: "ret,rv,atr,volchg,ma", hmm_pca_components: 4, hmm_covariance: full}
+  pca_d5_full: {hmm_features: "ret,rv,atr,volchg,ma", hmm_pca_components: 5, hmm_covariance: full}
+  pca_e_diag: {hmm_features: "ret,rv,atr,volchg,ma,spy_ret", hmm_covariance: diagonal}
+  pca_e_full: {hmm_features: "ret,rv,atr,volchg,ma,spy_ret", hmm_covariance: full}
+  pca_f2_diag: {hmm_features: "ret,rv,atr,volchg,ma,spy_ret", hmm_pca_components: 2, hmm_covariance: diagonal}
+  pca_f3_diag: {hmm_features: "ret,rv,atr,volchg,ma,spy_ret", hmm_pca_components: 3, hmm_covariance: diagonal}
+  pca_f4_diag: {hmm_features: "ret,rv,atr,volchg,ma,spy_ret", hmm_pca_components: 4, hmm_covariance: diagonal}
+  pca_f5_diag: {hmm_features: "ret,rv,atr,volchg,ma,spy_ret", hmm_pca_components: 5, hmm_covariance: diagonal}
+  pca_f6_diag: {hmm_features: "ret,rv,atr,volchg,ma,spy_ret", hmm_pca_components: 6, hmm_covariance: diagonal}
+  pca_f2_full: {hmm_features: "ret,rv,atr,volchg,ma,spy_ret", hmm_pca_components: 2, hmm_covariance: full}
+  pca_f3_full: {hmm_features: "ret,rv,atr,volchg,ma,spy_ret", hmm_pca_components: 3, hmm_covariance: full}
+  pca_f4_full: {hmm_features: "ret,rv,atr,volchg,ma,spy_ret", hmm_pca_components: 4, hmm_covariance: full}
+  pca_f5_full: {hmm_features: "ret,rv,atr,volchg,ma,spy_ret", hmm_pca_components: 5, hmm_covariance: full}
+  pca_f6_full: {hmm_features: "ret,rv,atr,volchg,ma,spy_ret", hmm_pca_components: 6, hmm_covariance: full}
   B: {hmm_features: "ret,rv,atr,volchg,ma"}
   C: {hmm_features: "ret,rv,volchg,skew,ma"}
   D: {hmm_features: "ret,atr,volchg,skew,ma"}

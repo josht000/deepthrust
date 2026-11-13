@@ -70,6 +70,7 @@ pub struct HmmParams {
     pub refit_every: usize,
     pub train_window: usize,
     pub scale: bool,
+    pub pca_components: usize,
     pub filtered: bool,
     pub rv_window: usize,
     pub atr_window: usize,
@@ -169,6 +170,15 @@ pub fn params(cfg: &Config) -> Result<HmmParams, String> {
     if features.is_empty() {
         return Err("hmm_features must list at least one feature".into());
     }
+    if cfg.hmm_pca_components > features.len() {
+        return Err(format!(
+            "hmm_pca_components exceeds {} selected features",
+            features.len()
+        ));
+    }
+    if cfg.hmm_pca_components > 0 && !cfg.hmm_scale {
+        return Err("hmm_pca_components requires hmm_scale: true".into());
+    }
     if cfg.hmm_beta_window < 2 {
         return Err(format!(
             "hmm_beta_window must be >= 2, got {}",
@@ -187,6 +197,7 @@ pub fn params(cfg: &Config) -> Result<HmmParams, String> {
         refit_every: cfg.hmm_refit_every,
         train_window: cfg.hmm_train_window,
         scale: cfg.hmm_scale,
+        pca_components: cfg.hmm_pca_components,
         filtered: cfg.hmm_probs == "filtered",
         rv_window: cfg.hmm_rv_window,
         atr_window: cfg.hmm_atr_window,
@@ -1054,7 +1065,102 @@ impl Scaler {
         }
         Scaler { mean, std }
     }
+}
 
+struct Pca {
+    mean: Vec<f64>,
+    components: Vec<Vec<f64>>,
+}
+
+impl Pca {
+    fn fit(x: &[Vec<f64>], count: usize) -> Result<Self, String> {
+        let n = x.len();
+        let d = x[0].len();
+        if count == 0 || count > d || n < 2 {
+            return Err(format!(
+                "invalid PCA dimensions: {n} rows, {d} features, {count} components"
+            ));
+        }
+        let mean: Vec<f64> = (0..d)
+            .map(|c| x.iter().map(|r| r[c]).sum::<f64>() / n as f64)
+            .collect();
+        let mut a = vec![vec![0.0; d]; d];
+        for i in 0..d {
+            for j in 0..d {
+                a[i][j] = x
+                    .iter()
+                    .map(|r| (r[i] - mean[i]) * (r[j] - mean[j]))
+                    .sum::<f64>()
+                    / (n - 1) as f64;
+            }
+        }
+        let mut vectors = vec![vec![0.0; d]; d];
+        for i in 0..d {
+            vectors[i][i] = 1.0;
+        }
+        let mut converged = d == 1;
+        for _ in 0..(if d == 1 { 0 } else { 100 * d * d }) {
+            let mut p = 0;
+            let mut q = 1;
+            for i in 0..d {
+                for j in i + 1..d {
+                    if a[i][j].abs() > a[p][q].abs() {
+                        p = i;
+                        q = j;
+                    }
+                }
+            }
+            if a[p][q].abs() < 1e-12 {
+                converged = true;
+                break;
+            }
+            let theta = 0.5 * (2.0 * a[p][q]).atan2(a[q][q] - a[p][p]);
+            let (s, c) = theta.sin_cos();
+            let (app, aqq, apq) = (a[p][p], a[q][q], a[p][q]);
+            a[p][p] = c * c * app - 2.0 * s * c * apq + s * s * aqq;
+            a[q][q] = s * s * app + 2.0 * s * c * apq + c * c * aqq;
+            a[p][q] = 0.0;
+            a[q][p] = 0.0;
+            for i in 0..d {
+                if i != p && i != q {
+                    let (ip, iq) = (a[i][p], a[i][q]);
+                    a[i][p] = c * ip - s * iq;
+                    a[p][i] = a[i][p];
+                    a[i][q] = s * ip + c * iq;
+                    a[q][i] = a[i][q];
+                }
+                let (vp, vq) = (vectors[i][p], vectors[i][q]);
+                vectors[i][p] = c * vp - s * vq;
+                vectors[i][q] = s * vp + c * vq;
+            }
+        }
+        if !converged {
+            return Err("PCA eigendecomposition did not converge".into());
+        }
+        let mut order: Vec<usize> = (0..d).collect();
+        order.sort_by(|&i, &j| a[j][j].total_cmp(&a[i][i]));
+        let components = order[..count]
+            .iter()
+            .map(|&j| (0..d).map(|i| vectors[i][j]).collect())
+            .collect();
+        Ok(Self { mean, components })
+    }
+
+    fn apply(&self, x: &[f64]) -> Vec<f64> {
+        self.components
+            .iter()
+            .map(|v| {
+                x.iter()
+                    .zip(&self.mean)
+                    .zip(v)
+                    .map(|((&x, &m), &w)| (x - m) * w)
+                    .sum()
+            })
+            .collect()
+    }
+}
+
+impl Scaler {
     fn apply(&self, row: &mut [f64]) {
         for (c, v) in row.iter_mut().enumerate() {
             *v = (*v - self.mean[c]) / self.std[c];
@@ -1098,6 +1204,7 @@ pub struct HmmMeta {
 struct Fitted {
     model: GaussianHmm,
     scaler: Option<Scaler>,
+    pca: Option<Pca>,
     /// HMM state index -> BEAR/SIDEWAYS/BULL.
     label: Vec<i8>,
     /// Stationary bucket masses (computed lazily for bear_rel).
@@ -1130,6 +1237,13 @@ pub fn hmm_chain(
 ) -> Result<Chain, String> {
     let rows = close.len();
     let feats = market_features(close, high, low, volume, ref_close, hp)?;
+    if hp.pca_components > feats.names.len() {
+        return Err(format!(
+            "PCA requires {} usable features, found {}",
+            hp.pca_components,
+            feats.names.len()
+        ));
+    }
     let m = feats.values.len();
     let mut labels = vec![UNLABELED; rows];
     let mut signal = vec![f64::NAN; rows];
@@ -1185,6 +1299,13 @@ pub fn hmm_chain(
                 }
                 s
             });
+            let pca = if hp.pca_components > 0 {
+                let p = Pca::fit(&x, hp.pca_components)?;
+                x = x.iter().map(|r| p.apply(r)).collect();
+                Some(p)
+            } else {
+                None
+            };
             let (model, f_train) = fit_hmm(&x, hp, &mut rng)?;
             let label = order_states(&f_train, &rets[t0..j], model.n_states);
             if prev_map.as_ref().is_some_and(|p| *p != label) {
@@ -1236,6 +1357,7 @@ pub fn hmm_chain(
                 last: model.last_filtered.clone(),
                 model,
                 scaler,
+                pca,
                 label,
                 stat_bear,
                 occupancy,
@@ -1246,6 +1368,9 @@ pub fn hmm_chain(
         let mut x = feats.values[j].clone();
         if let Some(s) = &f.scaler {
             s.apply(&mut x);
+        }
+        if let Some(p) = &f.pca {
+            x = p.apply(&x);
         }
         let (pred, filt, lse) = filter_step(&f.last, &f.model, &x);
         f.oos_loglik += lse;
@@ -1316,7 +1441,7 @@ pub fn write_diag(cfg: &Config, named: &[(String, Chain)]) -> Result<(), String>
         "symbol,row,loglik,oos_loglik,oos_bars,n_iter,converged,mean_diag,occupancy,durations,label_map\n",
     );
     let mut met = String::from(
-        "symbol,features,n_feat,oos_ll_per_bar,persist,mean_dur,flip_rate,mean_conf,map_churn,refits,conv_pct,mean_iter\n",
+        "symbol,features,n_feat,pca_components,covariance,oos_ll_per_bar,persist,mean_dur,flip_rate,mean_conf,map_churn,refits,conv_pct,mean_iter\n",
     );
     for (name, c) in named {
         let mut persist_sum = 0.0;
@@ -1382,9 +1507,11 @@ pub fn write_diag(cfg: &Config, named: &[(String, Chain)]) -> Result<(), String>
             None => (String::new(), f64::NAN, 0),
         };
         met.push_str(&format!(
-            "{name},{},{},{:.4},{:.4},{:.1},{:.4},{:.4},{},{},{:.3},{:.1}\n",
+            "{name},{},{},{},{},{:.4},{:.4},{:.1},{:.4},{:.4},{},{},{:.3},{:.1}\n",
             feats,
             feats.matches(';').count() + 1,
+            cfg.hmm_pca_components,
+            cfg.hmm_covariance,
             oos_ll / oos_bars.max(1) as f64,
             persist_sum / n_fits,
             dur_sum / dur_n.max(1) as f64,
@@ -1420,6 +1547,7 @@ mod tests {
             refit_every: 10,
             train_window: 0,
             scale: true,
+            pca_components: 0,
             filtered: true,
             rv_window: 5,
             atr_window: 5,
@@ -1543,6 +1671,52 @@ mod tests {
     }
 
     #[test]
+    fn pca_orders_components_and_decorrelates_without_whitening() {
+        let x = vec![
+            vec![-2.0, -2.0],
+            vec![-1.0, -1.0],
+            vec![1.0, 1.0],
+            vec![2.0, 2.0],
+        ];
+        let pca = Pca::fit(&x, 2).unwrap();
+        let z: Vec<Vec<f64>> = x.iter().map(|r| pca.apply(r)).collect();
+        let v0 = z.iter().map(|r| r[0] * r[0]).sum::<f64>() / 3.0;
+        let v1 = z.iter().map(|r| r[1] * r[1]).sum::<f64>() / 3.0;
+        assert!((v0 - 20.0 / 3.0).abs() < 1e-10);
+        assert!(v1 < 1e-20);
+        assert_eq!(
+            Pca::fit(&x, 3).err().unwrap(),
+            "invalid PCA dimensions: 4 rows, 2 features, 3 components"
+        );
+    }
+
+    #[test]
+    fn pca_full_projection_preserves_distances_and_diagonalizes_covariance() {
+        let x = vec![
+            vec![1.0, 3.0, 2.0],
+            vec![2.0, 0.0, 1.0],
+            vec![4.0, 2.0, 3.0],
+            vec![0.0, 1.0, 5.0],
+            vec![5.0, 4.0, 0.0],
+        ];
+        let pca = Pca::fit(&x, 3).unwrap();
+        let z: Vec<Vec<f64>> = x.iter().map(|r| pca.apply(r)).collect();
+        let variance: Vec<f64> = (0..3)
+            .map(|j| z.iter().map(|r| r[j] * r[j]).sum::<f64>() / 4.0)
+            .collect();
+        assert!(variance[0] >= variance[1] && variance[1] >= variance[2]);
+        for i in 0..3 {
+            for j in i + 1..3 {
+                let covariance = z.iter().map(|r| r[i] * r[j]).sum::<f64>() / 4.0;
+                assert!(covariance.abs() < 1e-10);
+            }
+        }
+        let dist =
+            |a: &[f64], b: &[f64]| a.iter().zip(b).map(|(i, j)| (i - j).powi(2)).sum::<f64>();
+        assert!((dist(&x[0], &x[1]) - dist(&z[0], &z[1])).abs() < 1e-10);
+    }
+
+    #[test]
     fn em_recovers_separated_states() {
         let x = two_regime_1d(300, 7);
         let p = HmmParams {
@@ -1592,9 +1766,7 @@ mod tests {
         let high: Vec<f64> = close.iter().map(|c| c * 1.005).collect();
         let low: Vec<f64> = close.iter().map(|c| c * 0.995).collect();
         let vol = vec![1e6; n];
-        let p = hp();
         let m = mp();
-        let a = hmm_chain(&close, &high, &low, &vol, None, &p, &m, 9).unwrap();
         let mut tail = close.clone();
         let mut th = high.clone();
         let mut tl = low.clone();
@@ -1609,13 +1781,48 @@ mod tests {
             tl.push(c * 0.99);
             tv.push(1e6);
         }
-        let b = hmm_chain(&tail, &th, &tl, &tv, None, &p, &m, 9).unwrap();
-        for t in 0..n {
-            let (x, y) = (a.signal[t], b.signal[t]);
-            assert!(
-                (x.is_nan() && y.is_nan()) || x == y,
-                "row {t} changed: {x} -> {y}"
-            );
+        let ref_close: Vec<f64> = close.iter().map(|value| value * 1.03).collect();
+        let ref_tail: Vec<f64> = tail.iter().map(|value| value * 1.03).collect();
+        for (components, full_covariance, use_spy) in
+            [(0, false, false), (2, false, false), (2, true, true)]
+        {
+            let mut p = HmmParams {
+                pca_components: components,
+                full_covariance,
+                ..hp()
+            };
+            if use_spy {
+                p.features.push("spy_ret".into());
+            }
+            let a = hmm_chain(
+                &close,
+                &high,
+                &low,
+                &vol,
+                use_spy.then_some(ref_close.as_slice()),
+                &p,
+                &m,
+                9,
+            )
+            .unwrap();
+            let b = hmm_chain(
+                &tail,
+                &th,
+                &tl,
+                &tv,
+                use_spy.then_some(ref_tail.as_slice()),
+                &p,
+                &m,
+                9,
+            )
+            .unwrap();
+            for t in 0..n {
+                let (x, y) = (a.signal[t], b.signal[t]);
+                assert!(
+                    (x.is_nan() && y.is_nan()) || x == y,
+                    "row {t} changed: {x} -> {y}"
+                );
+            }
         }
     }
 

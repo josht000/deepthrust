@@ -775,6 +775,8 @@ pub struct Config {
     pub hmm_train_window: usize,
     #[serde(default = "d_true")]
     pub hmm_scale: bool,
+    #[serde(default)]
+    pub hmm_pca_components: usize,
     #[serde(default = "d_hmm_probs")]
     pub hmm_probs: String,
     #[serde(default = "d_hmm_rv_window")]
