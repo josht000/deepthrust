@@ -23,6 +23,7 @@ hmm_tol: 0.000001
 hmm_min_iter: 5
 hmm_restarts: 4
 hmm_cov_floor: 0.000001
+hmm_covariance: diagonal
 hmm_trans_prior: 1.0
 hmm_refit_every: 21
 hmm_train_window: 0

@@ -108,7 +108,8 @@ N consecutive labels before a state change; `markov_decay` (<1) recency-weights 
 `docs/strategies/markov/markov_regime_models.py`): six OHLCV features (log return, realized vol,
 normalized ATR, log volume change, rolling skew, MA spread) standardized on each train window;
 Baum-Welch EM (`hmm_states`, `hmm_restarts`, `hmm_max_iter`/`hmm_tol`/`hmm_min_iter`,
-`hmm_cov_floor`, `hmm_trans_prior`) refits every `hmm_refit_every` bars on an expanding or
+`hmm_cov_floor`, `hmm_covariance: diagonal|full` (default `diagonal`, full covariance
+models cross-feature correlations), `hmm_trans_prior`) refits every `hmm_refit_every` bars on an expanding or
 `hmm_train_window` rolling window; between refits the frozen model filters causally. Hidden states
 are ordered by weighted mean return into Bear/Sideways/Bull; `hmm_probs` picks the filtered
 (default) or predicted distribution for the same spread/bear_rel signal, so `markov_source`,

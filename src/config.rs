@@ -765,6 +765,8 @@ pub struct Config {
     pub hmm_restarts: usize,
     #[serde(default = "d_hmm_cov_floor")]
     pub hmm_cov_floor: f64,
+    #[serde(default = "d_hmm_covariance")]
+    pub hmm_covariance: String,
     #[serde(default = "d_hmm_trans_prior")]
     pub hmm_trans_prior: f64,
     #[serde(default = "d_hmm_refit_every")]
@@ -1574,6 +1576,9 @@ fn d_hmm_restarts() -> usize {
 }
 fn d_hmm_cov_floor() -> f64 {
     1e-6
+}
+fn d_hmm_covariance() -> String {
+    "diagonal".into()
 }
 fn d_hmm_trans_prior() -> f64 {
     1.0

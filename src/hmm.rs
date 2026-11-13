@@ -65,6 +65,7 @@ pub struct HmmParams {
     pub min_iter: usize,
     pub restarts: usize,
     pub cov_floor: f64,
+    pub full_covariance: bool,
     pub trans_prior: f64,
     pub refit_every: usize,
     pub train_window: usize,
@@ -104,6 +105,12 @@ pub fn params(cfg: &Config) -> Result<HmmParams, String> {
         return Err(format!(
             "hmm_cov_floor must be positive, got {}",
             cfg.hmm_cov_floor
+        ));
+    }
+    if !matches!(cfg.hmm_covariance.as_str(), "diagonal" | "full") {
+        return Err(format!(
+            "hmm_covariance must be diagonal|full, got {:?}",
+            cfg.hmm_covariance
         ));
     }
     if !(cfg.hmm_trans_prior >= 0.0 && cfg.hmm_trans_prior.is_finite()) {
@@ -175,6 +182,7 @@ pub fn params(cfg: &Config) -> Result<HmmParams, String> {
         min_iter: cfg.hmm_min_iter,
         restarts: cfg.hmm_restarts,
         cov_floor: cfg.hmm_cov_floor,
+        full_covariance: cfg.hmm_covariance == "full",
         trans_prior: cfg.hmm_trans_prior,
         refit_every: cfg.hmm_refit_every,
         train_window: cfg.hmm_train_window,
@@ -236,7 +244,11 @@ fn ema(x: &[f64], n: usize) -> Vec<f64> {
     let mut cur = f64::NAN;
     for (t, &v) in x.iter().enumerate() {
         if v.is_finite() {
-            cur = if cur.is_finite() { a * v + (1.0 - a) * cur } else { v };
+            cur = if cur.is_finite() {
+                a * v + (1.0 - a) * cur
+            } else {
+                v
+            };
         }
         out[t] = cur;
     }
@@ -253,7 +265,9 @@ fn true_range(close: &[f64], high: &[f64], low: &[f64]) -> Vec<f64> {
             }
             let mut m = h - l;
             if t > 0 && close[t - 1].is_finite() {
-                m = m.max((h - close[t - 1]).abs()).max((l - close[t - 1]).abs());
+                m = m
+                    .max((h - close[t - 1]).abs())
+                    .max((l - close[t - 1]).abs());
             }
             m
         })
@@ -336,11 +350,8 @@ fn feature_column(
             for t in (DOWNVOL_WINDOW - 1)..n {
                 let win = &ret[t + 1 - DOWNVOL_WINDOW..=t];
                 if win.iter().all(|v| v.is_finite()) {
-                    let s: f64 = win
-                        .iter()
-                        .map(|v| v.min(0.0).powi(2))
-                        .sum::<f64>()
-                        / DOWNVOL_WINDOW as f64;
+                    let s: f64 =
+                        win.iter().map(|v| v.min(0.0).powi(2)).sum::<f64>() / DOWNVOL_WINDOW as f64;
                     out[t] = s.sqrt();
                 }
             }
@@ -461,8 +472,7 @@ fn rolling_std(x: &[f64], w: usize) -> Vec<f64> {
         let win = &x[t + 1 - w..=t];
         if win.iter().all(|v| v.is_finite()) {
             let mean = win.iter().sum::<f64>() / w as f64;
-            let var = win.iter().map(|v| (v - mean).powi(2)).sum::<f64>()
-                / (w - 1).max(1) as f64;
+            let var = win.iter().map(|v| (v - mean).powi(2)).sum::<f64>() / (w - 1).max(1) as f64;
             out[t] = var.max(0.0).sqrt();
         }
     }
@@ -518,7 +528,11 @@ fn market_features(
     if rows.is_empty() {
         return Err("no valid feature rows after warm-up".into());
     }
-    Ok(FeatureSet { rows, values, names })
+    Ok(FeatureSet {
+        rows,
+        values,
+        names,
+    })
 }
 
 // ---------------- model ----------------
@@ -528,6 +542,8 @@ pub struct GaussianHmm {
     pub n_states: usize,
     pub means: Vec<Vec<f64>>,
     pub variances: Vec<Vec<f64>>,
+    /// Per-state Cholesky factors; present only for full covariance.
+    cholesky: Option<Vec<Vec<Vec<f64>>>>,
     pub transition: Vec<Vec<f64>>,
     pub initial: Vec<f64>,
     pub loglik: f64,
@@ -568,7 +584,85 @@ fn log_gaussian_diag(x: &[Vec<f64>], means: &[Vec<f64>], vars: &[Vec<f64>]) -> V
         .collect()
 }
 
+fn cholesky(matrix: &[Vec<f64>]) -> Option<Vec<Vec<f64>>> {
+    let n = matrix.len();
+    let mut lower = vec![vec![0.0; n]; n];
+    for i in 0..n {
+        for j in 0..=i {
+            let residual = matrix[i][j] - (0..j).map(|c| lower[i][c] * lower[j][c]).sum::<f64>();
+            if i == j {
+                if !(residual > 0.0 && residual.is_finite()) {
+                    return None;
+                }
+                lower[i][j] = residual.sqrt();
+            } else {
+                lower[i][j] = residual / lower[j][j];
+                if !lower[i][j].is_finite() {
+                    return None;
+                }
+            }
+        }
+    }
+    Some(lower)
+}
+
+fn regularized_cholesky(
+    covariance: &[Vec<f64>],
+    floor: f64,
+) -> Result<(Vec<Vec<f64>>, Vec<Vec<f64>>), String> {
+    for attempt in 0..8_i32 {
+        let jitter = if attempt == 0 {
+            0.0
+        } else {
+            floor * 10_f64.powi(attempt - 1)
+        };
+        let mut regularized = covariance.to_vec();
+        for (i, row) in regularized.iter_mut().enumerate() {
+            row[i] += jitter;
+        }
+        if let Some(lower) = cholesky(&regularized) {
+            return Ok((regularized, lower));
+        }
+    }
+    Err("full covariance is not positive definite after regularization".into())
+}
+
+fn log_gaussian_full(
+    x: &[Vec<f64>],
+    means: &[Vec<f64>],
+    cholesky_factors: &[Vec<Vec<f64>>],
+) -> Vec<Vec<f64>> {
+    x.iter()
+        .map(|row| log_gaussian_full_row(row, means, cholesky_factors))
+        .collect()
+}
+
+fn log_gaussian_full_row(
+    row: &[f64],
+    means: &[Vec<f64>],
+    cholesky_factors: &[Vec<Vec<f64>>],
+) -> Vec<f64> {
+    let d = row.len();
+    (0..means.len())
+        .map(|k| {
+            let lower = &cholesky_factors[k];
+            let mut whitened = vec![0.0; d];
+            for i in 0..d {
+                let residual =
+                    row[i] - means[k][i] - (0..i).map(|j| lower[i][j] * whitened[j]).sum::<f64>();
+                whitened[i] = residual / lower[i][i];
+            }
+            let log_det = 2.0 * (0..d).map(|i| lower[i][i].ln()).sum::<f64>();
+            let mahalanobis = whitened.iter().map(|v| v * v).sum::<f64>();
+            -0.5 * (d as f64 * LOG_2PI + log_det + mahalanobis)
+        })
+        .collect()
+}
+
 fn emission_row(x: &[f64], m: &GaussianHmm) -> Vec<f64> {
+    if let Some(cholesky) = &m.cholesky {
+        return log_gaussian_full_row(x, &m.means, cholesky);
+    }
     let d = x.len() as f64;
     (0..m.n_states)
         .map(|k| {
@@ -608,9 +702,7 @@ fn forward_backward(
     for t in 1..t_count {
         let mut raw = vec![0.0; k];
         for j in 0..k {
-            let terms: Vec<f64> = (0..k)
-                .map(|i| log_alpha[t - 1][i] + log_p[i][j])
-                .collect();
+            let terms: Vec<f64> = (0..k).map(|i| log_alpha[t - 1][i] + log_p[i][j]).collect();
             raw[j] = log_b[t][j] + logsumexp(&terms);
         }
         log_scales[t] = logsumexp(&raw);
@@ -680,8 +772,12 @@ fn normalize(v: &mut [f64]) {
 }
 
 /// One EM restart: init means at `states` distinct random observations,
-/// variances at the global column variance, uniform transition/initial.
-fn em_once(x: &[Vec<f64>], hp: &HmmParams, rng: &mut Rng) -> (GaussianHmm, Vec<Vec<f64>>) {
+/// covariance at the global variance, uniform transition/initial.
+fn em_once(
+    x: &[Vec<f64>],
+    hp: &HmmParams,
+    rng: &mut Rng,
+) -> Result<(GaussianHmm, Vec<Vec<f64>>), String> {
     let t = x.len();
     let k = hp.states;
     let d = x[0].len();
@@ -698,7 +794,20 @@ fn em_once(x: &[Vec<f64>], hp: &HmmParams, rng: &mut Rng) -> (GaussianHmm, Vec<V
             var.max(hp.cov_floor)
         })
         .collect();
-    let mut variances = vec![gvar; k];
+    let mut variances = vec![gvar.clone(); k];
+    let mut cholesky_factors = if hp.full_covariance {
+        let mut factors = Vec::with_capacity(k);
+        for _ in 0..k {
+            let mut covariance = vec![vec![0.0; d]; d];
+            for c in 0..d {
+                covariance[c][c] = gvar[c];
+            }
+            factors.push(regularized_cholesky(&covariance, hp.cov_floor)?.1);
+        }
+        Some(factors)
+    } else {
+        None
+    };
     let mut transition = vec![vec![1.0 / k as f64; k]; k];
     let mut initial = vec![1.0 / k as f64; k];
 
@@ -708,7 +817,10 @@ fn em_once(x: &[Vec<f64>], hp: &HmmParams, rng: &mut Rng) -> (GaussianHmm, Vec<V
     let mut converged = false;
     let mut filtered = vec![vec![1.0 / k as f64; k]];
     for it in 1..=hp.max_iter {
-        let log_b = log_gaussian_diag(x, &means, &variances);
+        let log_b = match &cholesky_factors {
+            Some(factors) => log_gaussian_full(x, &means, factors),
+            None => log_gaussian_diag(x, &means, &variances),
+        };
         let (f, smoothed, xi_sum, ll) = forward_backward(&log_b, &transition, &initial);
         filtered = f;
 
@@ -726,17 +838,45 @@ fn em_once(x: &[Vec<f64>], hp: &HmmParams, rng: &mut Rng) -> (GaussianHmm, Vec<V
         for s in 0..k {
             let denom = occupancy[s].max(EPS);
             for c in 0..d {
-                means[s][c] =
-                    smoothed.iter().zip(x).map(|(w, r)| w[s] * r[c]).sum::<f64>() / denom;
-            }
-            for c in 0..d {
-                let var = smoothed
+                means[s][c] = smoothed
                     .iter()
                     .zip(x)
-                    .map(|(w, r)| w[s] * (r[c] - means[s][c]).powi(2))
+                    .map(|(w, r)| w[s] * r[c])
                     .sum::<f64>()
                     / denom;
-                variances[s][c] = var.max(hp.cov_floor);
+            }
+            if hp.full_covariance {
+                let mut covariance = vec![vec![0.0; d]; d];
+                for c in 0..d {
+                    for e in 0..d {
+                        covariance[c][e] = smoothed
+                            .iter()
+                            .zip(x)
+                            .map(|(w, row)| w[s] * (row[c] - means[s][c]) * (row[e] - means[s][e]))
+                            .sum::<f64>()
+                            / denom;
+                    }
+                    covariance[c][c] = covariance[c][c].max(hp.cov_floor);
+                    variances[s][c] = covariance[c][c];
+                }
+                let (covariance, factor) = regularized_cholesky(&covariance, hp.cov_floor)?;
+                for c in 0..d {
+                    variances[s][c] = covariance[c][c];
+                }
+                let Some(factors) = cholesky_factors.as_mut() else {
+                    return Err("full covariance factors are unavailable".into());
+                };
+                factors[s] = factor;
+            } else {
+                for c in 0..d {
+                    let var = smoothed
+                        .iter()
+                        .zip(x)
+                        .map(|(w, r)| w[s] * (r[c] - means[s][c]).powi(2))
+                        .sum::<f64>()
+                        / denom;
+                    variances[s][c] = var.max(hp.cov_floor);
+                }
             }
         }
 
@@ -749,20 +889,24 @@ fn em_once(x: &[Vec<f64>], hp: &HmmParams, rng: &mut Rng) -> (GaussianHmm, Vec<V
         }
         prev = ll;
     }
-    (
+    Ok((
         GaussianHmm {
             n_states: k,
             means,
             variances,
+            cholesky: cholesky_factors,
             transition,
             initial,
             loglik,
             n_iter,
             converged,
-            last_filtered: filtered.last().cloned().unwrap_or_else(|| vec![1.0 / k as f64; k]),
+            last_filtered: filtered
+                .last()
+                .cloned()
+                .unwrap_or_else(|| vec![1.0 / k as f64; k]),
         },
         filtered,
-    )
+    ))
 }
 
 /// Best-of-`restarts` Baum-Welch fit; returns the winner plus its final
@@ -784,7 +928,7 @@ fn fit_hmm(
     }
     let mut best: Option<(GaussianHmm, Vec<Vec<f64>>)> = None;
     for _ in 0..hp.restarts {
-        let (m, f) = em_once(x, hp, rng);
+        let (m, f) = em_once(x, hp, rng)?;
         if best.as_ref().map_or(true, |(b, _)| m.loglik > b.loglik) {
             best = Some((m, f));
         }
@@ -880,7 +1024,11 @@ fn order_states(filtered: &[Vec<f64>], rets: &[f64], k: usize) -> Vec<i8> {
             / mass.max(EPS);
     }
     let mut ord: Vec<usize> = (0..k).collect();
-    ord.sort_by(|&a, &b| mean[a].partial_cmp(&mean[b]).unwrap_or(std::cmp::Ordering::Equal));
+    ord.sort_by(|&a, &b| {
+        mean[a]
+            .partial_cmp(&mean[b])
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
     let mut labels = vec![SIDEWAYS as i8; k];
     labels[ord[0]] = BEAR as i8;
     labels[ord[k - 1]] = BULL as i8;
@@ -900,8 +1048,8 @@ impl Scaler {
         let mut std = vec![0.0; d];
         for c in 0..d {
             mean[c] = x.iter().map(|r| r[c]).sum::<f64>() / t as f64;
-            let var = x.iter().map(|r| (r[c] - mean[c]).powi(2)).sum::<f64>()
-                / (t - 1).max(1) as f64;
+            let var =
+                x.iter().map(|r| (r[c] - mean[c]).powi(2)).sum::<f64>() / (t - 1).max(1) as f64;
             std[c] = var.sqrt().max(EPS);
         }
         Scaler { mean, std }
@@ -1267,6 +1415,7 @@ mod tests {
             min_iter: 5,
             restarts: 3,
             cov_floor: 1e-6,
+            full_covariance: false,
             trans_prior: 1.0,
             refit_every: 10,
             train_window: 0,
@@ -1337,7 +1486,10 @@ mod tests {
         let p = vec![vec![0.9, 0.1], vec![0.2, 0.8]];
         let pi = vec![0.6, 0.4];
         let (_, _, _, ll) = forward_backward(&log_b, &p, &pi);
-        let b: Vec<Vec<f64>> = log_b.iter().map(|r| r.iter().map(|v| v.exp()).collect()).collect();
+        let b: Vec<Vec<f64>> = log_b
+            .iter()
+            .map(|r| r.iter().map(|v| v.exp()).collect())
+            .collect();
         let mut total = 0.0;
         for s1 in 0..2 {
             for s2 in 0..2 {
@@ -1351,6 +1503,43 @@ mod tests {
             }
         }
         assert!((ll - total.ln()).abs() < 1e-10, "{ll} vs {}", total.ln());
+    }
+
+    #[test]
+    fn full_gaussian_density_uses_feature_correlations() {
+        let covariance = vec![vec![2.0, 1.0], vec![1.0, 2.0]];
+        let lower = cholesky(&covariance).unwrap();
+        let densities = log_gaussian_full(&[vec![1.0, 1.0]], &[vec![0.0, 0.0]], &[lower]);
+        let expected = -0.5 * (2.0 * LOG_2PI + 3.0_f64.ln() + 2.0 / 3.0);
+        assert!((densities[0][0] - expected).abs() < 1e-12);
+        assert!(
+            densities[0][0]
+                > log_gaussian_diag(&[vec![1.0, 1.0]], &[vec![0.0, 0.0]], &[vec![2.0, 2.0]],)[0][0]
+        );
+    }
+
+    #[test]
+    fn full_covariance_em_fit_is_finite() {
+        let base = two_regime_1d(240, 37);
+        let mut rng = Rng::new(71);
+        let x: Vec<Vec<f64>> = base
+            .iter()
+            .map(|row| {
+                let noise = rng.next_f64() - 0.5;
+                vec![row[0], row[0] * 0.65 + noise]
+            })
+            .collect();
+        let p = HmmParams {
+            states: 2,
+            full_covariance: true,
+            scale: false,
+            ..hp()
+        };
+        let (model, _) = fit_hmm(&x, &p, &mut Rng::new(13)).unwrap();
+        let factors = model.cholesky.as_ref().unwrap();
+        assert_eq!(factors.len(), 2);
+        assert!(factors.iter().flatten().flatten().all(|v| v.is_finite()));
+        assert!(model.loglik.is_finite());
     }
 
     #[test]

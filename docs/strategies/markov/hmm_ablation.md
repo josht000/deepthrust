@@ -97,10 +97,14 @@ Do not run duplicate configurations. If an additional feature is mathematically 
 - [x] A-G
 - [x] H-R
 - [x] S-Y
+- [x] Implement full-covariance Gaussian emissions and compare with diagonal on A, B, K, Q, Y
 - [ ] Test various gaussian configurations on top 10 winners
 - [ ] Test various seeds on top 10 winners
 
 Winners means we want Sharpe and PF to be above 1 with a reasonable number of trades (>= 100 on Dev).
+None of A-Y met the dev trade-count gate; the covariance comparison therefore uses A (baseline),
+B (reduced features), K/Q (strongest dev-skill single additions), and Y (strongest dev-skill
+combination), without selecting on test results.
 
 ## Results
 
@@ -194,6 +198,43 @@ fit penalty for every extra column. Nothing clears the winner bar (>= 100 dev tr
 | 3 | Student-t HMM | Better accommodate fat-tailed observations |
 | 4 | GMM-HMM | Model more complex distributions within each regime
 
+The Rust HMM supports `hmm_covariance: diagonal` (default) and `hmm_covariance: full`.
+Full covariance estimates one regularized feature covariance matrix per state; Cholesky
+factors are used for Gaussian log densities. The same seeds, restarts, split, refit cadence,
+scaler, and trading logic are used for the paired comparison.
+
+## Gaussian Exp results
+
+Paired QQQ vs SPY runs from `configs/hmm_ablation.yaml`; K=3, seed 20261106, 4 restarts,
+expanding train window, 252-bar minimum, 21-bar refit, train-window scaling, filtered
+probabilities, and `next_open` primary fill with 1 bp/side costs. Diagonal values are the
+recorded A-Y runs; full covariance was run for A, B, K, Q, and Y. PF, Sharpe, trade count, and
+win rate are dev/test pairs. OOS LL is held-out log-likelihood per bar (higher is better).
+Map churn is the fraction of refits whose state-to-bucket mapping changed; confidence is the
+mean winning-state probability.
+
+| Exp | Covariance | Dev PF / Sharpe / trades / win% | Test PF / Sharpe / trades / win% | OOS LL/bar | Persistence | Transition freq | Map churn / confidence |
+|---|---|---|---|---:|---:|---:|---|
+| A | Diagonal | 1.87 / 0.24 / 31 / 48.4% | 3.00 / 0.76 / 5 / 60.0% | -7.4082 | 0.9629 | 0.0571 | 81.9% / 0.9277 |
+| A | Full | 1.64 / 0.36 / 28 / 50.0% | 3.05 / 0.84 / 18 / 72.2% | -7.3176 | 0.9680 | 0.0645 | 84.5% / 0.9346 |
+| B | Diagonal | 1.70 / 0.28 / 26 / 50.0% | 3.52 / 0.74 / 8 / 62.5% | -5.9738 | 0.9617 | 0.0521 | 87.1% / 0.9320 |
+| B | Full | 2.91 / 0.76 / 35 / 60.0% | 2.61 / 0.91 / 15 / 60.0% | -5.7423 | 0.9679 | 0.0662 | 83.6% / 0.9294 |
+| K | Diagonal | 4.27 / 0.67 / 18 / 55.6% | 1.94 / 0.71 / 9 / 33.3% | -8.6983 | 0.9667 | 0.0432 | 86.1% / 0.9439 |
+| K | Full | 3.82 / 0.75 / 26 / 61.5% | 2.46 / 0.61 / 8 / 50.0% | -8.7858 | 0.9744 | 0.0507 | 83.3% / 0.9496 |
+| Q | Diagonal | 2.21 / 0.55 / 40 / 45.0% | 2.49 / 0.91 / 11 / 45.5% | -8.8083 | 0.9622 | 0.0650 | 86.2% / 0.9261 |
+| Q | Full | 2.39 / 0.77 / 43 / 62.8% | 1.99 / 0.72 / 21 / 61.9% | -7.9133 | 0.9680 | 0.0741 | 85.3% / 0.9333 |
+| Y | Diagonal | 2.18 / 0.51 / 39 / 51.3% | 1.96 / 0.69 / 10 / 40.0% | -10.1541 | 0.9602 | 0.0774 | 82.8% / 0.9222 |
+| Y | Full | 1.92 / 0.47 / 39 / 56.4% | 1.51 / 0.52 / 15 / 46.7% | -9.1292 | 0.9655 | 0.0716 | 83.6% / 0.9335 |
+
+Full covariance improved held-out likelihood for A, B, Q, and Y, but slightly worsened K.
+Trading metrics were mixed: B's dev metrics improved while its test PF fell; Q had more trades
+but lower test PF/Sharpe; Y weakened on both PF and Sharpe. None reached 100 dev trades. The
+full dev/test partition fields (trend, random-pick baselines, skill, bias, skill%, Sharpe, PF,
+trades, and win rate) are preserved in
+[`results/hmm_regime/gaussian_covariance_comparison.csv`](../../../results/hmm_regime/gaussian_covariance_comparison.csv);
+each variant report also contains the full partition tables. Test results are already inspected
+and are not a fresh holdout.---|
+
 ## PCA experiments
 
 | Experiment | Input feature set                 | PCA components  | Covariance type |
@@ -206,6 +247,11 @@ fit penalty for every extra column. Nothing clears the winner bar (>= 100 dev tr
 | PCA-F      | Promising expanded set (e.g., AB) | 2, 3, 4, 5, 6   | Diagonal, Full  |
 
 Controls: Fit scaler and PCA on training data only; whitening off; keep state count, seeds, trading logic, and walk-forward splits fixed.
+
+## PCA Exp Results
+
+| Experiment | Dev/Test PF | Dev/Test Sharpe | Dev/Test Trades | Out-of-sample log likelihood | Regime persistence | Transition frequency | State stability | Downstream trading performance |
+|---|---|---|---|---|---|---|---|---|---|
 
 ## XGBoost state-classification experiments
 
