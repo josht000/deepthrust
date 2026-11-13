@@ -62,6 +62,8 @@ pub struct Config {
     #[serde(default = "d_fills")]
     pub fills: String,
     pub partition_split_date: String,
+    #[serde(default)]
+    pub eval_start_date: String,
     #[serde(default = "d_draws")]
     pub n_draws: usize,
     #[serde(default = "d_boot")]

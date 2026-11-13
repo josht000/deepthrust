@@ -2589,9 +2589,35 @@ impl<'a> Study<'a> {
         let n_rows = panel.dates.len();
         let split = data::parse_date(&cfg.partition_split_date)?;
         let split_row = panel.dates.partition_point(|d| *d < split);
-        let first = (0..n_rows)
+        let eval_row = if cfg.eval_start_date.trim().is_empty() {
+            0
+        } else {
+            let eval_start = data::parse_date(&cfg.eval_start_date)?;
+            panel.dates.partition_point(|d| *d < eval_start)
+        };
+        if eval_row > 0 {
+            for t in 0..eval_row {
+                for column in sig.signal.iter_mut() {
+                    column[t] = false;
+                }
+                for column in sig.exit_now.iter_mut() {
+                    column[t] = false;
+                }
+                if let Some(add) = sig.add_signal.as_mut() {
+                    for column in add.iter_mut() {
+                        column[t] = false;
+                    }
+                }
+                if let Some(weights) = sig.trade_weights.as_mut() {
+                    for column in weights.iter_mut() {
+                        column[t] = 0.0;
+                    }
+                }
+            }
+        }
+        let first = (eval_row..n_rows)
             .find(|&t| sig.tradable.iter().any(|c| c[t]))
-            .unwrap_or(0);
+            .unwrap_or(eval_row);
         let masks: Masks = vec![
             (
                 "dev".into(),

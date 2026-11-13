@@ -39,24 +39,6 @@ Pass `--debug` to print them; `run_strats.bat --debug` forwards the option to ev
 deterministic random-pick draw per configuration; `--cash-only` builds and runs just that screen,
 skipping all other strategies. This is a screening run, not robust placebo evaluation.
 
-## TA-Lib indicators
-
-DeepThrust depends on the pure-Rust `ta-lib` crate; no native TA-Lib installation is required.
-The `deepthrust::ta_indicators` module exposes `sma`, `rsi`, and `atr` helpers that return
-bar-aligned vectors with `NaN` during each indicator's warm-up period. For example:
-
-```rust
-use deepthrust::ta_indicators;
-
-let rsi = ta_indicators::rsi(&[10.0, 11.0, 12.0, 10.0], 2)?;
-```
-
-These helpers follow TA-Lib's indicator initialization and lookback rules; RSI restarts its
-lookback after non-finite price gaps. The RSI signals used by DeepThrust now call this TA-Lib
-implementation, so RSI-driven study results can change where the previous hand-written
-initialization differed. Other existing signal calculations are unchanged. `Cargo.lock` pins the
-resolved crate versions for repeatable builds.
-
 After the standard strategy matrix completes, `run_strats.bat` rebuilds
 `results/all_trade_metrics.csv` from the saved partition DEV/TEST CSVs.
 Each strategy may use the legacy single-source keys (`data_dir`, `data_suffix`, `symbols`) or a `sources:` list

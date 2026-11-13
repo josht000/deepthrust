@@ -196,6 +196,7 @@ fn append_trial_record(cfg: &Config, study: &Study<'_>, results: &Path) -> Resul
         "exit_rsi": cfg.exit_rsi,
         "cost_bps_per_side": cfg.cost_bps_per_side,
         "fills": cfg.fills,
+        "eval_start_date": cfg.eval_start_date,
         "gap_atr_multiple": cfg.gap_atr_multiple,
         "gap_volume_multiple": cfg.gap_volume_multiple,
         "gap_volume_window": cfg.gap_volume_window,

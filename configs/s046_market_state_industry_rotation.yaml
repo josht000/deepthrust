@@ -5,6 +5,7 @@ benchmark: ""
 industry_data_file: C:\data\trading\deepthrust\data\cache\ff49\industries\49_Industry_Portfolios.csv
 market_factor_file: C:\data\trading\deepthrust\data\cache\ff49\factors\F-F_Research_Data_Factors.csv
 start_date: "1926-07-01"
+eval_start_date: "2016-01-01"
 min_history: 60
 formation_window: 60
 analog_count: 50
@@ -14,7 +15,7 @@ cost_bps_per_side: 5.0
 borrow_bps_annual: 300.0
 periods_per_year: 12
 fills: close
-partition_split_date: "2008-01-01"
+partition_split_date: "2024-01-01"
 n_draws: 1000
 n_boot: 5000
 seed: 20261101
