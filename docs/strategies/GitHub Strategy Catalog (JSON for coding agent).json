@@ -365,6 +365,7 @@
     },
     {
       "id": "G010",
+      "status": "implemented",
       "name": "Crypto Spot Z-Score Mean-Reversion + Rolling-Momentum Signal Blend",
       "category": "Single-Asset Mean Reversion (oscillators, bands, z-score)",
       "entry_type": "full",
@@ -2386,6 +2387,7 @@
     },
     {
       "id": "G063",
+      "status": "implemented",
       "name": "Treasury Futures Z/T-Score Relative-Value Entry",
       "category": "Pairs, Spread and Statistical Arbitrage",
       "entry_type": "full",
@@ -2926,6 +2928,7 @@
     },
     {
       "id": "G077",
+      "status": "implemented",
       "name": "CTA 1.0 Binary EWM Crossover",
       "category": "Trend Following and Breakout",
       "entry_type": "full",
@@ -2966,6 +2969,7 @@
     },
     {
       "id": "G078",
+      "status": "implemented",
       "name": "CTA 2.0 Volatility-Scaled EWM Crossover",
       "category": "Trend Following and Breakout",
       "entry_type": "full",
@@ -3006,6 +3010,7 @@
     },
     {
       "id": "G079",
+      "status": "implemented",
       "name": "CTA 3.0 Robust Volatility-Adjusted Oscillator",
       "category": "Trend Following and Breakout",
       "entry_type": "full",
@@ -3056,6 +3061,7 @@
     },
     {
       "id": "G080",
+      "status": "implemented",
       "name": "CTA 4.0 Robust Oscillator with Risk-Parity Allocation",
       "category": "Trend Following and Breakout",
       "entry_type": "full",
@@ -3101,6 +3107,7 @@
     },
     {
       "id": "G081",
+      "status": "implemented",
       "name": "CTA 5.0 DCC Correlation-Aware Risk Parity",
       "category": "Trend Following and Breakout",
       "entry_type": "full",
@@ -3266,6 +3273,7 @@
     },
     {
       "id": "G085",
+      "status": "implemented",
       "name": "Local-Extreme Futures Breakout",
       "category": "Trend Following and Breakout",
       "entry_type": "full",
@@ -3632,6 +3640,7 @@
     },
     {
       "id": "G095",
+      "status": "implemented",
       "name": "Singular-Spectrum-Analysis Trend Signal",
       "category": "Trend Following and Breakout",
       "entry_type": "full",
@@ -4080,6 +4089,7 @@
     },
     {
       "id": "G106",
+      "status": "implemented",
       "name": "Cross-Sectional 252-Session Commodity Momentum",
       "category": "Momentum, Rotation and Cross-Sectional Factors",
       "entry_type": "full",
@@ -4190,6 +4200,7 @@
     },
     {
       "id": "G109",
+      "status": "implemented",
       "name": "Cross-Sectional Skewness Risk-Premium Signal",
       "category": "Momentum, Rotation and Cross-Sectional Factors",
       "entry_type": "full",
@@ -4371,6 +4382,7 @@
     },
     {
       "id": "G114",
+      "status": "implemented",
       "name": "NSE Stock Scanner - Momentum/Swing Screening Signals",
       "category": "Momentum, Rotation and Cross-Sectional Factors",
       "entry_type": "full",
@@ -5334,6 +5346,7 @@
     },
     {
       "id": "G139",
+      "status": "implemented",
       "name": "VIX Term-Structure and Pair-Spread Volatility Study",
       "category": "Volatility and Options-Derived Signals",
       "entry_type": "full",

@@ -11,6 +11,8 @@ clone SHA). Overlaps with the existing 105-strategy catalog are marked `overlap:
 Priorities: **High** = daily-native + precise rules + real mechanism or lineage; **Medium** =
 clear rules, weaker evidence or needs adaptation; **Low** = intraday-only / weak / anti-pattern.
 Repo-claimed metrics are marked `(repo-claimed, unverified)` - nothing here was re-backtested.
+`IMPLEMENTED` marks strategies registered in the Rust study runner; it does not imply that
+their performance has been validated.
 
 **209 strategies** (9 High, 59 Medium, 141 Low)
 
