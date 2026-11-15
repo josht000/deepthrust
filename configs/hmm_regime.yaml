@@ -37,6 +37,7 @@ hmm_ma_fast: 10
 hmm_ma_slow: 50
 
 variants:
+  spy_base: {hmm_states: 3}
   k2: {hmm_states: 2}
   k4: {hmm_states: 4}
   k5: {hmm_states: 5}
