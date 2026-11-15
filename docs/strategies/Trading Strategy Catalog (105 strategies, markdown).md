@@ -104,17 +104,11 @@
     - [S087 | 20-Day-EMA Pullback in Uptrend](#s087--20-day-ema-pullback-in-uptrend) — NOT_DAILY, DEFER
     - [S088 | MACD Bullish Cross with Volume](#s088--macd-bullish-cross-with-volume) — IMPLEMENTED
     - [S089 | Golden Cross with Slope Filter](#s089--golden-cross-with-slope-filter) — IMPLEMENTED — DAILY, DELTA
-    - [S090 | KAMA Breakout](#s090--kama-breakout)
-    - [S091 | Donchian 55 with Chandelier Trail](#s091--donchian-55-with-chandelier-trail) — IMPLEMENTED — DELTA
-    - [S088 | MACD Bullish Cross with Volume](#s088--macd-bullish-cross-with-volume)
-    - [S089 | Golden Cross with Slope Filter](#s089--golden-cross-with-slope-filter)
     - [S090 | KAMA Breakout](#s090--kama-breakout) — IMPLEMENTED — DELTA
-    - [S091 | Donchian 55 with Chandelier Trail](#s091--donchian-55-with-chandelier-trail)
+    - [S091 | Donchian 55 with Chandelier Trail](#s091--donchian-55-with-chandelier-trail) — IMPLEMENTED — DELTA
     - [S093 | Higher-Low Reversal Entry](#s093--higher-low-reversal-entry) — NOT_DAILY, DEFER
-    - [S094 | Bollinger Squeeze Breakout](#s094--bollinger-squeeze-breakout)
-    - [S095 | Keltner Channel Breakout](#s095--keltner-channel-breakout) — IMPLEMENTED — DAILY, DELTA
     - [S094 | Bollinger Squeeze Breakout](#s094--bollinger-squeeze-breakout) — IMPLEMENTED
-    - [S095 | Keltner Channel Breakout](#s095--keltner-channel-breakout)
+    - [S095 | Keltner Channel Breakout](#s095--keltner-channel-breakout) — IMPLEMENTED — DAILY, DELTA
 - [Family 10 — Candlestick and Bar Patterns](#family-10--candlestick-and-bar-patterns)
     - [S096 | Three-Bar Reversal (Bulkowski)](#s096--three-bar-reversal-bulkowski) — NOT_DAILY, DEFER
     - [S097 | Bullish Engulfing After Down-Streak](#s097--bullish-engulfing-after-down-streak) — IMPLEMENTED — DAILY, DELTA
