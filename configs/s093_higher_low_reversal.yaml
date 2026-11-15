@@ -1,0 +1,70 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_split
+data_suffix: .parquet
+symbols: "*"
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+earnings_dates_file: data\pit\earnings_events.csv
+start_date: "2016-01-01"
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+sma_window: 200
+exit_sma: 10
+pullback_days: 5
+s093_decline_mode: drawdown
+s093_drawdown_pct: 0.05
+s093_drawdown_window: 10
+s093_rsi_threshold: 40.0
+s093_earnings_mode: include
+volume_multiple: 1.2
+volume_window: 20
+max_hold: 8
+earnings_window_sessions: 3
+cost_bps_per_side: 15.0
+fills: next_open,close
+delisting_return: -0.30
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261114
+
+variants:
+  drawdown2: {s093_drawdown_pct: 0.02}
+  drawdown3: {s093_drawdown_pct: 0.03}
+  drawdown75: {s093_drawdown_pct: 0.075}
+  drawdown5: {s093_drawdown_window: 5}
+  drawdown7: {s093_drawdown_window: 7}
+  rsi5: {s093_decline_mode: rsi5}
+  rsi35: {s093_decline_mode: rsi5, s093_rsi_threshold: 35}
+  rsi45: {s093_decline_mode: rsi5, s093_rsi_threshold: 45}
+  no_decline: {s093_decline_mode: none}
+  avoid_earnings: {s093_earnings_mode: exclude}
+  dd3_avoid_earnings: {s093_drawdown_pct: 0.03, s093_earnings_mode: exclude}
+  dd5_avoid_earnings: {s093_earnings_mode: exclude}
+  volume10: {volume_window: 10}
+  volume50: {volume_window: 50}
+  volume1: {volume_multiple: 1.0}
+  volume15: {volume_multiple: 1.5}
+  sma100: {sma_window: 100}
+  sma150: {sma_window: 150}
+  sma250: {sma_window: 250}
+  exit5: {exit_sma: 5}
+  exit15: {exit_sma: 15}
+  hold5: {max_hold: 5}
+  hold10: {max_hold: 10}
+  hold15: {max_hold: 15}
+  top250: {universe_top_n: 250}
+  top1000: {universe_top_n: 1000}
+  history126: {min_history: 126}
+  fill_close: {fills: close}
+  cost10: {cost_bps_per_side: 10}
+  cost5: {cost_bps_per_side: 5}
+  dd3_hold5: {s093_drawdown_pct: 0.03, max_hold: 5}
+  dd3_top250: {s093_drawdown_pct: 0.03, universe_top_n: 250}
+  no_decline_volume15: {s093_decline_mode: none, volume_multiple: 1.5}
+  rsi5_hold10: {s093_decline_mode: rsi5, max_hold: 10}
+  dd7_volume15: {s093_drawdown_pct: 0.075, volume_multiple: 1.5}

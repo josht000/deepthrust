@@ -598,6 +598,20 @@ pub struct Config {
     pub volume_window: usize,
     #[serde(default = "d_volume_mode")]
     pub volume_mode: String,
+    #[serde(default)]
+    pub s087_pullback_depth: f64,
+    #[serde(default = "d_s087_earnings_mode")]
+    pub s087_earnings_mode: String,
+    #[serde(default = "d_s093_decline_mode")]
+    pub s093_decline_mode: String,
+    #[serde(default = "d_s093_drawdown_pct")]
+    pub s093_drawdown_pct: f64,
+    #[serde(default = "d_s093_drawdown_window")]
+    pub s093_drawdown_window: usize,
+    #[serde(default = "d_s093_rsi_threshold")]
+    pub s093_rsi_threshold: f64,
+    #[serde(default = "d_s093_earnings_mode")]
+    pub s093_earnings_mode: String,
     #[serde(default = "d_require_macd_positive")]
     pub require_macd_positive: bool,
     #[serde(default = "d_pair_dist")]
@@ -1302,6 +1316,24 @@ fn d_volume_window() -> usize {
 }
 fn d_volume_mode() -> String {
     "median".into()
+}
+fn d_s087_earnings_mode() -> String {
+    "include".into()
+}
+fn d_s093_decline_mode() -> String {
+    "drawdown".into()
+}
+fn d_s093_drawdown_pct() -> f64 {
+    0.05
+}
+fn d_s093_drawdown_window() -> usize {
+    10
+}
+fn d_s093_rsi_threshold() -> f64 {
+    40.0
+}
+fn d_s093_earnings_mode() -> String {
+    "include".into()
 }
 fn d_require_macd_positive() -> bool {
     true

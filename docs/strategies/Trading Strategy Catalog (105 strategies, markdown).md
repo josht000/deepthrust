@@ -101,12 +101,12 @@
     - [S081 | Pre-FOMC Announcement Drift](#s081--pre-fomc-announcement-drift) — NOT_DAILY, DEFER
     - [S082 | Options-Expiration-Week Drift](#s082--options-expiration-week-drift) — IMPLEMENTED — DELTA
 - [Family 9 — Trend and Pullback Systems (Stocks)](#family-9--trend-and-pullback-systems-stocks)
-    - [S087 | 20-Day-EMA Pullback in Uptrend](#s087--20-day-ema-pullback-in-uptrend) — NOT_DAILY, DEFER
+    - [S087 | 20-Day-EMA Pullback in Uptrend](#s087--20-day-ema-pullback-in-uptrend) — IMPLEMENTED — DELTA
     - [S088 | MACD Bullish Cross with Volume](#s088--macd-bullish-cross-with-volume) — IMPLEMENTED
     - [S089 | Golden Cross with Slope Filter](#s089--golden-cross-with-slope-filter) — IMPLEMENTED — DAILY, DELTA
     - [S090 | KAMA Breakout](#s090--kama-breakout) — IMPLEMENTED — DELTA
     - [S091 | Donchian 55 with Chandelier Trail](#s091--donchian-55-with-chandelier-trail) — IMPLEMENTED — DELTA
-    - [S093 | Higher-Low Reversal Entry](#s093--higher-low-reversal-entry) — NOT_DAILY, DEFER
+    - [S093 | Higher-Low Reversal Entry](#s093--higher-low-reversal-entry) — IMPLEMENTED — DELTA
     - [S094 | Bollinger Squeeze Breakout](#s094--bollinger-squeeze-breakout) — IMPLEMENTED
     - [S095 | Keltner Channel Breakout](#s095--keltner-channel-breakout) — IMPLEMENTED — DAILY, DELTA
 - [Family 10 — Candlestick and Bar Patterns](#family-10--candlestick-and-bar-patterns)
@@ -227,7 +227,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 | DP-VIX | CBOE VIX 1990+, VIX3M 2009+ and VIX9D 2011+; CBOE-sourced FRED VXVCLS supplements VIX3M back to 2007-12-04 (overlap validated). | tools/fetch_cboe_vol.py |
 | DP-FRED | 3-month T-bill (cash proxy before BIL, 2007) and 10Y/2Y yields from FRED. | scripts/fetch_fred_rates.py (to build) |
 | DP-FORM4 | SEC Form 3/4/5 quarterly bulk TSVs (2006Q1-2026Q3) are in the sibling trading_framework cache; normalized owner events use AFF10B5ONE where available and linked-footnote/remarks regex as a voluntary-disclosure proxy before 2023. | tools/build_form4_dataset.py |
-| DP-EARN | Earnings-event table from SimFin `Publish Date` (3,705 tickers from 2009), quarterly EPS for SUE, EDGAR 8-K Item 2.02 `acceptance_utc` (2023-09+) for BMO/AMC classification. | scripts/build_earnings_events.py (to build) |
+| DP-EARN | Earnings events from SEC 8-K Item 2.02 acceptance timestamps and SimFin quarterly `Publish Date`, 2016-01 onward. DELTA: the local SimFin quarterly file begins 2020-11-26, so SEC 8-K Item 2.02 filings backfill earlier years; releases not reported on an 8-K may be absent. The local normalized table is `data/pit/earnings_events.csv` (main checkout: `C:\data\trading\deepthrust\data\pit\earnings_events.csv`); resumable SEC response cache: `data/pit/earnings_events_sec_cache/`. The default build covers symbols ever in the PIT top-500 during the date range, mapping historical tickers to CIK via local `reference.parquet` and the liquid-rank cache, supplemented by SimFin `us-companies.csv`. The completed build contains 48,644 events from 2016-01-06 through 2026-11-13 (36,995 SEC and 11,649 SimFin rows); APHA, BBL, and WP lack mappings. Its manifest records event coverage and any unmapped symbols. Use `--universe-top-n 0` for all ranked symbols. Rebuild with `tools/build_earnings_events.py`; it requires a contact email in the SEC User-Agent. | builder added; data built |
 | DP-CAL | Exchange holiday, FOMC, options-expiry and ex-dividend calendars (dividends 2016+ from Alpaca corporate actions or Polygon/Massive; SimFin Dividend only 2020-11 to 2025-10). | calendar builders (to build) |
 | D1 | data/cache/daily_10years: 11,024 stock symbols, 2016-01-04 onward, split-adjusted only, delisted names included. | exists |
 | DP-NEWS | data/pit/news/news.parquet: 75,262 rows, 1,919 symbols, effectively 2023-09 to 2026-10 (Alpaca/Benzinga); live capture via src/data/news_client.py. | exists (short window) |
@@ -831,7 +831,7 @@ These are build tasks outside the catalog; strategies whose prerequisites are mi
 
 ### S030 | Down-Streak Reversal (5+ Days)
 - family: cross-sectional short-term reversal
-- ohlcv_status: NOT_DAILY, DEFER
+- ohlcv_status: DAILY, DELTA
 - concept: Consecutive down days are serially overpredicted by panic sellers; Connors' dip-buying rules show that within uptrends, streaks of down closes are bought profitably.
 - universe: liquid stocks above $5 with 200-day history
 - direction: long
@@ -2027,7 +2027,7 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 
 ### S087 | 20-Day-EMA Pullback in Uptrend
 - family: trend and pullback
-- ohlcv_status: NOT_DAILY, DEFER
+- ohlcv_status: DAILY, DELTA
 - concept: A liquid stock in a long-term uptrend (above 200-day SMA) that pulls back to its 20-day EMA is at the institutional buy zone; entries at the EMA get trend exposure at discount prices.
 - universe: S&P 500 stocks
 - direction: long
@@ -2044,6 +2044,7 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - parameter_variants: pullback depth x {none, 2%, 3%, 5%}; earnings window {included, excluded}
 - data_needs: daily_10years (D1) + earnings flag (DP-EARN)
 - review: RESOLVED
+- implementation_results: **IMPLEMENTED — DELTA.** Rust in `src/family9.rs`, config `configs/s087_ema20_pullback.yaml`; earnings calendar at `data/pit/earnings_events.csv`. Tested baseline and six core depth/earnings overlays, both `next_open` (primary; no 15:50 minute data) and `close` (upper bound), 15 bps/side, PIT top-500 rank filter; evaluation 2016-12-29 through 2026-10-23, dev/test split 2024-01-01. Selected `depth2` by DEV `next_open` skill (-1.046; 29,535 trades, total log -0.295, trend 0.751, random-pick universe/pool -0.647/-0.297, bias 0, Sharpe -0.149, PF 0.945, win 58.5%). Only selected-variant TEST: 14,020 trades, total log -0.252, trend 0.469, random-pick universe/pool -0.137/-0.217, bias 0, skill -0.722 (skill% n/a), Sharpe -0.371, PF 0.956, win 56.5%. The selected variant remains negative versus trend; not recommended as an alpha signal. Reproduce: `cargo run --release --bin deepthrust -- --strategy s087_ema20_pullback --variant depth2`.
 
 ### S088 | MACD Bullish Cross with Volume
 - family: trend and pullback
@@ -2140,7 +2141,7 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 
 ### S093 | Higher-Low Reversal Entry
 - family: trend and pullback
-- ohlcv_status: NOT_DAILY, DEFER
+- ohlcv_status: DAILY, DELTA
 - concept: After a decline, two consecutive sessions with higher lows signal sellers are exhausted; volume confirmation marks accumulation (Wyckoff-style daily-bar pattern). As originally written the rule selected an ongoing rise, so a prior-decline precondition is now explicit.
 - universe: liquid stocks
 - direction: long
@@ -2157,6 +2158,7 @@ and is not fill-timing-matched; the inspected TEST results are not fresh evidenc
 - parameter_variants: decline definition {A: drawdown >= x%, B: RSI(5) < 40}; control {no precondition}
 - data_needs: daily_10years (D1) + earnings flag (DP-EARN)
 - review: RESOLVED
+- implementation_results: **IMPLEMENTED — DELTA.** Rust in `src/family9.rs` (registered in `src/study.rs`), config `configs/s093_higher_low_reversal.yaml`; earnings calendar at `data/pit/earnings_events.csv`. Tested baseline plus seven core overlays, including drawdown windows, RSI(5), no-decline control, and earnings exclusions; next_open primary (no 15:50 minute data) and close upper bound, 15 bps/side, PIT top-500 rank filter; evaluation 2016-12-29 through 2026-10-23, dev/test split 2024-01-01. Selected `drawdown5` (`s093_drawdown_window: 5`) by DEV next_open skill among actual-decline candidates. DEV: 779 trades, total log -1.288, trend +0.224, random-pick universe/pool -1.005/-1.288, bias 0, skill -1.512 (skill% n/a), Sharpe -0.446, PF 0.791, win 45.3%. Only selected-variant TEST: 446 trades, total log -1.484, trend +0.235, random-pick universe/pool -0.434/-1.484, bias 0, skill -1.719 (skill% n/a), Sharpe -1.286, PF 0.705, win 42.8%. The selected variant remains negative versus trend; not recommended as an alpha signal. Reproduce: `cargo run --release --bin deepthrust -- --strategy s093_higher_low_reversal --variant drawdown5`.
 
 ### S094 | Bollinger Squeeze Breakout
 - family: trend and pullback

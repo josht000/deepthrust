@@ -1,0 +1,65 @@
+data_dir: C:\data\trading\trading_framework\data\cache\daily_10years_split
+data_suffix: .parquet
+symbols: "*"
+rank_cache_dir: C:\data\trading\trading_framework\data\cache\liquid_ranks
+benchmark: SPY
+benchmark_data_dir: C:\data\trading\trading_framework\data\cache\etf_tr
+benchmark_data_suffix: .parquet
+earnings_dates_file: data\pit\earnings_events.csv
+start_date: "2016-01-01"
+min_history: 250
+rank_window: 60
+rank_min_observations: 40
+min_price: 5.0
+universe_top_n: 500
+sma_window: 200
+exit_sma: 10
+ema_len: 20
+pullback_days: 3
+s087_pullback_depth: 0.0
+s087_earnings_mode: include
+atr_len: 14
+max_hold: 8
+earnings_window_sessions: 3
+cost_bps_per_side: 15.0
+fills: next_open,close
+delisting_return: -0.30
+partition_split_date: "2024-01-01"
+n_draws: 1000
+n_boot: 5000
+seed: 20261114
+
+variants:
+  depth2: {s087_pullback_depth: 0.02}
+  depth3: {s087_pullback_depth: 0.03}
+  depth5: {s087_pullback_depth: 0.05}
+  avoid_earnings: {s087_earnings_mode: exclude}
+  d2_avoid_earnings: {s087_pullback_depth: 0.02, s087_earnings_mode: exclude}
+  d3_avoid_earnings: {s087_pullback_depth: 0.03, s087_earnings_mode: exclude}
+  ema15: {ema_len: 15}
+  ema25: {ema_len: 25}
+  sma100: {sma_window: 100}
+  sma150: {sma_window: 150}
+  sma250: {sma_window: 250}
+  exit5: {exit_sma: 5}
+  exit15: {exit_sma: 15}
+  exit20: {exit_sma: 20}
+  hold5: {max_hold: 5}
+  hold10: {max_hold: 10}
+  hold15: {max_hold: 15}
+  pullback5: {pullback_days: 5}
+  top250: {universe_top_n: 250}
+  top1000: {universe_top_n: 1000}
+  history126: {min_history: 126}
+  fill_close: {fills: close}
+  cost10: {cost_bps_per_side: 10}
+  cost5: {cost_bps_per_side: 5}
+  d2_hold5: {s087_pullback_depth: 0.02, max_hold: 5}
+  d3_exit5: {s087_pullback_depth: 0.03, exit_sma: 5}
+  d3_exit15: {s087_pullback_depth: 0.03, exit_sma: 15}
+  d3_hold10: {s087_pullback_depth: 0.03, max_hold: 10}
+  d5_hold10: {s087_pullback_depth: 0.05, max_hold: 10}
+  d2_top250: {s087_pullback_depth: 0.02, universe_top_n: 250}
+  d3_top250: {s087_pullback_depth: 0.03, universe_top_n: 250}
+  d2_sma150: {s087_pullback_depth: 0.02, sma_window: 150}
+  d3_avoid_top250: {s087_pullback_depth: 0.03, s087_earnings_mode: exclude, universe_top_n: 250}

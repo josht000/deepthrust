@@ -17,7 +17,7 @@
       "DP-VIX": "CBOE VIX, VIX3M (former VXV) and VIX9D daily history (free CSVs; re-verify URLs).",
       "DP-FRED": "3-month T-bill (cash proxy before BIL, 2007) and 10Y/2Y yields from FRED.",
       "DP-FORM4": "SEC Insider Transactions Data Sets (quarterly bulk TSV, 2006+); no Form 4 in data/pit/edgar today.",
-      "DP-EARN": "Earnings-event table from SimFin `Publish Date` (3,705 tickers from 2009), quarterly EPS for SUE, EDGAR 8-K Item 2.02 `acceptance_utc` (2023-09+) for BMO/AMC classification.",
+      "DP-EARN": "Earnings events from SEC 8-K Item 2.02 acceptance timestamps and SimFin quarterly Publish Date, 2016-01 onward. Local SimFin quarterly file starts 2020-11-26, so SEC 8-K Item 2.02 filings backfill earlier years; releases not reported on an 8-K may be absent. Local normalized table: data/pit/earnings_events.csv; resumable SEC response cache: data/pit/earnings_events_sec_cache/. Default build covers symbols ever in PIT top-500; historical ticker-to-CIK mapping uses PIT reference.parquet and liquid-rank cache, supplemented by SimFin us-companies.csv. Completed build: 48,644 rows from 2016-01-06 through 2026-11-13 (36,995 SEC and 11,649 SimFin); unmapped symbols: APHA, BBL, WP. Manifest records event coverage and unmapped symbols. Use --universe-top-n 0 for all ranked symbols. Rebuild with tools/build_earnings_events.py; it requires a contact email for the SEC User-Agent.",
       "DP-CAL": "Exchange holiday, FOMC, options-expiry and ex-dividend calendars (dividends 2016+ from Alpaca corporate actions or Polygon/Massive; SimFin Dividend only 2020-11 to 2025-10).",
       "D1": "data/cache/daily_10years: 11,024 stock symbols, 2016-01-04 onward, split-adjusted only, delisted names included.",
       "DP-NEWS": "data/pit/news/news.parquet: 75,262 rows, 1,919 symbols, effectively 2023-09 to 2026-10 (Alpaca/Benzinga); live capture via src/data/news_client.py."
@@ -1943,6 +1943,7 @@
       "parameter_variants": "pullback depth x {none, 2%, 3%, 5%}; earnings window {included, excluded}",
       "data_needs": "daily_10years (D1) + earnings flag (DP-EARN)",
       "review": "RESOLVED",
+      "implementation_results": "IMPLEMENTED — DELTA. Rust in src/family9.rs; config configs/s087_ema20_pullback.yaml; local earnings calendar data/pit/earnings_events.csv. Tested baseline plus six core depth/earnings variants with next_open primary (no 15:50 minute data) and close upper bound, 15 bps/side, PIT top-500 rank filter; evaluation 2016-12-29 through 2026-10-23, split 2024-01-01. Selected depth2 on DEV next_open skill (-1.046; 29,535 trades, total log -0.295, trend 0.751, random-pick universe/pool -0.647/-0.297, bias 0, Sharpe -0.149, PF 0.945, win 58.5%). Only selected-variant TEST: 14,020 trades, total log -0.252, trend 0.469, random-pick universe/pool -0.137/-0.217, bias 0, skill -0.722 (skill% n/a), Sharpe -0.371, PF 0.956, win 56.5%. Selected variant remains negative versus trend; not recommended as an alpha signal. Reproduce: cargo run --release --bin deepthrust -- --strategy s087_ema20_pullback --variant depth2.",
       "frequency_class": "swing"
     },
     {
@@ -2063,6 +2064,7 @@
       "parameter_variants": "decline definition {A: drawdown >= x%, B: RSI(5) < 40}; control {no precondition}",
       "data_needs": "daily_10years (D1) + earnings flag (DP-EARN)",
       "review": "RESOLVED",
+      "implementation_results": "IMPLEMENTED — DELTA. Rust in src/family9.rs (registered in src/study.rs), config configs/s093_higher_low_reversal.yaml; earnings calendar at data/pit/earnings_events.csv. Tested baseline plus seven core overlays, including drawdown windows, RSI(5), no-decline control, and earnings exclusions; next_open primary (no 15:50 minute data) and close upper bound, 15 bps/side, PIT top-500 rank filter; evaluation 2016-12-29 through 2026-10-23, dev/test split 2024-01-01. Selected drawdown5 (s093_drawdown_window: 5) by DEV next_open skill among actual-decline candidates. DEV: 779 trades, total log -1.288, trend +0.224, random-pick universe/pool -1.005/-1.288, bias 0, skill -1.512 (skill% n/a), Sharpe -0.446, PF 0.791, win 45.3%. Only selected-variant TEST: 446 trades, total log -1.484, trend +0.235, random-pick universe/pool -0.434/-1.484, bias 0, skill -1.719 (skill% n/a), Sharpe -1.286, PF 0.705, win 42.8%. The selected variant remains negative versus trend; not recommended as an alpha signal. Reproduce: cargo run --release --bin deepthrust -- --strategy s093_higher_low_reversal --variant drawdown5.",
       "frequency_class": "swing"
     },
     {

@@ -1012,6 +1012,569 @@ pub fn s095_trades(
     });
     Ok(trades)
 }
+
+pub const S087_NAME: &str = "s087_ema20_pullback";
+pub const S087_TITLE: &str = "S087 20-Day-EMA Pullback in Uptrend";
+pub const S093_NAME: &str = "s093_higher_low_reversal";
+pub const S093_TITLE: &str = "S093 Higher-Low Reversal Entry";
+
+fn earnings_exclusion(
+    panel: &Panel,
+    earnings_by_symbol: &std::collections::HashMap<String, Vec<chrono::NaiveDate>>,
+    symbol: usize,
+    day: usize,
+    window: usize,
+) -> bool {
+    let ticker = crate::family4::canonical_ticker(&panel.symbols[symbol]);
+    let Some(events) = earnings_by_symbol.get(&ticker) else {
+        return false;
+    };
+    events.iter().any(|event| {
+        let event_day = panel.dates.partition_point(|date| date < event);
+        event_day < panel.dates.len() && event_day.abs_diff(day) <= window
+    })
+}
+
+fn s087_validate(cfg: &Config) -> Result<(), String> {
+    if cfg.sma_window < 2
+        || cfg.exit_sma < 2
+        || cfg.ema_len < 2
+        || cfg.atr_len < 1
+        || cfg.max_hold == 0
+    {
+        return Err("S087 requires SMA windows >= 2, ATR length >= 1 and max_hold > 0".into());
+    }
+    if cfg.pullback_days == 0 {
+        return Err("S087 pullback_days must be greater than zero".into());
+    }
+    if !cfg.s087_pullback_depth.is_finite() || !(0.0..1.0).contains(&cfg.s087_pullback_depth) {
+        return Err("S087 pullback depth must be in [0, 1)".into());
+    }
+    if !matches!(cfg.s087_earnings_mode.as_str(), "include" | "exclude") {
+        return Err(format!(
+            "unknown S087 earnings mode {:?}",
+            cfg.s087_earnings_mode
+        ));
+    }
+    Ok(())
+}
+
+fn s093_validate(cfg: &Config) -> Result<(), String> {
+    if cfg.sma_window < 2 || cfg.exit_sma < 2 || cfg.max_hold == 0 || cfg.volume_window == 0 {
+        return Err("S093 requires SMA windows >= 2, volume_window > 0 and max_hold > 0".into());
+    }
+    if !matches!(
+        cfg.s093_decline_mode.as_str(),
+        "drawdown" | "rsi5" | "none"
+    ) {
+        return Err(format!(
+            "unknown S093 decline mode {:?}",
+            cfg.s093_decline_mode
+        ));
+    }
+    if !cfg.s093_drawdown_pct.is_finite() || !(0.0..1.0).contains(&cfg.s093_drawdown_pct) {
+        return Err("S093 drawdown threshold must be in [0, 1)".into());
+    }
+    if cfg.s093_drawdown_window == 0 || cfg.pullback_days == 0 {
+        return Err("S093 decline and RSI lookback windows must be greater than zero".into());
+    }
+    if !cfg.s093_rsi_threshold.is_finite()
+        || !(0.0..=100.0).contains(&cfg.s093_rsi_threshold)
+    {
+        return Err("S093 RSI threshold must be in [0, 100]".into());
+    }
+    if !cfg.volume_multiple.is_finite() || cfg.volume_multiple < 0.0 {
+        return Err("S093 volume_multiple must be finite and nonnegative".into());
+    }
+    if !matches!(cfg.s093_earnings_mode.as_str(), "include" | "exclude") {
+        return Err(format!(
+            "unknown S093 earnings mode {:?}",
+            cfg.s093_earnings_mode
+        ));
+    }
+    Ok(())
+}
+
+fn family9_stock_ranks(panel: &Panel, cfg: &Config) -> Result<Vec<Vec<f64>>, String> {
+    if cfg.rank_cache_dir.trim().is_empty() {
+        let columns: Vec<_> = (0..panel.symbols.len()).collect();
+        data::liquidity_ranks(
+            panel,
+            &columns,
+            cfg.rank_window,
+            cfg.rank_min_observations,
+            cfg.min_price,
+            cfg.min_history,
+        )
+    } else {
+        data::read_liquid_rank_cache(&cfg.rank_cache_dir, &panel.dates, &panel.symbols)
+    }
+}
+
+fn family9_earnings(
+    cfg: &Config,
+    earnings_mode: &str,
+) -> Result<Option<std::collections::HashMap<String, Vec<chrono::NaiveDate>>>, String> {
+    if earnings_mode == "include" {
+        return Ok(None);
+    }
+    if cfg.earnings_dates_file.trim().is_empty() {
+        return Err("earnings exclusion requires earnings_dates_file".into());
+    }
+    Ok(Some(crate::family4::read_earnings_dates(
+        &cfg.earnings_dates_file,
+    )?))
+}
+
+/// S087: SMA(200) uptrend, EMA(20) intraday touch, and optional trailing
+/// pullback-depth threshold; exit on SMA(10) reclaim, EMA-2*ATR stop, or time.
+pub fn compute_s087_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    s087_validate(cfg)?;
+    let ranks = family9_stock_ranks(panel, cfg)?;
+    let earnings = family9_earnings(cfg, &cfg.s087_earnings_mode)?;
+    let mut result = blank_signals(panel, "ema20_pullback");
+    let n = panel.dates.len();
+    for symbol in 0..panel.symbols.len() {
+        let close = &panel.close[symbol];
+        let low = &panel.low[symbol];
+        let sma200 = rolling_mean(close, cfg.sma_window);
+        let sma10 = rolling_mean(close, cfg.exit_sma);
+        let ema20 = ema(close, cfg.ema_len);
+        let atr = signals::wilder_atr(
+            &panel.high[symbol],
+            low,
+            close,
+            cfg.atr_len,
+        );
+        let mut history = 0usize;
+        for day in 0..n {
+            if close[day].is_finite() {
+                history += 1;
+            }
+            let tradable = close[day].is_finite()
+                && close[day] >= cfg.min_price
+                && history >= cfg.min_history
+                && ranks[symbol][day].is_finite()
+                && ranks[symbol][day] <= cfg.universe_top_n as f64;
+            result.tradable[symbol][day] = tradable;
+            if !tradable
+                || !sma200[day].is_finite()
+                || !ema20[day].is_finite()
+                || close[day] <= sma200[day]
+                || !low[day].is_finite()
+                || low[day] > ema20[day]
+            {
+                continue;
+            }
+            if cfg.s087_pullback_depth > 0.0 {
+                if day < cfg.pullback_days {
+                    continue;
+                }
+                let prior_close = close[day - cfg.pullback_days];
+                if !prior_close.is_finite()
+                    || close[day] / prior_close - 1.0 > -cfg.s087_pullback_depth
+                {
+                    continue;
+                }
+            }
+            if earnings.as_ref().is_some_and(|events| {
+                earnings_exclusion(
+                    panel,
+                    events,
+                    symbol,
+                    day,
+                    cfg.earnings_window_sessions,
+                )
+            }) {
+                continue;
+            }
+            result.signal[symbol][day] = true;
+            result.rsi[symbol][day] = (close[day] / ema20[day]) - 1.0;
+        }
+        for day in 0..n {
+            let stop = ema20[day].is_finite()
+                && atr[day].is_finite()
+                && close[day].is_finite()
+                && close[day] < ema20[day] - 2.0 * atr[day];
+            let reclaim = sma10[day].is_finite()
+                && close[day].is_finite()
+                && close[day] > sma10[day];
+            result.exit_now[symbol][day] = stop || reclaim;
+        }
+    }
+    result.benchmark_returns = crate::family4::benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
+/// S093: rising three-bar low structure, bullish close and prior-volume
+/// confirmation, gated by an explicit prior-decline definition.
+pub fn compute_s093_signals(panel: &Panel, cfg: &Config) -> Result<Signals, String> {
+    s093_validate(cfg)?;
+    let ranks = family9_stock_ranks(panel, cfg)?;
+    let earnings = family9_earnings(cfg, &cfg.s093_earnings_mode)?;
+    let mut result = blank_signals(panel, "higher_low_reversal");
+    let n = panel.dates.len();
+    for symbol in 0..panel.symbols.len() {
+        let (open, high, low, close, volume) = (
+            &panel.open[symbol],
+            &panel.high[symbol],
+            &panel.low[symbol],
+            &panel.close[symbol],
+            &panel.volume[symbol],
+        );
+        let sma200 = rolling_mean(close, cfg.sma_window);
+        let sma10 = rolling_mean(close, cfg.exit_sma);
+        let median_volume: Vec<f64> = (0..n)
+            .map(|day| median_before(volume, day, cfg.volume_window))
+            .collect();
+        let rsi5 = if cfg.s093_decline_mode == "rsi5" {
+            Some(crate::ta_indicators::rsi(close, 5).map_err(|error| {
+                format!("S093 TA-Lib RSI(5) failed: {error:?}")
+            })?)
+        } else {
+            None
+        };
+        let mut history = 0usize;
+        for day in 0..n {
+            if close[day].is_finite() {
+                history += 1;
+            }
+            let tradable = close[day].is_finite()
+                && close[day] >= cfg.min_price
+                && history >= cfg.min_history
+                && ranks[symbol][day].is_finite()
+                && ranks[symbol][day] <= cfg.universe_top_n as f64;
+            result.tradable[symbol][day] = tradable;
+            if !tradable
+                || day < 2
+                || !sma200[day].is_finite()
+                || close[day] <= sma200[day]
+                || !low[day].is_finite()
+                || !low[day - 1].is_finite()
+                || !low[day - 2].is_finite()
+                || !(low[day] > low[day - 1] && low[day - 1] > low[day - 2])
+                || !open[day].is_finite()
+                || close[day] <= open[day]
+                || !median_volume[day].is_finite()
+                || !volume[day].is_finite()
+                || volume[day] <= cfg.volume_multiple * median_volume[day]
+            {
+                continue;
+            }
+            let decline = match cfg.s093_decline_mode.as_str() {
+                "drawdown" => {
+                    let high_before =
+                        rolling_high_before(high, day, cfg.s093_drawdown_window);
+                    high_before.is_finite()
+                        && close[day] <= high_before * (1.0 - cfg.s093_drawdown_pct)
+                }
+                "rsi5" => rsi5.as_ref().is_some_and(|values| {
+                    let start = day.saturating_sub(cfg.pullback_days - 1);
+                    values[start..=day]
+                        .iter()
+                        .any(|value| value.is_finite() && *value < cfg.s093_rsi_threshold)
+                }),
+                "none" => true,
+                _ => unreachable!("S093 config validated"),
+            };
+            if !decline
+                || earnings.as_ref().is_some_and(|events| {
+                    earnings_exclusion(
+                        panel,
+                        events,
+                        symbol,
+                        day,
+                        cfg.earnings_window_sessions,
+                    )
+                })
+            {
+                continue;
+            }
+            result.signal[symbol][day] = true;
+            result.rsi[symbol][day] = close[day] / sma200[day] - 1.0;
+        }
+        for day in 1..n {
+            let structure_broken = close[day].is_finite()
+                && low[day - 1].is_finite()
+                && close[day] < low[day - 1];
+            let reclaimed = sma10[day].is_finite()
+                && close[day].is_finite()
+                && close[day] > sma10[day];
+            result.exit_now[symbol][day] = structure_broken || reclaimed;
+        }
+    }
+    result.benchmark_returns = crate::family4::benchmark_returns(panel, "SPY");
+    Ok(result)
+}
+
+fn family9_reversal_trades(
+    panel: &Panel,
+    sig: &Signals,
+    cfg: &Config,
+    fill: &str,
+) -> Result<Vec<Trade>, String> {
+    if !matches!(fill, "close" | "next_open") {
+        return Err(format!("Family 9 reversal does not support fill {fill:?}"));
+    }
+    let is_open = fill == "next_open";
+    let n = panel.dates.len();
+    let last = last_valid_rows(&panel.close);
+    let mut trades = Vec::new();
+    for symbol in 0..panel.symbols.len() {
+        let Some(last_row) = last[symbol] else { continue };
+        let mut next_signal = 0usize;
+        for signal_day in 0..n {
+            if signal_day < next_signal || !sig.signal[symbol][signal_day] {
+                continue;
+            }
+            let entry_day = if is_open { signal_day + 1 } else { signal_day };
+            if entry_day > last_row {
+                continue;
+            }
+            let entry_price = if is_open {
+                panel.open[symbol][entry_day]
+            } else {
+                panel.close[symbol][entry_day]
+            };
+            if !entry_price.is_finite() || entry_price <= 0.0 {
+                continue;
+            }
+            let final_day = (entry_day + cfg.max_hold - 1).min(last_row);
+            let (mut exit_day, mut exit_reason) = (final_day, "time");
+            let start_exit = if is_open { entry_day } else { entry_day + 1 };
+            for day in start_exit..=final_day {
+                if sig.exit_now[symbol][day] {
+                    exit_day = day;
+                    exit_reason = if day == final_day { "time" } else { "signal" };
+                    break;
+                }
+            }
+            let mut exit_price = panel.close[symbol][exit_day];
+            if is_open
+                && exit_reason != "time"
+                && exit_day + 1 <= last_row
+                && panel.open[symbol][exit_day + 1].is_finite()
+            {
+                exit_day += 1;
+                exit_price = panel.open[symbol][exit_day];
+            }
+            if exit_day == last_row && exit_reason == "time" && last_row + 1 < n {
+                exit_reason = "delisted";
+                if cfg.delisting_return != 0.0 {
+                    exit_price *= 1.0 + cfg.delisting_return;
+                }
+            } else if exit_day == last_row && exit_reason == "time" {
+                exit_reason = "censored";
+            }
+            if !exit_price.is_finite() || exit_price <= 0.0 {
+                continue;
+            }
+            let cost = cfg.cost_for_symbol(&panel.symbols[symbol]);
+            let ret = exit_price * (1.0 - cost) / (entry_price * (1.0 + cost)) - 1.0;
+            trades.push(Trade {
+                sym_idx: symbol,
+                signal_idx: signal_day,
+                entry_idx: entry_day,
+                exit_idx: exit_day,
+                entry_px: entry_price,
+                exit_px: exit_price,
+                ret,
+                ret_gross: exit_price / entry_price - 1.0,
+                exit_reason,
+                hold: exit_day.saturating_sub(entry_day) + 1,
+                signal_value: sig.rsi[symbol][signal_day],
+                weight: 1.0,
+                entry_turnover: 1.0,
+                exit_turnover: 1.0,
+                weighted: false,
+                borrow_cost_per_bar: 0.0,
+                dir_sign: 1.0,
+            });
+            next_signal = exit_day + 1;
+        }
+    }
+    trades.sort_by(|a, b| {
+        (a.entry_idx, &panel.symbols[a.sym_idx]).cmp(&(b.entry_idx, &panel.symbols[b.sym_idx]))
+    });
+    Ok(trades)
+}
+
+pub fn s087_trades(
+    panel: &Panel,
+    sig: &Signals,
+    cfg: &Config,
+    fill: &str,
+) -> Result<Vec<Trade>, String> {
+    family9_reversal_trades(panel, sig, cfg, fill)
+}
+
+pub fn s093_trades(
+    panel: &Panel,
+    sig: &Signals,
+    cfg: &Config,
+    fill: &str,
+) -> Result<Vec<Trade>, String> {
+    family9_reversal_trades(panel, sig, cfg, fill)
+}
+
+#[cfg(test)]
+mod family9_pullback_tests {
+    use super::*;
+    use chrono::{Duration, NaiveDate};
+    use std::fs;
+
+    fn config() -> Config {
+        serde_yaml::from_str(
+            "partition_split_date: '2024-01-01'\n\
+             min_history: 1\n\
+             rank_window: 1\n\
+             rank_min_observations: 1\n\
+             min_price: 1.0\n\
+             universe_top_n: 500\n\
+             sma_window: 200\n\
+             exit_sma: 10\n\
+             ema_len: 20\n\
+             atr_len: 14\n\
+             pullback_days: 3\n\
+             volume_window: 20\n\
+             max_hold: 8\n\
+             earnings_window_sessions: 3\n",
+        )
+        .unwrap()
+    }
+
+    fn trending_panel(length: usize) -> Panel {
+        let start = NaiveDate::from_ymd_opt(2020, 1, 1).unwrap();
+        let close: Vec<f64> = (0..length).map(|day| 100.0 + day as f64 * 0.3).collect();
+        let open: Vec<f64> = close.iter().map(|value| value - 0.1).collect();
+        let high: Vec<f64> = close.iter().map(|value| value + 0.3).collect();
+        let low: Vec<f64> = close.iter().map(|value| value - 0.3).collect();
+        let volume = vec![100.0; length];
+        Panel {
+            dates: (0..length)
+                .map(|day| start + Duration::days(day as i64))
+                .collect(),
+            symbols: vec!["ABC".into()],
+            open: vec![open],
+            high: vec![high],
+            low: vec![low],
+            close: vec![close],
+            volume: vec![volume],
+        }
+    }
+
+    #[test]
+    fn s087_requires_ema_touch_and_trend_and_honors_depth() {
+        let mut panel = trending_panel(230);
+        panel.close[0][220] = 163.0;
+        panel.close[0][221] = 162.5;
+        panel.open[0][220] = 163.1;
+        panel.open[0][221] = 162.6;
+        panel.low[0][221] = 158.0;
+        panel.high[0][220] = 163.3;
+        panel.high[0][221] = 162.8;
+        let mut cfg = config();
+        let baseline = compute_s087_signals(&panel, &cfg).unwrap();
+        assert!(baseline.signal[0][221]);
+
+        cfg.s087_pullback_depth = 0.03;
+        let depth = compute_s087_signals(&panel, &cfg).unwrap();
+        assert!(!depth.signal[0][221]);
+    }
+
+    #[test]
+    fn s093_requires_prior_decline_higher_lows_and_volume_confirmation() {
+        let mut panel = trending_panel(230);
+        panel.close[0][220] = 155.0;
+        panel.open[0][220] = 154.5;
+        panel.low[0][218] = 150.0;
+        panel.low[0][219] = 151.0;
+        panel.low[0][220] = 152.0;
+        panel.high[0][220] = 155.2;
+        panel.volume[0][220] = 1_000.0;
+        let cfg = config();
+        let signals = compute_s093_signals(&panel, &cfg).unwrap();
+        assert!(signals.signal[0][220]);
+
+        panel.volume[0][220] = 100.0;
+        let no_volume = compute_s093_signals(&panel, &cfg).unwrap();
+        assert!(!no_volume.signal[0][220]);
+    }
+
+    #[test]
+    fn s093_rsi_decline_alternative_detects_recent_oversold_condition() {
+        let mut panel = trending_panel(230);
+        for (day, close) in [
+            (215, 164.0),
+            (216, 161.0),
+            (217, 158.0),
+            (218, 155.0),
+            (219, 152.0),
+            (220, 153.0),
+        ] {
+            panel.close[0][day] = close;
+            panel.open[0][day] = close - 0.1;
+            panel.high[0][day] = close + 0.2;
+        }
+        panel.low[0][218] = 148.0;
+        panel.low[0][219] = 149.0;
+        panel.low[0][220] = 150.0;
+        panel.volume[0][220] = 1_000.0;
+        let mut cfg = config();
+        cfg.s093_decline_mode = "rsi5".into();
+        let signals = compute_s093_signals(&panel, &cfg).unwrap();
+        assert!(signals.signal[0][220]);
+    }
+
+    #[test]
+    fn s093_earnings_exclusion_blocks_signals_in_the_event_window() {
+        let mut panel = trending_panel(230);
+        panel.close[0][220] = 155.0;
+        panel.open[0][220] = 154.5;
+        panel.low[0][218] = 150.0;
+        panel.low[0][219] = 151.0;
+        panel.low[0][220] = 152.0;
+        panel.high[0][220] = 155.2;
+        panel.volume[0][220] = 1_000.0;
+        let path = std::env::temp_dir().join(format!(
+            "deepthrust_s093_earnings_{}.csv",
+            std::process::id()
+        ));
+        fs::write(
+            &path,
+            format!("ticker;date\nABC;{}\n", panel.dates[220]),
+        )
+        .unwrap();
+        let mut cfg = config();
+        cfg.s093_earnings_mode = "exclude".into();
+        cfg.earnings_dates_file = path.to_string_lossy().into_owned();
+        let signals = compute_s093_signals(&panel, &cfg).unwrap();
+        let _ = fs::remove_file(path);
+        assert!(!signals.signal[0][220]);
+    }
+
+    #[test]
+    fn family9_next_open_trades_respect_the_max_hold_cap() {
+        let panel = trending_panel(230);
+        let mut cfg = config();
+        cfg.max_hold = 3;
+        let mut signals = blank_signals(&panel, "test");
+        signals.signal[0][220] = true;
+        signals.exit_now[0][222] = true;
+        let trades = s087_trades(&panel, &signals, &cfg, "next_open").unwrap();
+        assert_eq!(trades.len(), 1);
+        assert_eq!(trades[0].entry_idx, 221);
+        assert_eq!(trades[0].exit_idx, 223);
+        assert_eq!(trades[0].hold, 3);
+
+        signals.exit_now[0][222] = false;
+        signals.exit_now[0][223] = true;
+        let trades = s087_trades(&panel, &signals, &cfg, "next_open").unwrap();
+        assert_eq!(trades[0].exit_idx, 223);
+        assert_eq!(trades[0].hold, 3);
+        assert_eq!(trades[0].exit_reason, "time");
+    }
+}
 pub const S090_NAME: &str = "s090_kama_breakout";
 pub const S090_TITLE: &str = "S090 KAMA Breakout";
 

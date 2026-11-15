@@ -87,6 +87,10 @@ pub const S089_NAME: &str = crate::family9::S089_NAME;
 pub const S089_TITLE: &str = crate::family9::S089_TITLE;
 pub const S090_NAME: &str = crate::family9::S090_NAME;
 pub const S090_TITLE: &str = crate::family9::S090_TITLE;
+pub const S087_NAME: &str = crate::family9::S087_NAME;
+pub const S087_TITLE: &str = crate::family9::S087_TITLE;
+pub const S093_NAME: &str = crate::family9::S093_NAME;
+pub const S093_TITLE: &str = crate::family9::S093_TITLE;
 pub const S094_NAME: &str = crate::family9::S094_NAME;
 pub const S094_TITLE: &str = crate::family9::S094_TITLE;
 pub const S100_NAME: &str = crate::family10::S100_NAME;
@@ -1605,6 +1609,8 @@ struct Family9Definition {
 enum Family9Kind {
     KeltnerBreakout,
     KamaBreakout,
+    EmaPullback,
+    HigherLowReversal,
 }
 
 impl StrategyDefinition for Family9Definition {
@@ -1620,6 +1626,8 @@ impl StrategyDefinition for Family9Definition {
         match self.kind {
             Family9Kind::KeltnerBreakout => crate::family9::compute_s095_signals(panel, cfg),
             Family9Kind::KamaBreakout => crate::family9::compute_s090_signals(panel, cfg),
+            Family9Kind::EmaPullback => crate::family9::compute_s087_signals(panel, cfg),
+            Family9Kind::HigherLowReversal => crate::family9::compute_s093_signals(panel, cfg),
         }
     }
 
@@ -1633,6 +1641,8 @@ impl StrategyDefinition for Family9Definition {
         match self.kind {
             Family9Kind::KeltnerBreakout => crate::family9::s095_trades(panel, sig, cfg, fill),
             Family9Kind::KamaBreakout => crate::family9::s090_trades(panel, sig, cfg, fill),
+            Family9Kind::EmaPullback => crate::family9::s087_trades(panel, sig, cfg, fill),
+            Family9Kind::HigherLowReversal => crate::family9::s093_trades(panel, sig, cfg, fill),
         }
     }
 }
@@ -2164,6 +2174,16 @@ static S090_STRATEGY: Family9Definition = Family9Definition {
     title: S090_TITLE,
     kind: Family9Kind::KamaBreakout,
 };
+static S087_STRATEGY: Family9Definition = Family9Definition {
+    name: S087_NAME,
+    title: S087_TITLE,
+    kind: Family9Kind::EmaPullback,
+};
+static S093_STRATEGY: Family9Definition = Family9Definition {
+    name: S093_NAME,
+    title: S093_TITLE,
+    kind: Family9Kind::HigherLowReversal,
+};
 static S094_STRATEGY: S094BollingerSqueezeDefinition = S094BollingerSqueezeDefinition;
 static S103_STRATEGY: Family10Definition = Family10Definition {
     name: crate::family10::S103_NAME,
@@ -2177,7 +2197,7 @@ static MARKOV_STRATEGY: MarkovRegimeStrategyDefinition = MarkovRegimeStrategyDef
 static PAL_STRATEGY: PalSweepDefinition = PalSweepDefinition;
 static HMM_STRATEGY: HmmRegimeStrategyDefinition = HmmRegimeStrategyDefinition;
 
-static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 107] = [
+static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 109] = [
     &S001_STRATEGY,
     &S003_STRATEGY,
     &S006_STRATEGY,
@@ -2237,6 +2257,8 @@ static STRATEGY_REGISTRY: [&dyn StrategyDefinition; 107] = [
     &S089_STRATEGY,
     &S095_STRATEGY,
     &S090_STRATEGY,
+    &S087_STRATEGY,
+    &S093_STRATEGY,
     &S094_STRATEGY,
     &S103_STRATEGY,
     &S100_STRATEGY,
@@ -4295,6 +4317,14 @@ impl<'a> Study<'a> {
                 "Hold a close above a flat-to-rising KAMA and exit on a close back below it; mirrored rules apply to the short-side variants.",
                 "The only cited source is an unverified YouTube video; stock and ETF bars start in 2016; the catalog's long-and-short direction runs long-only first per the shared specification, with short legs as registered variants.",
             )),
+            "s087_ema20_pullback" => Some((
+                "Buy a touch of the EMA in a stock above its long SMA after the configured pullback depth; exit on the short-SMA reclaim, the EMA-minus-2-ATR stop, or the session cap.",
+                "The PIT liquidity-rank cache approximates the S&P 500; the baseline uses no pullback-depth threshold as catalog-listed. Historical earnings exclusions depend on SEC 8-K Item 2.02 coverage, which may omit releases not reported on an 8-K.",
+            )),
+            "s093_higher_low_reversal" => Some((
+                "After a configured prior decline, buy a bullish close with two higher lows, above the long SMA and on volume greater than the prior-session median; exit on a structure break, short-SMA reclaim, or time.",
+                "The baseline uses a 5% drawdown over 10 sessions (catalog does not specify x); the no-decline control and RSI(5) alternative are registered. Earnings exclusions rely on SEC 8-K Item 2.02 coverage, which may omit releases not reported on an 8-K.",
+            )),
             "s100_three_white_soldiers" => Some((
                 "After N rising green candles opening inside the prior body with rising volume and a close above the SMA gate, buy the signal close (or next open); exit on a close below the pattern stop, the target, or the session cap.",
                 "Demoted catalog entry run as a falsification test; 'long' candle size is unquantified in the source so the baseline needs only close > open (min_body_* variants tighten it); the tradable universe is restricted to the total-return cache, which covers every name that ever enters the top-500 liquidity ranks.",
@@ -4741,12 +4771,21 @@ impl<'a> Study<'a> {
         let start = state.first_row;
         let end = state.panel.dates.len();
         let benchmark = state.benchmark.as_ref().map(|(_, returns)| returns.clone());
+        let symbol_costs: Vec<f64> = state
+            .panel
+            .symbols
+            .iter()
+            .map(|name| self.cfg.cost_for_symbol(name))
+            .collect();
+        let mut trades_by_symbol = vec![Vec::new(); state.panel.symbols.len()];
+        for trade in trades {
+            if let Some(symbol_trades) = trades_by_symbol.get_mut(trade.sym_idx) {
+                symbol_trades.push(trade);
+            }
+        }
         let mut symbols = Vec::with_capacity(state.panel.symbols.len());
         for (symbol_idx, symbol) in state.panel.symbols.iter().enumerate() {
-            let symbol_trades: Vec<_> = trades
-                .iter()
-                .filter(|trade| trade.sym_idx == symbol_idx)
-                .collect();
+            let symbol_trades = &trades_by_symbol[symbol_idx];
             let legs: Vec<_> = symbol_trades
                 .iter()
                 .map(|trade| partition::Leg {
@@ -4766,12 +4805,7 @@ impl<'a> Study<'a> {
             let (strategy_r, _) = partition::account_series_with_costs(
                 &legs,
                 &state.close_ff,
-                &state
-                    .panel
-                    .symbols
-                    .iter()
-                    .map(|name| self.cfg.cost_for_symbol(name))
-                    .collect::<Vec<_>>(),
+                &symbol_costs,
                 end,
                 1,
             );
